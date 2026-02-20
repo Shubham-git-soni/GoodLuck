@@ -1,0 +1,138 @@
+[
+  {
+    "id": "BS001",
+    "shopName": "Academic Books Pvt Ltd",
+    "ownerName": "Suresh Agarwal",
+    "city": "Delhi",
+    "address": "Daryaganj, New Delhi - 110002",
+    "phone": "+91 11 2327 8901",
+    "email": "suresh@academicbooks.com",
+    "gstNumber": "07AABCA1234F1Z5",
+    "currentOutstanding": 285000,
+    "creditLimit": 500000,
+    "lastVisitDate": "2025-11-19",
+    "assignedTo": "SM001",
+    "businessHistory": [
+      { "year": 2023, "revenue": 2450000 },
+      { "year": 2024, "revenue": 2780000 },
+      { "year": 2025, "revenue": 2950000 }
+    ],
+    "paymentHistory": [
+      { "date": "2025-10-15", "amount": 150000, "mode": "NEFT" },
+      { "date": "2025-09-20", "amount": 200000, "mode": "Cheque" },
+      { "date": "2025-08-10", "amount": 180000, "mode": "RTGS" }
+    ],
+    "paymentDeadlines": [
+      { "amount": 150000, "dueDate": "2025-12-15", "percentage": 50, "status": "Pending" },
+      { "amount": 135000, "dueDate": "2026-01-15", "percentage": 50, "status": "Pending" }
+    ]
+  },
+  {
+    "id": "BS002",
+    "shopName": "Education Corner",
+    "ownerName": "Ramesh Patil",
+    "city": "Mumbai",
+    "address": "Fort, Mumbai - 400001",
+    "phone": "+91 22 2267 3456",
+    "email": "ramesh@educorner.com",
+    "gstNumber": "27AABCA5678G2Z3",
+    "currentOutstanding": 425000,
+    "creditLimit": 750000,
+    "lastVisitDate": "2025-11-20",
+    "assignedTo": "SM005",
+    "businessHistory": [
+      { "year": 2023, "revenue": 3200000 },
+      { "year": 2024, "revenue": 3650000 },
+      { "year": 2025, "revenue": 3880000 }
+    ],
+    "paymentHistory": [
+      { "date": "2025-10-25", "amount": 250000, "mode": "NEFT" },
+      { "date": "2025-09-15", "amount": 300000, "mode": "Cheque" }
+    ],
+    "paymentDeadlines": [
+      { "amount": 200000, "dueDate": "2025-12-10", "percentage": 47, "status": "Pending" },
+      { "amount": 225000, "dueDate": "2026-01-10", "percentage": 53, "status": "Pending" }
+    ]
+  },
+  {
+    "id": "BS003",
+    "shopName": "Scholar's Choice",
+    "ownerName": "Meena Shah",
+    "city": "Ahmedabad",
+    "address": "CG Road, Ahmedabad - 380006",
+    "phone": "+91 79 2640 5678",
+    "email": "meena@scholarschoice.com",
+    "gstNumber": "24AABCA3456H1Z1",
+    "currentOutstanding": 195000,
+    "creditLimit": 400000,
+    "lastVisitDate": "2025-11-17",
+    "assignedTo": "SM002",
+    "businessHistory": [
+      { "year": 2023, "revenue": 1850000 },
+      { "year": 2024, "revenue": 2100000 },
+      { "year": 2025, "revenue": 2280000 }
+    ],
+    "paymentHistory": [
+      { "date": "2025-11-05", "amount": 180000, "mode": "RTGS" },
+      { "date": "2025-10-05", "amount": 160000, "mode": "NEFT" }
+    ],
+    "paymentDeadlines": [
+      { "amount": 97500, "dueDate": "2025-12-20", "percentage": 50, "status": "Pending" },
+      { "amount": 97500, "dueDate": "2026-01-20", "percentage": 50, "status": "Pending" }
+    ]
+  },
+  {
+    "id": "BS004",
+    "shopName": "Knowledge Hub",
+    "ownerName": "Vikram Sharma",
+    "city": "Jaipur",
+    "address": "MI Road, Jaipur - 302001",
+    "phone": "+91 141 2365 4321",
+    "email": "vikram@knowledgehub.com",
+    "gstNumber": "08AABCA7890J3Z7",
+    "currentOutstanding": 315000,
+    "creditLimit": 600000,
+    "lastVisitDate": "2025-11-16",
+    "assignedTo": "SM003",
+    "businessHistory": [
+      { "year": 2023, "revenue": 2650000 },
+      { "year": 2024, "revenue": 2890000 },
+      { "year": 2025, "revenue": 3120000 }
+    ],
+    "paymentHistory": [
+      { "date": "2025-10-20", "amount": 220000, "mode": "Cheque" },
+      { "date": "2025-09-18", "amount": 210000, "mode": "NEFT" }
+    ],
+    "paymentDeadlines": [
+      { "amount": 157500, "dueDate": "2025-12-18", "percentage": 50, "status": "Pending" },
+      { "amount": 157500, "dueDate": "2026-01-25", "percentage": 50, "status": "Pending" }
+    ]
+  },
+  {
+    "id": "BS005",
+    "shopName": "Book Paradise",
+    "ownerName": "Lakshmi Reddy",
+    "city": "Hyderabad",
+    "address": "Abids, Hyderabad - 500001",
+    "phone": "+91 40 2323 4567",
+    "email": "lakshmi@bookparadise.com",
+    "gstNumber": "36AABCA4567K2Z5",
+    "currentOutstanding": 240000,
+    "creditLimit": 500000,
+    "lastVisitDate": "2025-11-18",
+    "assignedTo": "SM004",
+    "businessHistory": [
+      { "year": 2023, "revenue": 2150000 },
+      { "year": 2024, "revenue": 2450000 },
+      { "year": 2025, "revenue": 2620000 }
+    ],
+    "paymentHistory": [
+      { "date": "2025-10-30", "amount": 190000, "mode": "NEFT" },
+      { "date": "2025-09-25", "amount": 185000, "mode": "RTGS" }
+    ],
+    "paymentDeadlines": [
+      { "amount": 120000, "dueDate": "2025-12-12", "percentage": 50, "status": "Pending" },
+      { "amount": 120000, "dueDate": "2026-01-12", "percentage": 50, "status": "Pending" }
+    ]
+  }
+]

@@ -1,0 +1,229 @@
+[
+  {
+    "id": "V001",
+    "type": "school",
+    "schoolId": "SCH001",
+    "schoolName": "Delhi Public School",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar",
+    "date": "2025-11-15",
+    "contacts": [
+      { "id": "C001", "name": "Dr. Rajesh Sharma", "role": "Principal" },
+      { "id": "C002", "name": "Mrs. Anita Verma", "role": "Vice Principal" }
+    ],
+    "purposes": ["Need Mapping", "Specimen Distribution"],
+    "needMappingType": "Changing specific subjects",
+    "jointWorking": {
+      "hasManager": true,
+      "managerName": "Amit Sharma",
+      "managerType": "Regional Manager"
+    },
+    "specimensGiven": [
+      { "subject": "Mathematics", "class": "10", "book": "Mathematics Textbook Class X", "quantity": 5, "cost": 1125 },
+      { "subject": "Science", "class": "10", "book": "Science for Class X", "quantity": 4, "cost": 1000 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 2125,
+    "feedback": {
+      "category": "Book Quality",
+      "comment": "Excellent print quality and content"
+    },
+    "nextVisit": {
+      "date": "2025-12-20",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V002",
+    "type": "school",
+    "schoolId": "SCH002",
+    "schoolName": "Ryan International School",
+    "salesmanId": "SM005",
+    "salesmanName": "Arjun Mehta",
+    "date": "2025-11-18",
+    "contacts": [
+      { "id": "C004", "name": "Mrs. Pooja Mehta", "role": "Principal" }
+    ],
+    "purposes": ["Post-Sales Engagement", "Relationship Building"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "Mathematics", "class": "8", "book": "Mathematics for Class VIII", "quantity": 3, "cost": 630 }
+    ],
+    "specimensReturned": [
+      { "subject": "Hindi", "class": "8", "book": "Hindi Vyakaran", "quantity": 2, "condition": "Good" }
+    ],
+    "totalSpecimenCost": 630,
+    "feedback": {
+      "category": "Pricing",
+      "comment": "Competitive pricing appreciated"
+    },
+    "nextVisit": {
+      "date": "2025-12-15",
+      "purpose": "Need Mapping"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V003",
+    "type": "bookseller",
+    "bookSellerId": "BS001",
+    "bookSellerName": "Academic Books Pvt Ltd",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar",
+    "date": "2025-11-19",
+    "purposes": ["Payment Collection", "Relationship Building"],
+    "paymentCollected": 0,
+    "paymentDeadlineSet": [
+      { "amount": 150000, "dueDate": "2025-12-15", "percentage": 50 }
+    ],
+    "notes": "Discussed upcoming season's requirements. Owner agreed to clear 50% outstanding by mid-December.",
+    "status": "Completed"
+  },
+  {
+    "id": "V004",
+    "type": "school",
+    "schoolId": "SCH004",
+    "schoolName": "DAV Public School",
+    "salesmanId": "SM003",
+    "salesmanName": "Vikram Singh",
+    "date": "2025-11-10",
+    "contacts": [
+      { "id": "C007", "name": "Dr. Ramesh Chand", "role": "Principal" },
+      { "id": "C008", "name": "Mrs. Kavita Sharma", "role": "HOD Science" }
+    ],
+    "purposes": ["Specimen Distribution", "Need Mapping"],
+    "needMappingType": "No change",
+    "jointWorking": {
+      "hasManager": true,
+      "managerName": "Amit Sharma",
+      "managerType": "Regional Manager"
+    },
+    "specimensGiven": [
+      { "subject": "Physics", "class": "12", "book": "Physics Class XII", "quantity": 6, "cost": 1800 },
+      { "subject": "Chemistry", "class": "12", "book": "Chemistry Class XII", "quantity": 6, "cost": 1740 },
+      { "subject": "Mathematics", "class": "12", "book": "Mathematics Part I", "quantity": 5, "cost": 1375 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 4915,
+    "feedback": {
+      "category": "Content Issue",
+      "comment": "Request to add more practical examples in Physics book"
+    },
+    "nextVisit": {
+      "date": "2026-01-10",
+      "purpose": "Post-Sales Engagement"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V005",
+    "type": "bookseller",
+    "bookSellerId": "BS002",
+    "bookSellerName": "Education Corner",
+    "salesmanId": "SM005",
+    "salesmanName": "Arjun Mehta",
+    "date": "2025-11-20",
+    "purposes": ["Payment Collection", "Documentation"],
+    "paymentCollected": 0,
+    "paymentDeadlineSet": [
+      { "amount": 200000, "dueDate": "2025-12-10", "percentage": 47 },
+      { "amount": 225000, "dueDate": "2026-01-10", "percentage": 53 }
+    ],
+    "notes": "Agreement renewed for next year. Payment plan finalized.",
+    "status": "Completed"
+  },
+  {
+    "id": "V006",
+    "type": "school",
+    "schoolId": "SCH005",
+    "schoolName": "Oakridge International School",
+    "salesmanId": "SM004",
+    "salesmanName": "Sneha Reddy",
+    "date": "2025-11-05",
+    "contacts": [
+      { "id": "C009", "name": "Ms. Sarah Williams", "role": "Principal" }
+    ],
+    "purposes": ["Relationship Building", "Specimen Distribution"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "English", "class": "11", "book": "Hornbill English Core", "quantity": 4, "cost": 960 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 960,
+    "feedback": null,
+    "nextVisit": {
+      "date": "2025-12-05",
+      "purpose": "Need Mapping"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V007",
+    "type": "school",
+    "schoolId": "SCH007",
+    "schoolName": "Cathedral School",
+    "salesmanId": "SM005",
+    "salesmanName": "Arjun Mehta",
+    "date": "2025-11-20",
+    "contacts": [
+      { "id": "C012", "name": "Mrs. Linda Fernandes", "role": "Principal" },
+      { "id": "C013", "name": "Mr. Vinay Kulkarni", "role": "Librarian" }
+    ],
+    "purposes": ["Need Mapping", "Post-Sales Engagement"],
+    "needMappingType": "Implementing NCERT",
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "English", "class": "9", "book": "English Literature Class IX", "quantity": 5, "cost": 950 },
+      { "subject": "Mathematics", "class": "9", "book": "ICSE Mathematics Class IX", "quantity": 5, "cost": 1050 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 2000,
+    "feedback": {
+      "category": "Book Quality",
+      "comment": "High-quality content, well-received by teachers"
+    },
+    "nextVisit": {
+      "date": "2025-12-22",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V008",
+    "type": "school",
+    "schoolId": "SCH001",
+    "schoolName": "Delhi Public School",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar",
+    "date": "2025-12-20",
+    "contacts": [],
+    "purposes": ["Follow-Up"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [],
+    "specimensReturned": [],
+    "totalSpecimenCost": 0,
+    "feedback": null,
+    "nextVisit": null,
+    "status": "Scheduled"
+  }
+]

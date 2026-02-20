@@ -1,0 +1,38 @@
+[
+  {
+    "id": "QBV001",
+    "qbId": "QB001",
+    "schoolCity": "Delhi",
+    "schoolName": "Delhi Public School",
+    "schoolBoard": "CBSE",
+    "schoolStrength": 2500,
+    "schoolAddress": "Mathura Road, New Delhi - 110025",
+    "purposeOfVisit": "Question Paper Discussion",
+    "teacherName": "Dr. Rajesh Sharma",
+    "teacherDesignation": "Principal",
+    "teacherContactNo": "+91 11 2634 5678",
+    "teacherEmail": "principal@dps.edu",
+    "remarks": "Discussed Class 10 sample papers",
+    "visitDate": "2025-11-20",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar"
+  },
+  {
+    "id": "QBV002",
+    "qbId": "QB002",
+    "schoolCity": "Mumbai",
+    "schoolName": "Ryan International School",
+    "schoolBoard": "CBSE",
+    "schoolStrength": 1800,
+    "schoolAddress": "Goregaon West, Mumbai - 400062",
+    "purposeOfVisit": "QB Sample Distribution",
+    "teacherName": "Mrs. Pooja Mehta",
+    "teacherDesignation": "Academic Coordinator",
+    "teacherContactNo": "+91 22 2876 5432",
+    "teacherEmail": "academic@ryan.edu",
+    "remarks": "Provided QB samples for review",
+    "visitDate": "2025-11-18",
+    "salesmanId": "SM005",
+    "salesmanName": "Amit Patel"
+  }
+]

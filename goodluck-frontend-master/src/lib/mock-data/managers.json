@@ -1,0 +1,42 @@
+[
+  {
+    "id": "MGR001",
+    "name": "Rajesh Kumar",
+    "email": "rajesh.kumar@company.com",
+    "contactNo": "+91 98765 43210",
+    "state": "Delhi",
+    "assignedSalesmen": ["SM001", "SM002"],
+    "createdDate": "2024-01-15",
+    "status": "Active"
+  },
+  {
+    "id": "MGR002",
+    "name": "Priya Sharma",
+    "email": "priya.sharma@company.com",
+    "contactNo": "+91 98765 43211",
+    "state": "Maharashtra",
+    "assignedSalesmen": ["SM005"],
+    "createdDate": "2024-02-10",
+    "status": "Active"
+  },
+  {
+    "id": "MGR003",
+    "name": "Amit Patel",
+    "email": "amit.patel@company.com",
+    "contactNo": "+91 98765 43212",
+    "state": "Gujarat",
+    "assignedSalesmen": [],
+    "createdDate": "2024-03-05",
+    "status": "Active"
+  },
+  {
+    "id": "MGR004",
+    "name": "Sneha Reddy",
+    "email": "sneha.reddy@company.com",
+    "contactNo": "+91 98765 43213",
+    "state": "Karnataka",
+    "assignedSalesmen": [],
+    "createdDate": "2024-04-20",
+    "status": "Inactive"
+  }
+]

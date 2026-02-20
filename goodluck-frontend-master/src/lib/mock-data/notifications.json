@@ -1,0 +1,167 @@
+[
+  {
+    "id": "N001",
+    "userId": "SM001",
+    "type": "tada",
+    "title": "TA/DA Approved",
+    "message": "Your TA/DA claim for Nov 15, 2025 (₹850) has been approved",
+    "date": "2025-11-16T10:30:00",
+    "read": true,
+    "priority": "normal",
+    "actionUrl": "/salesman/tada"
+  },
+  {
+    "id": "N002",
+    "userId": "SM005",
+    "type": "deadline",
+    "title": "Payment Follow-up Due",
+    "message": "Payment deadline approaching for Education Corner (₹200,000 due on Dec 10)",
+    "date": "2025-11-20T09:00:00",
+    "read": false,
+    "priority": "high",
+    "actionUrl": "/salesman/booksellers/BS002"
+  },
+  {
+    "id": "N003",
+    "userId": "SM003",
+    "type": "manager",
+    "title": "Manager Feedback Pending",
+    "message": "Regional Manager Amit Sharma requested your visit report for DAV Public School",
+    "date": "2025-11-18T14:00:00",
+    "read": false,
+    "priority": "high",
+    "actionUrl": "/salesman/schools/SCH004"
+  },
+  {
+    "id": "N004",
+    "userId": "SM002",
+    "type": "tada",
+    "title": "TA/DA Flagged",
+    "message": "Your TA/DA claim for Nov 12 has been flagged. Please review and update.",
+    "date": "2025-11-13T11:00:00",
+    "read": false,
+    "priority": "high",
+    "actionUrl": "/salesman/tada"
+  },
+  {
+    "id": "N005",
+    "userId": "SM001",
+    "type": "visit",
+    "title": "Upcoming Visit Scheduled",
+    "message": "You have a follow-up visit scheduled at Delhi Public School on Dec 20",
+    "date": "2025-11-17T08:00:00",
+    "read": true,
+    "priority": "normal",
+    "actionUrl": "/salesman/next-visits"
+  },
+  {
+    "id": "N006",
+    "userId": "SM004",
+    "type": "deadline",
+    "title": "Specimen Return Deadline",
+    "message": "Specimen return deadline approaching. 5 specimens pending return.",
+    "date": "2025-11-19T10:00:00",
+    "read": false,
+    "priority": "medium",
+    "actionUrl": "/salesman/dashboard"
+  },
+  {
+    "id": "N007",
+    "userId": "SM005",
+    "type": "tada",
+    "title": "TA/DA Approved",
+    "message": "Your TA/DA claim for Nov 18, 2025 (₹1,200) has been approved",
+    "date": "2025-11-19T15:30:00",
+    "read": true,
+    "priority": "normal",
+    "actionUrl": "/salesman/tada"
+  },
+  {
+    "id": "N008",
+    "userId": "SM003",
+    "type": "manager",
+    "title": "Joint Working Scheduled",
+    "message": "Regional Manager will accompany you for school visits on Nov 25-26",
+    "date": "2025-11-20T09:30:00",
+    "read": false,
+    "priority": "high",
+    "actionUrl": "/salesman/dashboard"
+  },
+  {
+    "id": "N009",
+    "userId": "SM001",
+    "type": "target",
+    "title": "Monthly Target Alert",
+    "message": "You've achieved 75% of your monthly sales target. Keep going!",
+    "date": "2025-11-21T08:00:00",
+    "read": false,
+    "priority": "medium",
+    "actionUrl": "/salesman/dashboard"
+  },
+  {
+    "id": "N010",
+    "userId": "SM002",
+    "type": "visit",
+    "title": "School Visit Reminder",
+    "message": "You have 15 schools pending first visit this month",
+    "date": "2025-11-21T09:00:00",
+    "read": false,
+    "priority": "medium",
+    "actionUrl": "/salesman/schools"
+  },
+  {
+    "id": "N011",
+    "userId": "SM004",
+    "type": "feedback",
+    "title": "Product Manager Response",
+    "message": "Product Manager responded to your feedback on IB curriculum alignment",
+    "date": "2025-11-06T16:00:00",
+    "read": true,
+    "priority": "normal",
+    "actionUrl": "/salesman/dashboard"
+  },
+  {
+    "id": "N012",
+    "userId": "SM005",
+    "type": "deadline",
+    "title": "Tour Plan Submission Due",
+    "message": "Please submit your tour plan for next week by Nov 23",
+    "date": "2025-11-20T10:00:00",
+    "read": false,
+    "priority": "high",
+    "actionUrl": "/salesman/dashboard"
+  },
+  {
+    "id": "N013",
+    "userId": "SM001",
+    "type": "specimen",
+    "title": "Specimen Budget Alert",
+    "message": "You've used 65% of your specimen budget. Plan accordingly.",
+    "date": "2025-11-15T12:00:00",
+    "read": true,
+    "priority": "medium",
+    "actionUrl": "/salesman/dashboard"
+  },
+  {
+    "id": "N014",
+    "userId": "SM003",
+    "type": "tada",
+    "title": "TA/DA Rejected",
+    "message": "Your TA/DA claim for Nov 14 has been rejected. Reason: No visit logged",
+    "date": "2025-11-15T14:00:00",
+    "read": true,
+    "priority": "high",
+    "actionUrl": "/salesman/tada"
+  },
+  {
+    "id": "N015",
+    "userId": "SM002",
+    "type": "school",
+    "title": "School Replacement Approved",
+    "message": "Your request to replace St. Xavier's High School has been approved",
+    "date": "2025-11-14T11:00:00",
+    "read": true,
+    "priority": "normal",
+    "actionUrl": "/salesman/schools/replacement"
+  }
+]

@@ -1,0 +1,68 @@
+{
+  "cities": [
+    "Mumbai", "Delhi", "Bangalore", "Pune", "Chennai", "Kolkata", "Hyderabad",
+    "Ahmedabad", "Jaipur", "Lucknow", "Kanpur", "Nagpur", "Indore", "Bhopal",
+    "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana", "Agra"
+  ],
+  "states": [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+    "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
+    "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+    "Uttarakhand", "West Bengal"
+  ],
+  "boards": [
+    "CBSE", "ICSE", "State Board", "IB", "IGCSE", "NIOS"
+  ],
+  "contactRoles": [
+    "Principal", "Vice Principal", "Academic Coordinator", "Librarian",
+    "HOD Science", "HOD Mathematics", "HOD English", "HOD Social Studies",
+    "Purchase Manager", "Admin Officer"
+  ],
+  "visitPurposes": [
+    "Need Mapping", "Post-Sales Engagement", "Relationship Building",
+    "Reminder/Follow-Up", "Specimen Distribution", "Payment Collection",
+    "Documentation", "Inquiry", "Sales Return Follow-Up"
+  ],
+  "needMappingTypes": [
+    "No change", "Implementing NCERT", "Changing specific subjects"
+  ],
+  "subjects": [
+    "Mathematics", "Science", "English", "Hindi", "Social Studies",
+    "Physics", "Chemistry", "Biology", "Computer Science", "Economics",
+    "Accountancy", "Business Studies", "History", "Geography", "Political Science"
+  ],
+  "classes": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+  "managerTypes": [
+    "Regional Manager", "State Manager", "Zonal Manager"
+  ],
+  "travelModes": [
+    "Two Wheeler", "Four Wheeler", "Public Transport", "Taxi/Cab", "Train", "Flight"
+  ],
+  "specimenConditions": [
+    "Good", "Damaged", "Partially Damaged"
+  ],
+  "feedbackCategories": [
+    "Book Quality", "Content Issue", "Pricing", "Competitive Feedback",
+    "Print Quality", "Binding Issue", "Delivery"
+  ],
+  "discountCategories": [
+    "Early Bird", "Bulk Order", "Loyalty", "Seasonal", "Clearance", "Special"
+  ],
+  "paymentStatuses": [
+    "Pending", "Partial", "Completed", "Overdue", "On Hold"
+  ],
+  "visitStatuses": [
+    "Scheduled", "Completed", "Cancelled", "Rescheduled"
+  ],
+  "tadaStatuses": [
+    "Pending", "Approved", "Rejected", "Flagged", "Request More Info"
+  ],
+  "approvalStatuses": [
+    "Pending", "Approved", "Rejected", "Under Review"
+  ],
+  "complianceStatuses": [
+    "Followed", "Partially Followed", "Missed"
+  ]
+}

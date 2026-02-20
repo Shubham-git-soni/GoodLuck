@@ -1,0 +1,98 @@
+[
+  {
+    "id": "QB001",
+    "schoolName": "Delhi Public School",
+    "schoolBoard": "CBSE",
+    "address": "Mathura Road, New Delhi - 110025",
+    "city": "Delhi",
+    "state": "Delhi",
+    "strength": 2500,
+    "createdDate": "2025-10-15",
+    "lastUpdated": "2025-11-20",
+    "status": "Active"
+  },
+  {
+    "id": "QB002",
+    "schoolName": "Ryan International School",
+    "schoolBoard": "CBSE",
+    "address": "Goregaon West, Mumbai - 400062",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "strength": 1800,
+    "createdDate": "2025-09-22",
+    "lastUpdated": "2025-11-18",
+    "status": "Active"
+  },
+  {
+    "id": "QB003",
+    "schoolName": "St. Xavier's High School",
+    "schoolBoard": "ICSE",
+    "address": "Navrangpura, Ahmedabad - 380009",
+    "city": "Ahmedabad",
+    "state": "Gujarat",
+    "strength": 1500,
+    "createdDate": "2025-11-01",
+    "lastUpdated": "2025-11-01",
+    "status": "Pending"
+  },
+  {
+    "id": "QB004",
+    "schoolName": "DAV Public School",
+    "schoolBoard": "CBSE",
+    "address": "C-Scheme, Jaipur - 302001",
+    "city": "Jaipur",
+    "state": "Rajasthan",
+    "strength": 2200,
+    "createdDate": "2025-08-10",
+    "lastUpdated": "2025-11-10",
+    "status": "Active"
+  },
+  {
+    "id": "QB005",
+    "schoolName": "Oakridge International School",
+    "schoolBoard": "IB",
+    "address": "Gachibowli, Hyderabad - 500032",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "strength": 1200,
+    "createdDate": "2025-10-05",
+    "lastUpdated": "2025-11-05",
+    "status": "Active"
+  },
+  {
+    "id": "QB006",
+    "schoolName": "Kendriya Vidyalaya",
+    "schoolBoard": "CBSE",
+    "address": "Malleswaram, Bangalore - 560003",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "strength": 3000,
+    "createdDate": "2025-07-20",
+    "lastUpdated": "2025-11-12",
+    "status": "Active"
+  },
+  {
+    "id": "QB007",
+    "schoolName": "Cathedral School",
+    "schoolBoard": "ICSE",
+    "address": "Koregaon Park, Pune - 411001",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "strength": 1600,
+    "createdDate": "2025-09-15",
+    "lastUpdated": "2025-11-20",
+    "status": "Active"
+  },
+  {
+    "id": "QB008",
+    "schoolName": "Modern School",
+    "schoolBoard": "State Board",
+    "address": "MG Road, Chennai - 600028",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "strength": 950,
+    "createdDate": "2025-10-28",
+    "lastUpdated": "2025-10-28",
+    "status": "Inactive"
+  }
+]

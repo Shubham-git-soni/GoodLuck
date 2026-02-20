@@ -1,0 +1,37 @@
+[
+  {
+    "id": "POL001",
+    "expenseType": "Food",
+    "dailyLimit": 500,
+    "receiptRequired": true,
+    "description": "Daily food allowance for field visits"
+  },
+  {
+    "id": "POL002",
+    "expenseType": "Travel",
+    "dailyLimit": 1500,
+    "receiptRequired": true,
+    "description": "Local travel and transportation"
+  },
+  {
+    "id": "POL003",
+    "expenseType": "Hotel",
+    "dailyLimit": 3000,
+    "receiptRequired": true,
+    "description": "Accommodation expenses"
+  },
+  {
+    "id": "POL004",
+    "expenseType": "Fuel",
+    "dailyLimit": 1000,
+    "receiptRequired": true,
+    "description": "Vehicle fuel expenses"
+  },
+  {
+    "id": "POL005",
+    "expenseType": "Other",
+    "dailyLimit": 500,
+    "receiptRequired": false,
+    "description": "Miscellaneous expenses"
+  }
+]

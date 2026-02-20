@@ -1,0 +1,302 @@
+[
+  {
+    "id": "SPEC001",
+    "subject": "Mathematics",
+    "class": "10",
+    "bookName": "Mathematics Textbook Class X",
+    "mrp": 450,
+    "stockAvailable": 250,
+    "allocated": {
+      "SM001": 50,
+      "SM002": 40,
+      "SM003": 45,
+      "SM004": 40,
+      "SM005": 50
+    }
+  },
+  {
+    "id": "SPEC002",
+    "subject": "Science",
+    "class": "10",
+    "bookName": "Science for Class X",
+    "mrp": 500,
+    "stockAvailable": 200,
+    "allocated": {
+      "SM001": 45,
+      "SM002": 35,
+      "SM003": 40,
+      "SM004": 35,
+      "SM005": 45
+    }
+  },
+  {
+    "id": "SPEC003",
+    "subject": "English",
+    "class": "9",
+    "bookName": "English Literature Class IX",
+    "mrp": 380,
+    "stockAvailable": 180,
+    "allocated": {
+      "SM001": 40,
+      "SM002": 30,
+      "SM003": 35,
+      "SM004": 30,
+      "SM005": 40
+    }
+  },
+  {
+    "id": "SPEC004",
+    "subject": "Mathematics",
+    "class": "12",
+    "bookName": "Mathematics Part I",
+    "mrp": 550,
+    "stockAvailable": 150,
+    "allocated": {
+      "SM001": 30,
+      "SM002": 25,
+      "SM003": 35,
+      "SM004": 28,
+      "SM005": 32
+    }
+  },
+  {
+    "id": "SPEC005",
+    "subject": "Mathematics",
+    "class": "12",
+    "bookName": "Mathematics Part II",
+    "mrp": 550,
+    "stockAvailable": 150,
+    "allocated": {
+      "SM001": 30,
+      "SM002": 25,
+      "SM003": 35,
+      "SM004": 28,
+      "SM005": 32
+    }
+  },
+  {
+    "id": "SPEC006",
+    "subject": "Physics",
+    "class": "12",
+    "bookName": "Physics Class XII",
+    "mrp": 600,
+    "stockAvailable": 120,
+    "allocated": {
+      "SM001": 25,
+      "SM002": 20,
+      "SM003": 30,
+      "SM004": 22,
+      "SM005": 23
+    }
+  },
+  {
+    "id": "SPEC007",
+    "subject": "Chemistry",
+    "class": "12",
+    "bookName": "Chemistry Class XII",
+    "mrp": 580,
+    "stockAvailable": 110,
+    "allocated": {
+      "SM001": 24,
+      "SM002": 19,
+      "SM003": 28,
+      "SM004": 20,
+      "SM005": 22
+    }
+  },
+  {
+    "id": "SPEC008",
+    "subject": "Biology",
+    "class": "12",
+    "bookName": "Biology Class XII",
+    "mrp": 560,
+    "stockAvailable": 100,
+    "allocated": {
+      "SM001": 22,
+      "SM002": 18,
+      "SM003": 25,
+      "SM004": 19,
+      "SM005": 20
+    }
+  },
+  {
+    "id": "SPEC009",
+    "subject": "Mathematics",
+    "class": "8",
+    "bookName": "Mathematics for Class VIII",
+    "mrp": 420,
+    "stockAvailable": 170,
+    "allocated": {
+      "SM001": 35,
+      "SM002": 28,
+      "SM003": 32,
+      "SM004": 30,
+      "SM005": 38
+    }
+  },
+  {
+    "id": "SPEC010",
+    "subject": "Science",
+    "class": "8",
+    "bookName": "Science Class VIII",
+    "mrp": 440,
+    "stockAvailable": 160,
+    "allocated": {
+      "SM001": 33,
+      "SM002": 27,
+      "SM003": 30,
+      "SM004": 28,
+      "SM005": 36
+    }
+  },
+  {
+    "id": "SPEC011",
+    "subject": "Hindi",
+    "class": "8",
+    "bookName": "Hindi Vyakaran",
+    "mrp": 350,
+    "stockAvailable": 140,
+    "allocated": {
+      "SM001": 30,
+      "SM002": 24,
+      "SM003": 28,
+      "SM004": 25,
+      "SM005": 32
+    }
+  },
+  {
+    "id": "SPEC012",
+    "subject": "Social Studies",
+    "class": "8",
+    "bookName": "Our Past III",
+    "mrp": 400,
+    "stockAvailable": 130,
+    "allocated": {
+      "SM001": 28,
+      "SM002": 22,
+      "SM003": 26,
+      "SM004": 24,
+      "SM005": 30
+    }
+  },
+  {
+    "id": "SPEC013",
+    "subject": "English",
+    "class": "11",
+    "bookName": "Hornbill English Core",
+    "mrp": 480,
+    "stockAvailable": 140,
+    "allocated": {
+      "SM001": 30,
+      "SM002": 24,
+      "SM003": 28,
+      "SM004": 26,
+      "SM005": 32
+    }
+  },
+  {
+    "id": "SPEC014",
+    "subject": "Physics",
+    "class": "11",
+    "bookName": "Physics Part I",
+    "mrp": 520,
+    "stockAvailable": 120,
+    "allocated": {
+      "SM001": 26,
+      "SM002": 21,
+      "SM003": 24,
+      "SM004": 22,
+      "SM005": 27
+    }
+  },
+  {
+    "id": "SPEC015",
+    "subject": "Chemistry",
+    "class": "11",
+    "bookName": "Chemistry Part I",
+    "mrp": 500,
+    "stockAvailable": 115,
+    "allocated": {
+      "SM001": 25,
+      "SM002": 20,
+      "SM003": 23,
+      "SM004": 21,
+      "SM005": 26
+    }
+  },
+  {
+    "id": "SPEC016",
+    "subject": "Computer Science",
+    "class": "11",
+    "bookName": "Computer Science with Python",
+    "mrp": 540,
+    "stockAvailable": 90,
+    "allocated": {
+      "SM001": 20,
+      "SM002": 16,
+      "SM003": 18,
+      "SM004": 17,
+      "SM005": 21
+    }
+  },
+  {
+    "id": "SPEC017",
+    "subject": "Economics",
+    "class": "11",
+    "bookName": "Indian Economic Development",
+    "mrp": 460,
+    "stockAvailable": 100,
+    "allocated": {
+      "SM001": 22,
+      "SM002": 18,
+      "SM003": 20,
+      "SM004": 19,
+      "SM005": 23
+    }
+  },
+  {
+    "id": "SPEC018",
+    "subject": "Accountancy",
+    "class": "11",
+    "bookName": "Accountancy Part I",
+    "mrp": 490,
+    "stockAvailable": 95,
+    "allocated": {
+      "SM001": 21,
+      "SM002": 17,
+      "SM003": 19,
+      "SM004": 18,
+      "SM005": 22
+    }
+  },
+  {
+    "id": "SPEC019",
+    "subject": "Business Studies",
+    "class": "11",
+    "bookName": "Business Studies Class XI",
+    "mrp": 470,
+    "stockAvailable": 105,
+    "allocated": {
+      "SM001": 23,
+      "SM002": 19,
+      "SM003": 21,
+      "SM004": 20,
+      "SM005": 24
+    }
+  },
+  {
+    "id": "SPEC020",
+    "subject": "History",
+    "class": "9",
+    "bookName": "India and the Contemporary World I",
+    "mrp": 390,
+    "stockAvailable": 125,
+    "allocated": {
+      "SM001": 27,
+      "SM002": 22,
+      "SM003": 25,
+      "SM004": 23,
+      "SM005": 28
+    }
+  }
+]

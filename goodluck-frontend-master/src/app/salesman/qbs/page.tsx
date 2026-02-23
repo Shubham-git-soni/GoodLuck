@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ListItemSkeleton } from "@/components/ui/skeleton-loaders";
 import EmptyState from "@/components/ui/empty-state";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { QB } from "@/types";
 import { toast } from "sonner";
 
@@ -105,12 +106,55 @@ export default function QBListPage() {
     );
   }
 
-  const formFields = (
-    <div className="grid gap-4">
+  // Common text fields shared by both mobile and desktop forms
+  const commonFields = (
+    <>
       <div className="grid gap-2">
         <Label>School Name *</Label>
         <Input value={newQb.schoolName} onChange={(e) => setNewQb({ ...newQb, schoolName: e.target.value })} placeholder="Enter school name" />
       </div>
+      <div className="grid gap-2">
+        <Label>Address *</Label>
+        <Textarea value={newQb.address} onChange={(e) => setNewQb({ ...newQb, address: e.target.value })} placeholder="Enter complete address" rows={2} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Strength *</Label>
+        <Input type="number" min="1" value={newQb.strength} onChange={(e) => setNewQb({ ...newQb, strength: e.target.value })} placeholder="Enter student strength" />
+      </div>
+    </>
+  );
+
+  // Mobile form — uses NativeSelect (works inside mobile sheet)
+  const mobileFormFields = (
+    <div className="grid gap-4">
+      {commonFields}
+      <div className="grid gap-2">
+        <Label>School Board *</Label>
+        <NativeSelect value={newQb.schoolBoard} onValueChange={(v) => setNewQb({ ...newQb, schoolBoard: v })} placeholder="Select board">
+          {dropdownOptions.boards.map((board) => <NativeSelectOption key={board} value={board}>{board}</NativeSelectOption>)}
+        </NativeSelect>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2">
+          <Label>City *</Label>
+          <NativeSelect value={newQb.city} onValueChange={(v) => setNewQb({ ...newQb, city: v })} placeholder="Select city">
+            {dropdownOptions.cities.map((city) => <NativeSelectOption key={city} value={city}>{city}</NativeSelectOption>)}
+          </NativeSelect>
+        </div>
+        <div className="grid gap-2">
+          <Label>State *</Label>
+          <NativeSelect value={newQb.state} onValueChange={(v) => setNewQb({ ...newQb, state: v })} placeholder="Select state">
+            {dropdownOptions.states.map((state) => <NativeSelectOption key={state} value={state}>{state}</NativeSelectOption>)}
+          </NativeSelect>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Desktop form — uses Radix Select (works fine in Dialog)
+  const desktopFormFields = (
+    <div className="grid gap-4">
+      {commonFields}
       <div className="grid gap-2">
         <Label>School Board *</Label>
         <Select value={newQb.schoolBoard} onValueChange={(v) => setNewQb({ ...newQb, schoolBoard: v })}>
@@ -140,14 +184,6 @@ export default function QBListPage() {
           </Select>
         </div>
       </div>
-      <div className="grid gap-2">
-        <Label>Address *</Label>
-        <Textarea value={newQb.address} onChange={(e) => setNewQb({ ...newQb, address: e.target.value })} placeholder="Enter complete address" rows={2} />
-      </div>
-      <div className="grid gap-2">
-        <Label>Strength *</Label>
-        <Input type="number" min="1" value={newQb.strength} onChange={(e) => setNewQb({ ...newQb, strength: e.target.value })} placeholder="Enter student strength" />
-      </div>
     </div>
   );
 
@@ -163,7 +199,7 @@ export default function QBListPage() {
           <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleAddQb}>Add QB</Button>
         }
       >
-        {formFields}
+        {mobileFormFields}
       </MobileSheet>
 
       {/* Desktop Dialog */}
@@ -173,13 +209,34 @@ export default function QBListPage() {
             <DialogTitle>Add New Question Bank</DialogTitle>
             <DialogDescription>Fill in the school details for the new Question Bank.</DialogDescription>
           </DialogHeader>
-          <div className="py-2">{formFields}</div>
+          <div className="py-2">{desktopFormFields}</div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsDesktopDialogOpen(false); resetForm(); }}>Cancel</Button>
             <Button onClick={handleAddQb}>Add QB</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Master Tabs */}
+      <div className="md:hidden mb-4">
+        <div className="flex rounded-2xl bg-muted p-1 gap-1 mb-4">
+          <Link href="/salesman/schools" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+              My Schools
+            </button>
+          </Link>
+          <Link href="/salesman/qbs" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold bg-background text-primary shadow-sm">
+              My QBs
+            </button>
+          </Link>
+          <Link href="/salesman/booksellers" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+              Book Sellers
+            </button>
+          </Link>
+        </div>
+      </div>
 
       <PageHeader
         title="My QBs"
@@ -192,11 +249,6 @@ export default function QBListPage() {
             <Button size="sm" className="hidden md:flex" onClick={() => setIsDesktopDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />Add QB
             </Button>
-            <Link href="/salesman/qbs/add-visit">
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />Add Visit
-              </Button>
-            </Link>
           </div>
         }
       />

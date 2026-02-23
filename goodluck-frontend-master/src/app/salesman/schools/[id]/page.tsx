@@ -66,43 +66,40 @@ export default function SchoolProfilePage() {
   const revenueTrend =
     school.businessHistory.length >= 2
       ? ((school.businessHistory[school.businessHistory.length - 1].revenue -
-          school.businessHistory[school.businessHistory.length - 2].revenue) /
-          school.businessHistory[school.businessHistory.length - 2].revenue) *
-        100
+        school.businessHistory[school.businessHistory.length - 2].revenue) /
+        school.businessHistory[school.businessHistory.length - 2].revenue) *
+      100
       : 0;
 
   return (
     <PageContainer>
       {/* Header */}
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Schools
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Schools
+          </Button>
+          <Link href={`/salesman/schools/add-visit?schoolId=${school.id}`}>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Visit
+            </Button>
+          </Link>
+        </div>
 
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{school.name}</h1>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">{school.board}</Badge>
-              {school.isPattakat && (
-                <Badge variant="destructive">Pattakat</Badge>
-              )}
-              <Badge variant="outline">{school.visitCount} visits</Badge>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Link href={`/salesman/schools/add-visit?schoolId=${school.id}`}>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Visit
-              </Button>
-            </Link>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">{school.name}</h1>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{school.board}</Badge>
+            {school.isPattakat && (
+              <Badge variant="destructive">Pattakat</Badge>
+            )}
+            <Badge variant="outline">{school.visitCount} visits</Badge>
           </div>
         </div>
       </div>
@@ -175,9 +172,8 @@ export default function SchoolProfilePage() {
                 <p className="text-sm text-muted-foreground">
                   Revenue Trend:{" "}
                   <span
-                    className={`font-medium ${
-                      revenueTrend > 0 ? "text-green-600" : "text-red-600"
-                    }`}
+                    className={`font-medium ${revenueTrend > 0 ? "text-green-600" : "text-red-600"
+                      }`}
                   >
                     {revenueTrend > 0 ? "+" : ""}
                     {revenueTrend.toFixed(1)}%

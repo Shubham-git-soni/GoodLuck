@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ListItemSkeleton } from "@/components/ui/skeleton-loaders";
 import EmptyState from "@/components/ui/empty-state";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { BookSeller } from "@/types";
 import { toast } from "sonner";
 
@@ -81,8 +82,9 @@ export default function BookSellerListPage() {
     );
   }
 
-  const formFields = (
-    <div className="grid gap-4">
+  // Common fields shared by mobile + desktop
+  const commonFields = (
+    <>
       <div className="grid gap-2">
         <Label>Shop Name *</Label>
         <Input value={newSeller.shopName} onChange={(e) => setNewSeller({ ...newSeller, shopName: e.target.value })} placeholder="Enter shop name" />
@@ -90,15 +92,6 @@ export default function BookSellerListPage() {
       <div className="grid gap-2">
         <Label>Owner Name *</Label>
         <Input value={newSeller.ownerName} onChange={(e) => setNewSeller({ ...newSeller, ownerName: e.target.value })} placeholder="Enter owner name" />
-      </div>
-      <div className="grid gap-2">
-        <Label>City *</Label>
-        <Select value={newSeller.city} onValueChange={(v) => setNewSeller({ ...newSeller, city: v })}>
-          <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-          <SelectContent>
-            {dropdownOptions.cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
       <div className="grid gap-2">
         <Label>Address</Label>
@@ -124,6 +117,35 @@ export default function BookSellerListPage() {
           <Input type="number" value={newSeller.creditLimit} onChange={(e) => setNewSeller({ ...newSeller, creditLimit: e.target.value })} placeholder="Enter amount" />
         </div>
       </div>
+    </>
+  );
+
+  // Mobile form — uses NativeSelect for City (works inside mobile sheet)
+  const mobileFormFields = (
+    <div className="grid gap-4">
+      {commonFields}
+      <div className="grid gap-2">
+        <Label>City *</Label>
+        <NativeSelect value={newSeller.city} onValueChange={(v) => setNewSeller({ ...newSeller, city: v })} placeholder="Select city">
+          {dropdownOptions.cities.map((city) => <NativeSelectOption key={city} value={city}>{city}</NativeSelectOption>)}
+        </NativeSelect>
+      </div>
+    </div>
+  );
+
+  // Desktop form — uses Radix Select for City
+  const desktopFormFields = (
+    <div className="grid gap-4">
+      {commonFields}
+      <div className="grid gap-2">
+        <Label>City *</Label>
+        <Select value={newSeller.city} onValueChange={(v) => setNewSeller({ ...newSeller, city: v })}>
+          <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+          <SelectContent>
+            {dropdownOptions.cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 
@@ -139,7 +161,7 @@ export default function BookSellerListPage() {
           <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleAddSeller}>Submit for Approval</Button>
         }
       >
-        {formFields}
+        {mobileFormFields}
       </MobileSheet>
 
       {/* Desktop Dialog */}
@@ -149,13 +171,34 @@ export default function BookSellerListPage() {
             <DialogTitle>Add New Book Seller</DialogTitle>
             <DialogDescription>Fill in the book seller details. This will be submitted for admin approval.</DialogDescription>
           </DialogHeader>
-          <div className="py-2">{formFields}</div>
+          <div className="py-2">{desktopFormFields}</div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsDesktopDialogOpen(false); resetForm(); }}>Cancel</Button>
             <Button onClick={handleAddSeller}>Submit for Approval</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Master Tabs */}
+      <div className="md:hidden mb-4">
+        <div className="flex rounded-2xl bg-muted p-1 gap-1 mb-4">
+          <Link href="/salesman/schools" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+              My Schools
+            </button>
+          </Link>
+          <Link href="/salesman/qbs" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+              My QBs
+            </button>
+          </Link>
+          <Link href="/salesman/booksellers" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold bg-background text-primary shadow-sm">
+              Book Sellers
+            </button>
+          </Link>
+        </div>
+      </div>
 
       <PageHeader
         title="Book Sellers"

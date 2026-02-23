@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Users, School, BookOpen, DollarSign, TrendingUp, CheckCircle2, AlertCircle, BarChart3, Filter, Calendar } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
-import StatsCard from "@/components/dashboard/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,8 +14,6 @@ import {
   Bar,
   LineChart,
   Line,
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -32,16 +29,14 @@ import visitsData from "@/lib/mock-data/visits.json";
 import tadaClaimsData from "@/lib/mock-data/tada-claims.json";
 import feedbackData from "@/lib/mock-data/feedback.json";
 
-// Colors for charts
+// Enterprise chart palette — matches salesman dashboard
 const COLORS = {
-  primary: "#3b82f6",
-  success: "#10b981",
-  warning: "#f59e0b",
-  danger: "#ef4444",
-  purple: "#8b5cf6",
-  cyan: "#06b6d4",
-  indigo: "#6366f1",
-  pink: "#ec4899",
+  primary: "#F47B20",   // brand orange
+  success: "#2DD4BF",   // teal
+  warning: "#94A3B8",   // slate
+  danger:  "#F43F5E",   // rose
+  purple:  "#818CF8",   // indigo
+  cyan:    "#38BDF8",   // sky
 };
 
 export default function AdminDashboard() {
@@ -70,7 +65,6 @@ export default function AdminDashboard() {
   const [specimenDetailData, setSpecimenDetailData] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate data loading
     setTimeout(() => {
       const todayVisits = visitsData.filter((v) => v.date.startsWith("2025-11"));
 
@@ -85,7 +79,6 @@ export default function AdminDashboard() {
         pendingFeedback: feedbackData.filter((f) => f.status === "Pending").length,
       });
 
-      // Team Performance Chart Data
       const performanceData = salesmenData.map((salesman) => ({
         name: salesman.name.split(" ")[0],
         achieved: salesman.salesAchieved,
@@ -94,7 +87,6 @@ export default function AdminDashboard() {
       }));
       setTeamPerformance(performanceData);
 
-      // Visit Trends (Last 7 days)
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       const trendsData = days.map((day) => ({
         day,
@@ -102,9 +94,7 @@ export default function AdminDashboard() {
         booksellers: Math.floor(Math.random() * 8) + 2,
         total: 0,
       }));
-      trendsData.forEach(item => {
-        item.total = item.schools + item.booksellers;
-      });
+      trendsData.forEach(item => { item.total = item.schools + item.booksellers; });
       setVisitTrends(trendsData);
 
       updateVisitsData();
@@ -117,37 +107,26 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading) {
-      updateVisitsData();
-    }
+    if (!isLoading) updateVisitsData();
   }, [stateFilter, dateFilter]);
 
   useEffect(() => {
-    if (!isLoading) {
-      updateMonthlyVisitsData();
-    }
+    if (!isLoading) updateMonthlyVisitsData();
   }, [monthFilter, stateFilter]);
 
   useEffect(() => {
-    if (!isLoading) {
-      updateSalesmenNoVisitsYesterday();
-    }
+    if (!isLoading) updateSalesmenNoVisitsYesterday();
   }, [stateFilter]);
 
   useEffect(() => {
-    if (!isLoading) {
-      updateSpecimenDetailData();
-    }
+    if (!isLoading) updateSpecimenDetailData();
   }, [stateFilter]);
 
   useEffect(() => {
-    if (!isLoading) {
-      updateTeamPerformanceData();
-    }
+    if (!isLoading) updateTeamPerformanceData();
   }, [stateFilter]);
 
   const updateTeamPerformanceData = () => {
-    // Team Performance Chart Data - filtered by state
     const filteredSalesmen = stateFilter === "all"
       ? salesmenData
       : salesmenData.filter(s => s.state === stateFilter);
@@ -162,11 +141,9 @@ export default function AdminDashboard() {
   };
 
   const updateVisitsData = () => {
-    // Visits per Salesman (filtered by date)
     const visitCounts = salesmenData.map((salesman) => {
       let salesmanVisits = visitsData.filter((v) => v.salesmanId === salesman.id);
 
-      // Apply date filter
       if (dateFilter === "today") {
         salesmanVisits = salesmanVisits.filter((v) => v.date === "2025-11-25");
       } else if (dateFilter === "yesterday") {
@@ -175,7 +152,6 @@ export default function AdminDashboard() {
         salesmanVisits = salesmanVisits.filter((v) => v.date >= "2025-11-18");
       }
 
-      // Apply state filter
       if (stateFilter !== "all") {
         salesmanVisits = salesmanVisits.filter(() => salesman.state === stateFilter);
       }
@@ -191,7 +167,6 @@ export default function AdminDashboard() {
   };
 
   const updateMonthlyVisitsData = () => {
-    // Total Visits per Salesman (Monthly) - filtered by state
     const filteredSalesmen = stateFilter === "all"
       ? salesmenData
       : salesmenData.filter(s => s.state === stateFilter);
@@ -213,7 +188,6 @@ export default function AdminDashboard() {
   };
 
   const updateSalesmenNoVisitsYesterday = () => {
-    // Salesmen with No Visits Yesterday - filtered by state
     const yesterday = "2025-11-24";
     const filteredSalesmen = stateFilter === "all"
       ? salesmenData
@@ -235,7 +209,6 @@ export default function AdminDashboard() {
   };
 
   const updateSpecimenDetailData = () => {
-    // Specimen Target vs Used Budget (Detailed) - filtered by state
     const filteredSalesmen = stateFilter === "all"
       ? salesmenData
       : salesmenData.filter(s => s.state === stateFilter);
@@ -261,10 +234,8 @@ export default function AdminDashboard() {
     );
   }
 
-  // Get unique states for filter
   const states = Array.from(new Set(salesmenData.map((s) => s.state))).sort();
 
-  // Calculate filtered stats based on state filter
   const filteredSalesmen = stateFilter === "all"
     ? salesmenData
     : salesmenData.filter(s => s.state === stateFilter);
@@ -288,52 +259,110 @@ export default function AdminDashboard() {
     <PageContainer>
       <PageHeader
         title="Admin Dashboard"
-        description="Overview of CRM operations and performance"
+        description="Overview of CRM operations"
       />
 
-      {/* Top Stats - KPI Cards First */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <StatsCard
-          title="Sales Team"
-          value={filteredSalesmen.length}
-          description={stateFilter === "all" ? "Active salesmen" : `Salesmen in ${stateFilter}`}
-          icon={Users}
-        />
-        <StatsCard
-          title="Total Schools"
-          value={stats.totalSchools}
-          description={`${stats.pattakatSchools} Pattakat schools`}
-          icon={School}
-        />
-        <StatsCard
-          title="Visits Today"
-          value={filteredVisitsToday.length}
-          description="School & bookseller visits"
-          icon={CheckCircle2}
-          trend={{ value: 15, isPositive: true }}
-        />
-        <StatsCard
-          title="Pending TA/DA"
-          value={filteredTADA.length}
-          description="Awaiting approval"
-          icon={DollarSign}
-        />
+      {/* ── Hero summary bar ── */}
+      <div className="gradient-hero rounded-2xl p-5 mb-6 text-white shadow-lg shadow-primary/25 relative overflow-hidden">
+        <div className="absolute -top-8 -right-8 h-36 w-36 rounded-full bg-white/10" />
+        <div className="absolute -bottom-6 -right-2 h-24 w-24 rounded-full bg-white/5" />
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-1">Team Overview</p>
+          <p className="text-3xl font-black tracking-tight mb-1">{filteredSalesmen.length} Salesmen</p>
+          <p className="text-sm text-white/80">
+            {filteredVisitsToday.length} visits this month · <span className="font-bold text-white">{filteredTADA.length} pending TA/DA</span>
+          </p>
+          <div className="mt-4 flex items-center gap-4 text-xs text-white/70">
+            <span>{stats.totalSchools} schools</span>
+            <span>·</span>
+            <span>{stats.pattakatSchools} Pattakat</span>
+            <span>·</span>
+            <span>{stats.pendingFeedback} feedback pending</span>
+          </div>
+        </div>
       </div>
 
-      {/* State-wise Filter - After KPI Cards */}
+      {/* ── KPI Cards — 2×2 on mobile, 4-col on desktop ── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4 mb-6">
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{filteredSalesmen.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Sales Team</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground truncate">
+                {stateFilter === "all" ? "All states" : stateFilter}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-amber-100">
+                <School className="h-4 w-4 text-amber-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{stats.totalSchools}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Schools</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-amber-600">{stats.pattakatSchools}</span> Pattakat
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{filteredVisitsToday.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Visits (Month)</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-primary font-semibold">+15% vs last</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-muted">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{filteredTADA.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pending TA/DA</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Global Filters ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Filter className="h-4 w-4" />
             Global Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">State:</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-sm font-medium shrink-0">State:</span>
               <Select value={stateFilter} onValueChange={setStateFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="flex-1 sm:w-[180px] sm:flex-none">
                   <SelectValue placeholder="All States" />
                 </SelectTrigger>
                 <SelectContent>
@@ -348,16 +377,16 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Visits per Salesman (with Date Filter) */}
+      {/* ── Visits per Salesman (with Date Filter) ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
               Visits per Salesman
             </CardTitle>
             <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
@@ -369,61 +398,62 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={visitsPerSalesman}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={visitsPerSalesman} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Legend />
-              <Bar dataKey="visits" fill={COLORS.primary} name="Number of Visits" />
+              <Bar dataKey="visits" fill={COLORS.primary} name="Visits" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Salesmen with No Visits Yesterday */}
+      {/* ── Salesmen with No Visits Yesterday ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            Salesmen with No Visits Yesterday ({salesmenNoVisitsYesterday.length})
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            No Visits Yesterday
+            <Badge variant="destructive" className="ml-auto">{salesmenNoVisitsYesterday.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {salesmenNoVisitsYesterday.length === 0 ? (
-            <p className="text-center py-4 text-muted-foreground">All salesmen had visits yesterday!</p>
+            <p className="text-center py-6 text-sm text-muted-foreground">All salesmen had visits yesterday!</p>
           ) : (
             <>
-              {/* Bar Chart Visualization */}
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={salesmenNoVisitsYesterday.map((s) => ({
-                  name: s.name.split(" ")[0],
-                  fullName: s.name,
-                  noVisits: 1,
-                  region: s.region,
-                  state: s.state,
-                }))} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart
+                  data={salesmenNoVisitsYesterday.map((s) => ({
+                    name: s.name.split(" ")[0],
+                    fullName: s.name,
+                    noVisits: 1,
+                    region: s.region,
+                    state: s.state,
+                  }))}
+                  layout="vertical"
+                  margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
                   <XAxis type="number" hide />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={100}
-                    tick={{ fontSize: 12 }}
+                    width={80}
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
                           <div className="bg-background border rounded-lg p-3 shadow-lg">
-                            <p className="font-medium">{payload[0].payload.fullName}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {payload[0].payload.region}, {payload[0].payload.state}
-                            </p>
-                            <p className="text-sm text-destructive font-medium mt-1">
-                              No visits yesterday
-                            </p>
+                            <p className="font-medium text-sm">{payload[0].payload.fullName}</p>
+                            <p className="text-xs text-muted-foreground">{payload[0].payload.region}, {payload[0].payload.state}</p>
+                            <p className="text-xs text-destructive font-medium mt-1">No visits yesterday</p>
                           </div>
                         );
                       }
@@ -434,14 +464,13 @@ export default function AdminDashboard() {
                 </BarChart>
               </ResponsiveContainer>
 
-              {/* Details List Below Chart */}
               <div className="mt-4 pt-4 border-t">
-                <h4 className="text-sm font-medium mb-3">Details:</h4>
+                <p className="text-xs font-medium text-muted-foreground mb-3">Details</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {salesmenNoVisitsYesterday.map((salesman) => (
-                    <div key={salesman.id} className="p-2 rounded-lg border border-destructive/20 bg-destructive/5 text-sm">
-                      <p className="font-medium">{salesman.name}</p>
-                      <p className="text-xs text-muted-foreground">{salesman.region}, {salesman.state}</p>
+                    <div key={salesman.id} className="p-3 rounded-xl border border-destructive/20 bg-destructive/5">
+                      <p className="text-sm font-medium">{salesman.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{salesman.region}, {salesman.state}</p>
                     </div>
                   ))}
                 </div>
@@ -451,16 +480,16 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Total Visits per Salesman (Monthly) */}
+      {/* ── Total Visits per Salesman (Monthly) ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Total Visits per Salesman (Monthly)
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Monthly Visits
             </CardTitle>
             <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
               <SelectContent>
@@ -472,38 +501,38 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={monthlyVisitsPerSalesman}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={monthlyVisitsPerSalesman} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Legend />
-              <Bar dataKey="schoolVisits" stackId="a" fill={COLORS.primary} name="School Visits" />
-              <Bar dataKey="booksellerVisits" stackId="a" fill={COLORS.success} name="Bookseller Visits" />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              <Bar dataKey="schoolVisits" stackId="a" fill={COLORS.primary} name="School" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="booksellerVisits" stackId="a" fill={COLORS.success} name="Bookseller" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Specimen Target vs Used Budget (Detailed) */}
+      {/* ── Specimen Budget ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Specimen Target vs Used Budget (Detailed)
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Specimen Budget Utilization
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {specimenDetailData.map((salesman, index) => (
               <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{salesman.fullName}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{salesman.fullName}</p>
                     <p className="text-xs text-muted-foreground">{salesman.state}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <Badge variant={
                       salesman.utilization >= 90 ? "destructive" :
                       salesman.utilization >= 75 ? "secondary" : "default"
@@ -518,7 +547,7 @@ export default function AdminDashboard() {
                 <Progress value={salesman.utilization} className="h-2" />
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Used: ₹{salesman.used.toLocaleString()}</span>
-                  <span>Remaining: ₹{salesman.remaining.toLocaleString()}</span>
+                  <span>Rem: ₹{salesman.remaining.toLocaleString()}</span>
                 </div>
               </div>
             ))}
@@ -526,94 +555,74 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Team Performance Chart - Bar Chart */}
+      {/* ── Team Sales Performance ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
             Team Sales Performance
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={teamPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} />
-              <Tooltip
-                formatter={(value: any) => [`₹${(value / 100000).toFixed(2)}L`, ""]}
-                labelStyle={{ color: "#000" }}
-              />
-              <Legend />
-              <Bar dataKey="achieved" fill={COLORS.success} name="Achieved" />
-              <Bar dataKey="target" fill={COLORS.primary} name="Target" />
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={teamPerformance} margin={{ top: 0, right: 8, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <Tooltip formatter={(value: any) => [`₹${(value / 100000).toFixed(2)}L`, ""]} />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              <Bar dataKey="achieved" fill={COLORS.success} name="Achieved" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="target" fill={COLORS.warning} name="Target" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Visit Trends */}
+      {/* ── Visit Trends ── */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
             Visit Trends (Last 7 Days)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={visitTrends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={visitTrends} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="schools"
-                stroke={COLORS.primary}
-                strokeWidth={2}
-                name="School Visits"
-              />
-              <Line
-                type="monotone"
-                dataKey="booksellers"
-                stroke={COLORS.success}
-                strokeWidth={2}
-                name="Bookseller Visits"
-              />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              <Line type="monotone" dataKey="schools" stroke={COLORS.primary} strokeWidth={2} name="School" dot={false} />
+              <Line type="monotone" dataKey="booksellers" stroke={COLORS.success} strokeWidth={2} name="Bookseller" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Recent Activities */}
+      {/* ── Recent Activities ── */}
       <div className="grid gap-4 md:grid-cols-2 mb-6">
-        {/* Recent TA/DA Claims */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent TA/DA Claims</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Recent TA/DA Claims</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {tadaClaimsData.slice(0, 5).map((claim) => (
-                <div key={claim.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{claim.salesmanName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      ₹{claim.amount.toLocaleString()} - {claim.city}
+                <div key={claim.id} className="flex items-center justify-between p-3 rounded-xl border gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{claim.salesmanName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      ₹{claim.amount.toLocaleString()} · {claim.city}
                     </p>
                   </div>
                   <Badge
                     variant={
-                      claim.status === "Approved"
-                        ? "default"
-                        : claim.status === "Rejected"
-                        ? "destructive"
-                        : claim.status === "Flagged"
-                        ? "destructive"
-                        : "secondary"
+                      claim.status === "Approved" ? "default" :
+                      claim.status === "Rejected" || claim.status === "Flagged" ? "destructive" : "secondary"
                     }
+                    className="shrink-0"
                   >
                     {claim.status}
                   </Badge>
@@ -623,30 +632,26 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Feedback */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Feedback</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Recent Feedback</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {feedbackData.slice(0, 5).map((feedback) => (
-                <div key={feedback.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={feedback.id} className="flex items-center justify-between p-3 rounded-xl border gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{feedback.schoolName}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {feedback.category} - {feedback.salesmanName}
+                    <p className="text-sm font-medium truncate">{feedback.schoolName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {feedback.category} · {feedback.salesmanName}
                     </p>
                   </div>
                   <Badge
                     variant={
-                      feedback.status === "Resolved"
-                        ? "default"
-                        : feedback.status === "Pending"
-                        ? "secondary"
-                        : "outline"
+                      feedback.status === "Resolved" ? "default" :
+                      feedback.status === "Pending" ? "secondary" : "outline"
                     }
-                    className="ml-2"
+                    className="shrink-0"
                   >
                     {feedback.status}
                   </Badge>
@@ -657,24 +662,24 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Salesman Performance Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Salesman Performance Overview</CardTitle>
+      {/* ── Salesman Performance Overview ── */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Salesman Performance Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {salesmenData
               .filter((s) => stateFilter === "all" || s.state === stateFilter)
               .map((salesman) => {
                 const achievement = Math.round((salesman.salesAchieved / salesman.salesTarget) * 100);
                 return (
-                  <div key={salesman.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="flex-1">
-                      <p className="font-medium">{salesman.name}</p>
-                      <p className="text-sm text-muted-foreground">{salesman.region} - {salesman.state}</p>
+                  <div key={salesman.id} className="flex items-center justify-between p-3 rounded-xl border gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{salesman.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{salesman.region} · {salesman.state}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <Badge variant={achievement >= 75 ? "default" : achievement >= 50 ? "secondary" : "destructive"}>
                         {achievement}%
                       </Badge>

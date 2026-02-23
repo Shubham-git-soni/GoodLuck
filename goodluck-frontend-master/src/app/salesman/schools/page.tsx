@@ -41,10 +41,9 @@ export default function SchoolListPage() {
     board: "",
     strength: "",
     address: "",
-    principalName: "",
-    principalContact: "",
-    coordinatorName: "",
-    coordinatorContact: "",
+    contactPersonName: "",
+    contactPersonDesignation: "",
+    contactPersonMobile: "",
   });
 
   useEffect(() => {
@@ -117,10 +116,9 @@ export default function SchoolListPage() {
       board: "",
       strength: "",
       address: "",
-      principalName: "",
-      principalContact: "",
-      coordinatorName: "",
-      coordinatorContact: "",
+      contactPersonName: "",
+      contactPersonDesignation: "",
+      contactPersonMobile: "",
     });
   };
 
@@ -168,50 +166,48 @@ export default function SchoolListPage() {
         />
       </div>
       <div className="border-t pt-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Principal Details</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Person Details</p>
         <div className="grid gap-3">
           <div className="grid gap-2">
-            <Label>Principal Name</Label>
+            <Label>Contact Person Name</Label>
             <Input
-              value={newSchool.principalName}
-              onChange={(e) => setNewSchool({ ...newSchool, principalName: e.target.value })}
-              placeholder="Enter principal name"
+              value={newSchool.contactPersonName}
+              onChange={(e) => setNewSchool({ ...newSchool, contactPersonName: e.target.value })}
+              placeholder="Enter contact person name"
             />
           </div>
+          <div className="grid gap-2 md:hidden">
+            <Label>Designation</Label>
+            <NativeSelect
+              value={newSchool.contactPersonDesignation}
+              onValueChange={(v) => setNewSchool({ ...newSchool, contactPersonDesignation: v })}
+              placeholder="Select designation"
+            >
+              {dropdownOptions.contactRoles.map((role) => (
+                <NativeSelectOption key={role} value={role}>{role}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+          <div className="hidden md:grid gap-2">
+            <Label>Designation</Label>
+            <Select value={newSchool.contactPersonDesignation} onValueChange={(v) => setNewSchool({ ...newSchool, contactPersonDesignation: v })}>
+              <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+              <SelectContent>
+                {dropdownOptions.contactRoles.map((role) => (
+                  <SelectItem key={role} value={role}>{role}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid gap-2">
-            <Label>Principal Contact</Label>
+            <Label>Mobile Number</Label>
             <Input
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={10}
-              value={newSchool.principalContact}
-              onChange={(e) => setNewSchool({ ...newSchool, principalContact: e.target.value.replace(/\D/g, "") })}
-              placeholder="10-digit mobile number"
-            />
-          </div>
-        </div>
-      </div>
-      <div className="border-t pt-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Coordinator Details</p>
-        <div className="grid gap-3">
-          <div className="grid gap-2">
-            <Label>Coordinator Name</Label>
-            <Input
-              value={newSchool.coordinatorName}
-              onChange={(e) => setNewSchool({ ...newSchool, coordinatorName: e.target.value })}
-              placeholder="Enter coordinator name"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Coordinator Contact</Label>
-            <Input
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={10}
-              value={newSchool.coordinatorContact}
-              onChange={(e) => setNewSchool({ ...newSchool, coordinatorContact: e.target.value.replace(/\D/g, "") })}
+              value={newSchool.contactPersonMobile}
+              onChange={(e) => setNewSchool({ ...newSchool, contactPersonMobile: e.target.value.replace(/\D/g, "") })}
               placeholder="10-digit mobile number"
             />
           </div>
@@ -380,8 +376,25 @@ export default function SchoolListPage() {
         />
       </div>
 
-      {/* Mobile header — title row + Add button */}
+      {/* Mobile Master Tabs */}
       <div className="md:hidden mb-4">
+        <div className="flex rounded-2xl bg-muted p-1 gap-1 mb-4">
+          <Link href="/salesman/schools" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold bg-background text-primary shadow-sm">
+              My Schools
+            </button>
+          </Link>
+          <Link href="/salesman/qbs" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+              My QBs
+            </button>
+          </Link>
+          <Link href="/salesman/booksellers" className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+              Book Sellers
+            </button>
+          </Link>
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-tight">My Schools</h1>

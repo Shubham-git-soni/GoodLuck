@@ -2,14 +2,20 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, School, BookOpen, Store, Save } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner"; // Uncomment when Sonner is installed
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
+import { toast } from "sonner";
 
-// Step components
+// Step components (School Visit)
 import StepSchoolSelection from "@/components/forms/visit/StepSchoolSelection";
 import StepContactPerson from "@/components/forms/visit/StepContactPerson";
 import StepPurpose from "@/components/forms/visit/StepPurpose";
@@ -18,69 +24,62 @@ import StepSpecimenAllocation from "@/components/forms/visit/StepSpecimenAllocat
 import StepFeedback from "@/components/forms/visit/StepFeedback";
 import StepNextVisit from "@/components/forms/visit/StepNextVisit";
 
-const steps = [
-  { number: 1, title: "School Selection", component: "school" },
-  { number: 2, title: "Contact Person", component: "contact" },
-  { number: 3, title: "Purpose of Visit", component: "purpose" },
-  { number: 4, title: "Joint Working", component: "joint" },
-  { number: 5, title: "Specimen Allocation", component: "specimen" },
-  { number: 6, title: "Feedback", component: "feedback" },
-  { number: 7, title: "Next Visit", component: "next" },
+// Mock data
+import qbsData from "@/lib/mock-data/qbs.json";
+import bookSellersData from "@/lib/mock-data/book-sellers.json";
+import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
+import { QB } from "@/types";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type TabId = "school" | "qb" | "seller";
+
+const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: "school", label: "School Visit", icon: School },
+  { id: "qb", label: "QB Visit", icon: BookOpen },
+  { id: "seller", label: "Book Seller", icon: Store },
 ];
 
-function AddSchoolVisitForm() {
+const SCHOOL_STEPS = [
+  { number: 1, title: "School" },
+  { number: 2, title: "Contact" },
+  { number: 3, title: "Purpose" },
+  { number: 4, title: "Joint" },
+  { number: 5, title: "Specimen" },
+  { number: 6, title: "Feedback" },
+  { number: 7, title: "Next Visit" },
+];
+
+// ─── School Visit Form ────────────────────────────────────────────────────────
+
+function SchoolVisitForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form data state
   const [formData, setFormData] = useState({
-    // Step 1
-    city: "",
-    schoolId: "",
-    supplyThrough: "",
-    // Step 2
+    city: "", schoolId: "", supplyThrough: "",
     selectedContacts: [] as string[],
     newContacts: [] as { name: string; role: string }[],
-    // Step 3
-    purposes: [] as string[],
-    needMappingType: "",
-    // Step 4
-    hasManager: false,
-    managerId: "",
-    managerType: "",
-    // Step 5
-    specimenRequired: "",
-    specimensGiven: [] as any[],
-    specimensReturned: [] as any[],
-    paymentReceivedGL: 0,
-    paymentReceivedVP: 0,
-    // Step 6
-    feedbackCategory: "",
-    feedbackComment: "",
-    schoolFeedback: "",
-    schoolSpecialRequest: "",
-    // Step 7
-    nextVisitDate: "",
-    nextVisitPurpose: "",
-    reminder: "",
+    purposes: [] as string[], needMappingType: "",
+    hasManager: false, managerId: "", managerType: "",
+    specimenRequired: "", specimensGiven: [] as any[], specimensReturned: [] as any[],
+    paymentReceivedGL: 0, paymentReceivedVP: 0,
+    feedbackCategory: "", feedbackComment: "", schoolFeedback: "", schoolSpecialRequest: "",
+    nextVisitDate: "", nextVisitPurpose: "", reminder: "",
   });
 
   useEffect(() => {
-    // Pre-fill school if coming from school profile
     const schoolId = searchParams.get("schoolId");
-    if (schoolId) {
-      setFormData((prev) => ({ ...prev, schoolId }));
-    }
+    if (schoolId) setFormData((prev) => ({ ...prev, schoolId }));
   }, [searchParams]);
 
-  const updateFormData = (data: Partial<typeof formData>) => {
+  const updateFormData = (data: Partial<typeof formData>) =>
     setFormData((prev) => ({ ...prev, ...data }));
-  };
 
   const handleNext = () => {
-    if (currentStep < steps.length) {
+    if (currentStep < SCHOOL_STEPS.length) {
       setCurrentStep(currentStep + 1);
       window.scrollTo(0, 0);
     }
@@ -93,83 +92,82 @@ function AddSchoolVisitForm() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     setIsSubmitting(true);
-
-    // Simulate API call
     setTimeout(() => {
-      toast.success("Visit logged successfully!"); // Uncomment when Sonner is installed
-      console.log("Form submitted:", formData);
+      toast.success("School visit logged successfully!");
       setIsSubmitting(false);
       router.push("/salesman/schools");
-    }, 1500);
+    }, 1200);
   };
 
-  const progress = (currentStep / steps.length) * 100;
+  const progress = (currentStep / SCHOOL_STEPS.length) * 100;
+
+  const stepDescriptions = [
+    "Select the city and school you're visiting",
+    "Add or select contact persons you met",
+    "Select the purpose(s) of your visit",
+    "Was this a joint visit with your manager?",
+    "Record specimen books given and returned",
+    "Share your feedback about the visit",
+    "Schedule the next visit (optional)",
+  ];
 
   return (
-    <PageContainer>
-      {/* Header */}
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Cancel
-        </Button>
+    <div className="space-y-4">
+      {/* Progress bar */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Step {currentStep} of {SCHOOL_STEPS.length}
+            </p>
+            <p className="text-xs font-semibold text-primary">{Math.round(progress)}%</p>
+          </div>
+          <Progress value={progress} className="h-1.5 mb-3" />
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Add School Visit</h1>
-        <p className="text-muted-foreground">
-          Complete all steps to log your school visit
-        </p>
-      </div>
-
-      {/* Progress */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium">
-                Step {currentStep} of {steps.length}
-              </p>
-              <p className="text-sm text-muted-foreground">{Math.round(progress)}%</p>
-            </div>
-            <Progress value={progress} className="h-2" />
+          {/* Mobile: compact dots row */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:hidden">
+            {SCHOOL_STEPS.map((step, idx) => (
+              <div key={step.number} className="flex items-center shrink-0">
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${currentStep > step.number
+                    ? "bg-primary border-primary text-white"
+                    : currentStep === step.number
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-muted-foreground/30 text-muted-foreground"
+                    }`}
+                >
+                  {currentStep > step.number ? <Check className="h-3 w-3" /> : step.number}
+                </div>
+                {idx < SCHOOL_STEPS.length - 1 && (
+                  <div className={`h-px w-4 mx-0.5 ${currentStep > step.number ? "bg-primary" : "bg-muted"}`} />
+                )}
+              </div>
+            ))}
           </div>
 
-          {/* Step Indicators */}
+          {/* Desktop: full step indicators with labels */}
           <div className="hidden md:flex items-center justify-between">
-            {steps.map((step, index) => (
+            {SCHOOL_STEPS.map((step, idx) => (
               <div key={step.number} className="flex items-center">
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-                      currentStep > step.number
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : currentStep === step.number
-                        ? "border-primary text-primary"
-                        : "border-muted text-muted-foreground"
-                    }`}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-colors ${currentStep > step.number
+                      ? "bg-primary border-primary text-white"
+                      : currentStep === step.number
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-muted-foreground/30 text-muted-foreground"
+                      }`}
                   >
-                    {currentStep > step.number ? (
-                      <Check className="h-5 w-5" />
-                    ) : (
-                      <span className="text-sm font-medium">{step.number}</span>
-                    )}
+                    {currentStep > step.number ? <Check className="h-4 w-4" /> : <span className="text-xs font-bold">{step.number}</span>}
                   </div>
-                  <p className="text-xs mt-2 text-center max-w-[80px]">
+                  <p className="text-[11px] mt-1.5 text-center max-w-[70px] leading-tight font-medium text-muted-foreground">
                     {step.title}
                   </p>
                 </div>
-                {index < steps.length - 1 && (
-                  <div
-                    className={`h-0.5 w-12 mx-2 ${
-                      currentStep > step.number ? "bg-primary" : "bg-muted"
-                    }`}
-                  />
+                {idx < SCHOOL_STEPS.length - 1 && (
+                  <div className={`h-px w-8 mx-1 mb-5 ${currentStep > step.number ? "bg-primary" : "bg-muted"}`} />
                 )}
               </div>
             ))}
@@ -177,95 +175,526 @@ function AddSchoolVisitForm() {
         </CardContent>
       </Card>
 
-      {/* Step Content */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>{steps[currentStep - 1].title}</CardTitle>
-          <CardDescription>
-            {currentStep === 1 && "Select the city and school you're visiting"}
-            {currentStep === 2 && "Add or select contact persons you met"}
-            {currentStep === 3 && "Select the purpose(s) of your visit"}
-            {currentStep === 4 && "Was this a joint visit with your manager?"}
-            {currentStep === 5 && "Record specimen books given and returned"}
-            {currentStep === 6 && "Share your feedback about the visit"}
-            {currentStep === 7 && "Schedule the next visit (optional)"}
-          </CardDescription>
+      {/* Step content */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{SCHOOL_STEPS[currentStep - 1].title}</CardTitle>
+          <CardDescription className="text-xs">{stepDescriptions[currentStep - 1]}</CardDescription>
         </CardHeader>
         <CardContent>
-          {currentStep === 1 && (
-            <StepSchoolSelection formData={formData} updateFormData={updateFormData} />
-          )}
-          {currentStep === 2 && (
-            <StepContactPerson formData={formData} updateFormData={updateFormData} />
-          )}
-          {currentStep === 3 && (
-            <StepPurpose formData={formData} updateFormData={updateFormData} />
-          )}
-          {currentStep === 4 && (
-            <StepJointWorking formData={formData} updateFormData={updateFormData} />
-          )}
-          {currentStep === 5 && (
-            <StepSpecimenAllocation formData={formData} updateFormData={updateFormData} />
-          )}
-          {currentStep === 6 && (
-            <StepFeedback formData={formData} updateFormData={updateFormData} />
-          )}
-          {currentStep === 7 && (
-            <StepNextVisit formData={formData} updateFormData={updateFormData} />
+          {currentStep === 1 && <StepSchoolSelection formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 2 && <StepContactPerson formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 3 && <StepPurpose formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 4 && <StepJointWorking formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 5 && <StepSpecimenAllocation formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 6 && <StepFeedback formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 7 && <StepNextVisit formData={formData} updateFormData={updateFormData} />}
+        </CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pb-4">
+        <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 1} size="sm">
+          <ArrowLeft className="h-4 w-4 mr-1.5" /> Previous
+        </Button>
+        {currentStep < SCHOOL_STEPS.length ? (
+          <Button onClick={handleNext} size="sm">
+            Next <ArrowRight className="h-4 w-4 ml-1.5" />
+          </Button>
+        ) : (
+          <Button onClick={handleSubmit} disabled={isSubmitting} size="sm">
+            {isSubmitting ? "Submitting…" : "Submit Visit"}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── QB Visit Form ────────────────────────────────────────────────────────────
+
+function QBVisitForm() {
+  const router = useRouter();
+  const [qbs] = useState<QB[]>(qbsData as QB[]);
+  const [filteredSchools, setFilteredSchools] = useState<QB[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    schoolCity: "", schoolName: "", schoolBoard: "", schoolStrength: "", schoolAddress: "",
+    purposeOfVisit: "",
+    teacherName: "", teacherDesignation: "", teacherContactNo: "", teacherEmail: "",
+    remarks: "",
+  });
+
+  const cities = Array.from(new Set(qbs.map((qb) => qb.city))).sort();
+
+  useEffect(() => {
+    if (formData.schoolCity) {
+      setFilteredSchools(qbs.filter((qb) => qb.city === formData.schoolCity));
+    } else {
+      setFilteredSchools([]);
+    }
+    setFormData((prev) => ({
+      ...prev, schoolName: "", schoolBoard: "", schoolStrength: "", schoolAddress: "",
+    }));
+  }, [formData.schoolCity]);
+
+  const handleSchoolSelect = (schoolName: string) => {
+    const s = qbs.find((qb) => qb.schoolName === schoolName);
+    if (s) {
+      setFormData((prev) => ({
+        ...prev,
+        schoolName: s.schoolName, schoolBoard: s.schoolBoard,
+        schoolStrength: s.strength.toString(), schoolAddress: s.address,
+      }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!formData.schoolCity || !formData.schoolName || !formData.purposeOfVisit ||
+      !formData.teacherName || !formData.teacherDesignation || !formData.teacherContactNo) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    setIsSubmitting(true);
+    setTimeout(() => {
+      toast.success("QB visit recorded successfully!");
+      setIsSubmitting(false);
+      router.push("/salesman/qbs");
+    }, 1200);
+  };
+
+  const qbPurposes = [
+    ...dropdownOptions.visitPurposes,
+    "QB Discussion", "QB Sample Distribution", "Question Paper Review",
+  ];
+
+  return (
+    <div className="space-y-4 pb-4">
+      {/* School Details */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">School Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">City *</Label>
+            <Select value={formData.schoolCity} onValueChange={(v) => setFormData({ ...formData, schoolCity: v })}>
+              <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+              <SelectContent>
+                {cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">School *</Label>
+            <Select
+              value={formData.schoolName}
+              onValueChange={handleSchoolSelect}
+              disabled={!formData.schoolCity}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={formData.schoolCity ? "Select school" : "Select city first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredSchools.map((s) => <SelectItem key={s.id} value={s.schoolName}>{s.schoolName}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.schoolName && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Board</Label>
+                <Input value={formData.schoolBoard} disabled className="bg-muted text-sm h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Strength</Label>
+                <Input value={formData.schoolStrength} disabled className="bg-muted text-sm h-9" />
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pb-6">
-        <Button
-          variant="outline"
-          onClick={handlePrevious}
-          disabled={currentStep === 1}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Previous
-        </Button>
+      {/* Visit Details */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Visit Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Purpose *</Label>
+            <Select value={formData.purposeOfVisit} onValueChange={(v) => setFormData({ ...formData, purposeOfVisit: v })}>
+              <SelectTrigger><SelectValue placeholder="Select purpose" /></SelectTrigger>
+              <SelectContent>
+                {qbPurposes.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {currentStep < steps.length ? (
-          <Button onClick={handleNext}>
-            Next
-            <ArrowRight className="h-4 w-4 ml-2" />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Remarks</Label>
+            <Textarea
+              value={formData.remarks}
+              onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+              placeholder="Any additional notes…"
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Teacher Details */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Teacher / Contact Person</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Name *</Label>
+              <Input
+                value={formData.teacherName}
+                onChange={(e) => setFormData({ ...formData, teacherName: e.target.value })}
+                placeholder="Teacher name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Designation *</Label>
+              <Select value={formData.teacherDesignation} onValueChange={(v) => setFormData({ ...formData, teacherDesignation: v })}>
+                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                <SelectContent>
+                  {dropdownOptions.contactRoles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Contact No *</Label>
+              <Input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+                value={formData.teacherContactNo}
+                onChange={(e) => setFormData({ ...formData, teacherContactNo: e.target.value.replace(/\D/g, "") })}
+                placeholder="10-digit number"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Email</Label>
+              <Input
+                type="email"
+                value={formData.teacherEmail}
+                onChange={(e) => setFormData({ ...formData, teacherEmail: e.target.value })}
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
+        {isSubmitting ? "Saving…" : <><Save className="h-4 w-4 mr-2" />Save QB Visit</>}
+      </Button>
+    </div>
+  );
+}
+
+// ─── Book Seller Visit Form ───────────────────────────────────────────────────
+
+const BS_PURPOSES = [
+  "Relationship Building",
+  "Payment Collection",
+  "Documentation",
+  "Inquiry",
+  "Sales Return Follow-Up",
+];
+
+function BookSellerVisitForm() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCity, setSelectedCity] = useState("");
+
+  const [formData, setFormData] = useState({
+    bookSellerId: "",
+    purposes: [] as string[],
+    paymentReceivedGL: 0,
+    paymentReceivedVP: 0,
+    remark: "",
+    nextVisitDate: "",
+    reminder: "",
+  });
+
+  const cities = Array.from(
+    new Set(bookSellersData.filter((s) => s.assignedTo === "SM001").map((s) => s.city))
+  ).sort();
+
+  const filteredSellers = selectedCity
+    ? bookSellersData.filter((s) => s.assignedTo === "SM001" && s.city === selectedCity)
+    : [];
+
+  const selectedSeller = bookSellersData.find((s) => s.id === formData.bookSellerId);
+
+  const togglePurpose = (p: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      purposes: prev.purposes.includes(p)
+        ? prev.purposes.filter((x) => x !== p)
+        : [...prev.purposes, p],
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!formData.bookSellerId || formData.purposes.length === 0) {
+      toast.error("Please select a book seller and at least one purpose");
+      return;
+    }
+    setIsSubmitting(true);
+    setTimeout(() => {
+      toast.success("Book seller visit logged successfully!");
+      setIsSubmitting(false);
+      router.push("/salesman/booksellers");
+    }, 1200);
+  };
+
+  return (
+    <div className="space-y-4 pb-4">
+      {/* Seller Selection */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Select Book Seller</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">City *</Label>
+            <Select
+              value={selectedCity}
+              onValueChange={(v) => {
+                setSelectedCity(v);
+                setFormData((prev) => ({ ...prev, bookSellerId: "" }));
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+              <SelectContent>
+                {cities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Book Seller *</Label>
+            <Select
+              value={formData.bookSellerId}
+              onValueChange={(v) => setFormData((prev) => ({ ...prev, bookSellerId: v }))}
+              disabled={!selectedCity}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedCity ? "Select seller" : "Select city first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredSellers.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.shopName} — {s.ownerName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Seller summary chip */}
+          {selectedSeller && (
+            <div className="rounded-xl bg-muted/60 p-3 space-y-1 text-sm">
+              <p className="font-semibold">{selectedSeller.shopName}</p>
+              <p className="text-xs text-muted-foreground">{selectedSeller.ownerName} · {selectedSeller.city}</p>
+              <div className="flex gap-3 text-xs text-muted-foreground pt-1">
+                <span>Outstanding: <span className="font-medium text-destructive">₹{(selectedSeller.currentOutstanding / 100000).toFixed(2)}L</span></span>
+                <span>Limit: <span className="font-medium">₹{(selectedSeller.creditLimit / 100000).toFixed(1)}L</span></span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Purpose */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Purpose of Visit *</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {BS_PURPOSES.map((p) => (
+              <label
+                key={p}
+                htmlFor={`bsp-${p}`}
+                className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 cursor-pointer active:bg-muted/50"
+              >
+                <Checkbox
+                  id={`bsp-${p}`}
+                  checked={formData.purposes.includes(p)}
+                  onCheckedChange={() => togglePurpose(p)}
+                />
+                <span className="text-sm font-medium flex-1">{p}</span>
+              </label>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment (conditional) */}
+      {formData.purposes.includes("Payment Collection") && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Payment Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">GL Payment (₹)</Label>
+                <Input
+                  type="number" min="0"
+                  placeholder="Amount"
+                  value={formData.paymentReceivedGL || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, paymentReceivedGL: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">VP Payment (₹)</Label>
+                <Input
+                  type="number" min="0"
+                  placeholder="Amount"
+                  value={formData.paymentReceivedVP || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, paymentReceivedVP: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Remark */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Remark</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Any remarks about this visit…"
+            rows={3}
+            value={formData.remark}
+            onChange={(e) => setFormData((prev) => ({ ...prev, remark: e.target.value }))}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Next Visit */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Next Visit (Optional)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Next Visit Date</Label>
+            <DatePicker
+              value={formData.nextVisitDate}
+              onChange={(v) => setFormData((prev) => ({ ...prev, nextVisitDate: v }))}
+              placeholder="Select date"
+              min={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Reminder</Label>
+            <Input
+              placeholder="e.g., Follow up on payment"
+              value={formData.reminder}
+              onChange={(e) => setFormData((prev) => ({ ...prev, reminder: e.target.value }))}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button
+        className="w-full"
+        onClick={handleSubmit}
+        disabled={isSubmitting || !formData.bookSellerId || formData.purposes.length === 0}
+      >
+        {isSubmitting ? "Submitting…" : <><Save className="h-4 w-4 mr-2" />Submit Visit</>}
+      </Button>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+function AddVisitPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Allow pre-selecting a tab via ?tab=qb or ?tab=seller
+  const initialTab = (searchParams.get("tab") as TabId) || "school";
+  const [activeTab, setActiveTab] = useState<TabId>(
+    ["school", "qb", "seller"].includes(initialTab) ? initialTab : "school"
+  );
+
+  return (
+    <PageContainer>
+      {/* Header */}
+      <div className="mb-4">
+        <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-3 -ml-2 md:hidden">
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Back
+        </Button>
+        <div className="flex items-center justify-between">
+          <h1 className="text-[22px] font-bold tracking-tight">Add Visit</h1>
+          <Button size="sm" onClick={() => router.push("/salesman/next-visits")}>
+            My Visits
           </Button>
-        ) : (
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Visit"}
-          </Button>
-        )}
+        </div>
       </div>
+
+      {/* Tab bar */}
+      <div className="flex rounded-2xl bg-muted p-1 mb-5 gap-1">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 px-2 text-xs font-semibold transition-all duration-150 ${activeTab === id
+              ? "bg-background text-primary shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === "school" && <SchoolVisitForm />}
+      {activeTab === "qb" && <QBVisitForm />}
+      {activeTab === "seller" && <BookSellerVisitForm />}
     </PageContainer>
   );
 }
 
-export default function AddSchoolVisitPage() {
+export default function AddVisitPage() {
   return (
     <Suspense fallback={
       <PageContainer>
-        <div className="mb-6">
-          <Button variant="ghost" size="sm" disabled>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+        <div className="mb-4">
+          <Button variant="ghost" size="sm" disabled className="-ml-2">
+            <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
           </Button>
+          <h1 className="text-[22px] font-bold tracking-tight">Add Visit</h1>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Add School Visit</CardTitle>
-            <CardDescription>Loading...</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center text-muted-foreground">Loading form...</div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-center py-20">
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
       </PageContainer>
     }>
-      <AddSchoolVisitForm />
+      <AddVisitPageContent />
     </Suspense>
   );
 }

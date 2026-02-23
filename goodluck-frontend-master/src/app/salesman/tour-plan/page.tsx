@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
@@ -121,19 +122,47 @@ export default function TourPlanPage() {
 
   const sortedDates = Object.keys(visitsByDate).sort();
 
-  const formFields = (
+  const commonDateField = (
+    <div className="space-y-2">
+      <Label>Visit Date *</Label>
+      <DatePicker
+        value={selectedDate}
+        onChange={setSelectedDate}
+        placeholder="Select visit date"
+        min={startDate}
+        max={endDate}
+        disabled={!startDate || !endDate}
+      />
+    </div>
+  );
+
+  const mobileFormFields = (
     <div className="space-y-4">
+      {commonDateField}
       <div className="space-y-2">
-        <Label>Visit Date *</Label>
-        <DatePicker
-          value={selectedDate}
-          onChange={setSelectedDate}
-          placeholder="Select visit date"
-          min={startDate}
-          max={endDate}
-          disabled={!startDate || !endDate}
-        />
+        <Label>Select School *</Label>
+        <NativeSelect value={selectedSchoolId} onValueChange={setSelectedSchoolId} placeholder="Choose a school">
+          {schools.map((school) => (
+            <NativeSelectOption key={school.id} value={school.id}>
+              {school.name} - {school.city}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
       </div>
+      <div className="space-y-2">
+        <Label>Primary Objective *</Label>
+        <NativeSelect value={selectedObjective} onValueChange={setSelectedObjective} placeholder="Select visit objective">
+          {visitObjectives.map((objective) => (
+            <NativeSelectOption key={objective} value={objective}>{objective}</NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </div>
+    </div>
+  );
+
+  const desktopFormFields = (
+    <div className="space-y-4">
+      {commonDateField}
       <div className="space-y-2">
         <Label>Select School *</Label>
         <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
@@ -175,7 +204,7 @@ export default function TourPlanPage() {
           </Button>
         }
       >
-        {formFields}
+        {mobileFormFields}
       </MobileSheet>
 
       {/* Desktop Dialog */}
@@ -185,7 +214,7 @@ export default function TourPlanPage() {
             <DialogTitle>Add School to Tour Plan</DialogTitle>
             <DialogDescription>Select a school, objective, and date for your visit</DialogDescription>
           </DialogHeader>
-          <div className="py-4">{formFields}</div>
+          <div className="py-4">{desktopFormFields}</div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDesktopDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleAddSchool}>Add to Plan</Button>

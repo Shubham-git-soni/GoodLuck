@@ -1,19 +1,86 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, MapPin, Play, Square } from "lucide-react";
+import { Clock, MapPin, Play, Square, AlertTriangle } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner"; // Uncomment when Sonner is installed
+import { toast } from "sonner";
+
+// ─── Confirmation Sheet (mobile-friendly) ─────────────────────────────────────
+
+function ConfirmSheet({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  confirmLabel,
+  confirmVariant = "default",
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmVariant?: "default" | "destructive";
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 animate-in fade-in duration-200" onClick={onClose} />
+
+      {/* Dialog */}
+      <div
+        className="relative bg-background rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 w-full max-w-sm"
+      >
+        {/* Content */}
+        <div className="px-6 pt-8 pb-2 text-center">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mb-4">
+            <AlertTriangle className="h-7 w-7 text-primary" />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight mb-1">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 pt-3 pb-6 flex flex-col gap-2.5">
+          <Button
+            size="lg"
+            variant={confirmVariant}
+            onClick={() => { onConfirm(); onClose(); }}
+            className="w-full h-12 text-sm font-semibold rounded-2xl"
+          >
+            {confirmLabel}
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={onClose}
+            className="w-full h-12 text-sm font-semibold rounded-2xl"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AttendancePage() {
   const [isActive, setIsActive] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [city, setCity] = useState("Delhi");
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -29,14 +96,14 @@ export default function AttendancePage() {
     const now = new Date();
     setStartTime(now);
     setIsActive(true);
-    toast.success("Day started successfully!"); // Uncomment when Sonner is installed
+    toast.success("Day started successfully!");
     console.log("Day started at:", now.toLocaleTimeString());
   };
 
   const handleEndDay = () => {
     setIsActive(false);
     const endTime = new Date();
-    toast.success("Day ended successfully!"); // Uncomment when Sonner is installed
+    toast.success("Day ended successfully!");
     console.log("Day ended at:", endTime.toLocaleTimeString());
     console.log("Total duration:", formatTime(elapsedTime));
   };
@@ -53,6 +120,27 @@ export default function AttendancePage() {
       <PageHeader
         title="Attendance"
         description="Mark your daily attendance"
+      />
+
+      {/* Start Day Confirmation */}
+      <ConfirmSheet
+        open={showStartConfirm}
+        onClose={() => setShowStartConfirm(false)}
+        onConfirm={handleStartDay}
+        title="Start Your Day?"
+        description="Are you sure you want to start your day? Your attendance and location will be recorded."
+        confirmLabel="Yes, Start Day"
+      />
+
+      {/* End Day Confirmation */}
+      <ConfirmSheet
+        open={showEndConfirm}
+        onClose={() => setShowEndConfirm(false)}
+        onConfirm={handleEndDay}
+        title="End Your Day?"
+        description="Are you sure you want to end your day? This action cannot be undone."
+        confirmLabel="Yes, End Day"
+        confirmVariant="destructive"
       />
 
       {/* Current Status Card */}
@@ -76,7 +164,7 @@ export default function AttendancePage() {
                     Click the button below to mark your attendance
                   </p>
                 </div>
-                <Button size="lg" onClick={handleStartDay} className="min-w-[200px]">
+                <Button size="lg" onClick={() => setShowStartConfirm(true)} className="min-w-[200px]">
                   <Play className="h-5 w-5 mr-2" />
                   Start Day
                 </Button>
@@ -111,7 +199,7 @@ export default function AttendancePage() {
                   <Button
                     size="lg"
                     variant="destructive"
-                    onClick={handleEndDay}
+                    onClick={() => setShowEndConfirm(true)}
                     className="min-w-[200px]"
                   >
                     <Square className="h-5 w-5 mr-2" />

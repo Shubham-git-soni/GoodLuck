@@ -7,7 +7,7 @@ import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
 import { Notification } from "@/types";
 
@@ -88,19 +88,24 @@ export default function NotificationsPage() {
       />
 
       {/* Filters */}
-      <Tabs value={filter} onValueChange={setFilter} className="mb-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">
-            All ({notifications.length})
-          </TabsTrigger>
-          <TabsTrigger value="unread">
-            Unread ({unreadCount})
-          </TabsTrigger>
-          <TabsTrigger value="high">
-            High Priority ({notifications.filter((n) => n.priority === "high").length})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex rounded-2xl bg-muted p-1 gap-1 mb-6">
+        {[
+          { value: "all", label: `All (${notifications.length})` },
+          { value: "unread", label: `Unread (${unreadCount})` },
+          { value: "high", label: `High Priority (${notifications.filter((n) => n.priority === "high").length})` },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setFilter(tab.value)}
+            className={`flex-1 flex items-center justify-center rounded-xl py-2.5 px-2 text-xs font-semibold transition-all duration-150 ${filter === tab.value
+              ? "bg-background text-primary shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* Notifications List */}
       <div className="space-y-3">
@@ -118,30 +123,27 @@ export default function NotificationsPage() {
             return (
               <Card
                 key={notification.id}
-                className={`cursor-pointer transition-all ${
-                  !notification.read ? "bg-primary/5 border-primary/20" : ""
-                }`}
+                className={`cursor-pointer transition-all ${!notification.read ? "bg-primary/5 border-primary/20" : ""
+                  }`}
                 onClick={() => handleMarkAsRead(notification.id)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
-                        notification.priority === "high"
-                          ? "bg-red-100"
-                          : notification.priority === "medium"
+                      className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${notification.priority === "high"
+                        ? "bg-red-100"
+                        : notification.priority === "medium"
                           ? "bg-orange-100"
                           : "bg-blue-100"
-                      }`}
+                        }`}
                     >
                       <Icon
-                        className={`h-5 w-5 ${
-                          notification.priority === "high"
-                            ? "text-red-600"
-                            : notification.priority === "medium"
+                        className={`h-5 w-5 ${notification.priority === "high"
+                          ? "text-red-600"
+                          : notification.priority === "medium"
                             ? "text-orange-600"
                             : "text-blue-600"
-                        }`}
+                          }`}
                       />
                     </div>
 
@@ -161,8 +163,8 @@ export default function NotificationsPage() {
                             notification.priority === "high"
                               ? "destructive"
                               : notification.priority === "medium"
-                              ? "secondary"
-                              : "outline"
+                                ? "secondary"
+                                : "outline"
                           }
                           className="text-xs"
                         >

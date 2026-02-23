@@ -1,48 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Home, School, Users, DollarSign, Bell, CheckCircle2, Plus,
   Calendar, UserCircle, BookOpen, X, ClipboardList, MapPinned,
-  History, Receipt, FileText, ChevronRight,
+  History, Receipt, FileText, ChevronRight, LogOut, AlertTriangle,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 const navItems = [
-  { href: "/salesman/dashboard",         label: "Dashboard",       icon: Home },
-  { href: "/salesman/attendance",        label: "Attendance",      icon: CheckCircle2 },
-  { href: "/salesman/today-visits",      label: "Today's Visits",  icon: MapPinned },
-  { href: "/salesman/tour-plan",         label: "My Tour Plan",    icon: ClipboardList },
-  { href: "/salesman/visit-history",     label: "Visit History",   icon: History },
-  { type: "separator", label: "Schools" },
-  { href: "/salesman/schools",           label: "My Schools",      icon: School },
-  { href: "/salesman/schools/add-visit", label: "Add School Visit",icon: Plus },
-  { href: "/salesman/next-visits",       label: "My Visits",       icon: Calendar },
-  { type: "separator", label: "Question Banks" },
-  { href: "/salesman/qbs",               label: "My QBs",          icon: BookOpen },
-  { href: "/salesman/qbs/add-visit",     label: "Add QB Visit",    icon: Plus },
-  { type: "separator", label: "Book Sellers" },
-  { href: "/salesman/booksellers",            label: "Book Sellers",    icon: Users },
-  { href: "/salesman/booksellers/add-visit",  label: "Add Seller Visit",icon: Plus },
+  { href: "/salesman/dashboard", label: "Dashboard", icon: Home },
+  { href: "/salesman/attendance", label: "Attendance", icon: CheckCircle2 },
+  { href: "/salesman/today-visits", label: "Today's Visits", icon: MapPinned },
+  { href: "/salesman/tour-plan", label: "My Tour Plan", icon: ClipboardList },
+  { href: "/salesman/visit-history", label: "Visit History", icon: History },
+  { href: "/salesman/next-visits", label: "My Visits", icon: Calendar },
+  { type: "separator", label: "Masters" },
+  { href: "/salesman/schools", label: "My Schools", icon: School },
+  { href: "/salesman/qbs", label: "My QBs", icon: BookOpen },
+  { href: "/salesman/booksellers", label: "Book Sellers", icon: Users },
   { type: "separator", label: "Expenses" },
-  { href: "/salesman/expenses",               label: "My Expenses",  icon: Receipt },
-  { href: "/salesman/expenses/add",           label: "Add Expense",  icon: Plus },
-  { href: "/salesman/expenses/create-report", label: "Create Report",icon: FileText },
+  { href: "/salesman/expenses", label: "My Expenses", icon: Receipt },
+  { href: "/salesman/expenses/add", label: "Add Expense", icon: Plus },
+  { href: "/salesman/expenses/create-report", label: "Create Report", icon: FileText },
   { type: "separator", label: "Other" },
-  { href: "/salesman/contacts",      label: "My Contact Persons", icon: UserCircle },
-  { href: "/salesman/tada",          label: "TA/DA Claims",       icon: DollarSign },
-  { href: "/salesman/notifications", label: "Notifications",      icon: Bell },
+  { href: "/salesman/contacts", label: "My Contact Persons", icon: UserCircle },
+  { href: "/salesman/tada", label: "TA/DA Claims", icon: DollarSign },
+  { href: "/salesman/notifications", label: "Notifications", icon: Bell },
 ] as const;
 
 const bottomTabs = [
-  { href: "/salesman/dashboard",         label: "Home",       icon: Home },
-  { href: "/salesman/schools",           label: "Schools",    icon: School },
-  { href: "/salesman/schools/add-visit", label: "Visit",      icon: Plus, isFab: true },
-  { href: "/salesman/attendance",        label: "Attendance", icon: CheckCircle2 },
-  { href: "/salesman/tada",              label: "TA/DA",      icon: DollarSign },
+  { href: "/salesman/dashboard", label: "Home", icon: Home },
+  { href: "/salesman/schools", label: "Masters", icon: BookOpen },
+  { href: "/salesman/schools/add-visit", label: "Visit", icon: Plus, isFab: true },
+  { href: "/salesman/attendance", label: "Attendance", icon: CheckCircle2 },
+  { href: "/salesman/tada", label: "TA/DA", icon: DollarSign },
 ] as const;
 
 // ─── Nav list shared by drawer + desktop sidebar ──────────────────────────────
@@ -94,8 +90,45 @@ function NavList({ onItemClick }: { onItemClick?: () => void }) {
   );
 }
 
+// ─── Logout Confirmation Dialog ───────────────────────────────────────────────
+function LogoutDialog({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 animate-in fade-in duration-200" onClick={onClose} />
+      <div className="relative bg-background rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 w-full max-w-sm">
+        <div className="px-6 pt-8 pb-2 text-center">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 mb-4">
+            <LogOut className="h-7 w-7 text-destructive" />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight mb-1">Logout</h3>
+          <p className="text-sm text-muted-foreground">Are you sure you want to logout? You will need to sign in again to continue.</p>
+        </div>
+        <div className="px-6 pt-3 pb-6 flex flex-col gap-2.5">
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={() => { onConfirm(); onClose(); }}
+            className="w-full h-12 text-sm font-semibold rounded-2xl"
+          >
+            Yes, Logout
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={onClose}
+            className="w-full h-12 text-sm font-semibold rounded-2xl"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Side Drawer (mobile) ────────────────────────────────────────────────────
-function SideDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+function SideDrawer({ open, onClose, onLogout }: { open: boolean; onClose: () => void; onLogout: () => void }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[200] md:hidden flex">
@@ -128,7 +161,18 @@ function SideDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           <NavList onItemClick={onClose} />
         </nav>
 
-        <div className="px-5 py-4 border-t border-border/60">
+        <div className="px-3 pb-2 border-t border-border/60 pt-3">
+          <button
+            onClick={() => { onClose(); onLogout(); }}
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-destructive/10">
+              <LogOut className="h-4 w-4 text-destructive" />
+            </div>
+            <span className="font-semibold">Logout</span>
+          </button>
+        </div>
+        <div className="px-5 py-3">
           <p className="text-[11px] text-muted-foreground text-center">v1.0.0 · Enterprise</p>
         </div>
       </div>
@@ -139,10 +183,28 @@ function SideDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
 // ─── Main ────────────────────────────────────────────────────────────────────
 export default function MobileNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+  const handleLogout = () => {
+    // Clear any stored auth data
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
+    }
+    router.push("/login");
+  };
 
   return (
     <>
+      {/* Logout Confirmation */}
+      <LogoutDialog
+        open={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={handleLogout}
+      />
+
       {/* ── Mobile Top Header ─────────────────────────────── */}
       <header className="sticky top-0 z-50 w-full md:hidden">
         <div className="bg-background/90 backdrop-blur-xl border-b border-border/50">
@@ -178,7 +240,7 @@ export default function MobileNav() {
         </div>
       </header>
 
-      <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onLogout={() => setShowLogoutDialog(true)} />
 
       {/* ── Mobile Bottom Tab Bar ─────────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
@@ -244,6 +306,17 @@ export default function MobileNav() {
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <NavList />
         </nav>
+        <div className="px-3 pb-4 border-t border-border/60 pt-3">
+          <button
+            onClick={() => setShowLogoutDialog(true)}
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-destructive/10">
+              <LogOut className="h-4 w-4 text-destructive" />
+            </div>
+            <span className="font-semibold">Logout</span>
+          </button>
+        </div>
       </aside>
     </>
   );

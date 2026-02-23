@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 
 import bookSellersData from "@/lib/mock-data/book-sellers.json";
@@ -318,12 +319,12 @@ function AddBookSellerVisitForm() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nextVisitDate">Next Visit Date (Optional)</Label>
-                <Input
-                  id="nextVisitDate"
-                  type="date"
+                <Label>Next Visit Date (Optional)</Label>
+                <DatePicker
                   value={formData.nextVisitDate}
-                  onChange={(e) => setFormData({ ...formData, nextVisitDate: e.target.value })}
+                  onChange={(v) => setFormData({ ...formData, nextVisitDate: v })}
+                  placeholder="Select next visit date"
+                  min={new Date().toISOString().split("T")[0]}
                 />
               </div>
               <div className="space-y-2">

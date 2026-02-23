@@ -1,9 +1,8 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent } from "@/components/ui/card";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 
@@ -13,82 +12,69 @@ interface StepProps {
 }
 
 export default function StepPurpose({ formData, updateFormData }: StepProps) {
-  const handlePurposeToggle = (purpose: string) => {
-    const purposes = formData.purposes || [];
-    if (purposes.includes(purpose)) {
-      updateFormData({
-        purposes: purposes.filter((p: string) => p !== purpose),
-      });
-      // Reset need mapping type if unchecking Need Mapping
-      if (purpose === "Need Mapping") {
-        updateFormData({ needMappingType: "" });
-      }
-    } else {
-      updateFormData({
-        purposes: [...purposes, purpose],
-      });
+  const purposeOptions = dropdownOptions.visitPurposes.map((p) => ({
+    value: p,
+    label: p,
+  }));
+
+  const handleChange = (selected: string[]) => {
+    updateFormData({ purposes: selected });
+    // If "Need Mapping" was deselected, clear its sub-option
+    if (!selected.includes("Need Mapping")) {
+      updateFormData({ needMappingType: "" });
     }
   };
 
-  const showNeedMappingOptions = formData.purposes?.includes("Need Mapping");
+  const showNeedMapping = (formData.purposes as string[] | undefined)?.includes("Need Mapping");
 
   return (
-    <div className="space-y-6">
-      {/* Purpose Selection */}
-      <div className="space-y-3">
-        <Label>Select Purpose(s) of Visit (Multi-select) *</Label>
-        <div className="space-y-2">
-          {dropdownOptions.visitPurposes.map((purpose) => (
-            <Card
-              key={purpose}
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id={purpose}
-                    checked={formData.purposes?.includes(purpose) || false}
-                    onCheckedChange={() => handlePurposeToggle(purpose)}
-                  />
-                  <label htmlFor={purpose} className="font-medium cursor-pointer flex-1">
-                    {purpose}
-                  </label>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold">
+          Purpose(s) of Visit
+          <span className="text-destructive ml-0.5">*</span>
+        </Label>
+        <p className="text-xs text-muted-foreground">Select one or more purposes for this visit</p>
+
+        <MultiSelect
+          options={purposeOptions}
+          value={formData.purposes ?? []}
+          onChange={handleChange}
+          placeholder="Select visit purpose(s)…"
+          searchable={purposeOptions.length > 6}
+          searchPlaceholder="Search purposes…"
+        />
       </div>
 
-      {/* Need Mapping Sub-options */}
-      {showNeedMappingOptions && (
-        <div className="space-y-3 pl-6 border-l-2 border-primary">
-          <Label>Need Mapping Type *</Label>
+      {/* Need Mapping sub-options */}
+      {showNeedMapping && (
+        <div className="space-y-3 pl-4 border-l-2 border-primary/40 animate-in fade-in slide-in-from-top-1 duration-200">
+          <Label className="text-sm font-semibold">Need Mapping Type <span className="text-destructive">*</span></Label>
           <RadioGroup
             value={formData.needMappingType}
             onValueChange={(value) => updateFormData({ needMappingType: value })}
+            className="space-y-1"
           >
             {dropdownOptions.needMappingTypes.map((type) => (
-              <div key={type} className="flex items-center space-x-2">
-                <RadioGroupItem value={type} id={type} />
-                <Label htmlFor={type} className="font-normal cursor-pointer">
+              <div key={type} className="flex items-center space-x-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors">
+                <RadioGroupItem value={type} id={`nm-${type}`} />
+                <Label htmlFor={`nm-${type}`} className="font-normal cursor-pointer text-sm">
                   {type}
                 </Label>
               </div>
             ))}
           </RadioGroup>
-
           {formData.needMappingType === "Changing specific subjects" && (
-            <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
-              Note: You'll specify which subjects in the specimen allocation step
+            <p className="text-xs text-muted-foreground bg-muted/60 p-3 rounded-lg">
+              You'll specify which subjects in the specimen allocation step.
             </p>
           )}
         </div>
       )}
 
-      {!formData.purposes?.length && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Please select at least one purpose for this visit
+      {!(formData.purposes?.length > 0) && (
+        <p className="text-xs text-muted-foreground text-center py-1">
+          Select at least one purpose to continue
         </p>
       )}
     </div>

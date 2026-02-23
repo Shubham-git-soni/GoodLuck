@@ -86,56 +86,72 @@ export default function MyExpensesPage() {
         </Link>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Draft Expenses</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{draftExpenses.length}</div>
-            <p className="text-xs text-muted-foreground">
-              ₹{totalDraftAmount.toLocaleString()}
-            </p>
+      {/* Summary Cards — 2×2 on mobile, 4-col on desktop */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 mb-6">
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-muted">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-bold">{draftExpenses.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Draft Expenses</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold">₹{totalDraftAmount.toLocaleString()}</span> total
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Policy Warnings</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{draftViolations}</div>
-            <p className="text-xs text-muted-foreground">In draft expenses</p>
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-primary">{draftViolations}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Policy Warnings</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">In draft expenses</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{reports.length}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-amber-600">{reports.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Reports</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">All time</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Amount</CardTitle>
-            <DollarSign className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-primary">
               ₹{reports
                 .filter((r) => r.status === "pending" || r.status === "approved")
                 .reduce((sum, r) => sum + r.totalAmount, 0)
                 .toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pending Amount</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Awaiting payment</p>
             </div>
-            <p className="text-xs text-muted-foreground">Awaiting payment</p>
           </CardContent>
         </Card>
       </div>

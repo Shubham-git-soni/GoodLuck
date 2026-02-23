@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 
@@ -36,13 +37,12 @@ export default function StepNextVisit({ formData, updateFormData }: StepProps) {
           <div className="space-y-4">
             {/* Next Visit Date */}
             <div className="space-y-2">
-              <Label htmlFor="nextVisitDate">Next Visit Date (Optional)</Label>
-              <Input
-                id="nextVisitDate"
-                type="date"
-                min={minDate}
+              <Label>Next Visit Date (Optional)</Label>
+              <DatePicker
                 value={formData.nextVisitDate}
-                onChange={(e) => updateFormData({ nextVisitDate: e.target.value })}
+                onChange={(v) => updateFormData({ nextVisitDate: v })}
+                placeholder="Select next visit date"
+                min={minDate}
               />
             </div>
 

@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { DatePicker } from "@/components/ui/date-picker";
 import Link from "next/link";
 
 export default function AddExpensePage() {
@@ -172,16 +173,13 @@ export default function AddExpensePage() {
 
               {/* Expense Date */}
               <div className="space-y-2">
-                <Label htmlFor="date">
+                <Label>
                   Expense Date <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="date"
-                  type="date"
+                <DatePicker
                   value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
+                  onChange={(v) => setFormData({ ...formData, date: v })}
+                  placeholder="Select expense date"
                   max={new Date().toISOString().split("T")[0]}
                 />
               </div>

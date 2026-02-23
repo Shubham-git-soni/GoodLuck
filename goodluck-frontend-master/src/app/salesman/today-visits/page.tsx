@@ -146,9 +146,9 @@ export default function TodayVisitsPage() {
       case "pending":
         return <Badge variant="secondary">Pending</Badge>;
       case "checked-in":
-        return <Badge variant="default" className="bg-blue-500">Checked In</Badge>;
+        return <Badge variant="default" className="bg-amber-500">Checked In</Badge>;
       case "completed":
-        return <Badge variant="default" className="bg-green-500">Completed</Badge>;
+        return <Badge variant="default">Completed</Badge>;
       default:
         return null;
     }
@@ -175,30 +175,41 @@ export default function TodayVisitsPage() {
         </Alert>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold">{pendingVisits.length}</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
+      {/* Summary Cards — 3-col on all sizes, compact on mobile */}
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-3 md:pt-6 md:px-6 md:pb-6">
+            <div className="mb-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 w-fit md:hidden">
+                <span className="block h-3.5 w-3.5 rounded-full bg-primary" />
+              </div>
             </div>
+            <p className="text-xl md:text-2xl font-bold">{pendingVisits.length}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 leading-tight">Pending</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-500">{checkedInVisits.length}</p>
-              <p className="text-xs text-muted-foreground">Checked In</p>
+
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-3 md:pt-6 md:px-6 md:pb-6">
+            <div className="mb-2">
+              <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 w-fit md:hidden">
+                <span className="block h-3.5 w-3.5 rounded-full bg-amber-500" />
+              </div>
             </div>
+            <p className="text-xl md:text-2xl font-bold text-amber-600">{checkedInVisits.length}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 leading-tight">Checked In</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-500">{completedVisits.length}</p>
-              <p className="text-xs text-muted-foreground">Completed</p>
+
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-3 md:pt-6 md:px-6 md:pb-6">
+            <div className="mb-2">
+              <div className="p-1.5 rounded-lg bg-muted w-fit md:hidden">
+                <span className="block h-3.5 w-3.5 rounded-full bg-muted-foreground/50" />
+              </div>
             </div>
+            <p className="text-xl md:text-2xl font-bold text-foreground">{completedVisits.length}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 leading-tight">Completed</p>
           </CardContent>
         </Card>
       </div>
@@ -206,7 +217,7 @@ export default function TodayVisitsPage() {
       {/* Visits List */}
       <div className="space-y-4">
         {visits.map((visit) => (
-          <Card key={visit.id} className={visit.status === "checked-in" ? "border-blue-500" : ""}>
+          <Card key={visit.id} className={visit.status === "checked-in" ? "border-primary" : ""}>
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">

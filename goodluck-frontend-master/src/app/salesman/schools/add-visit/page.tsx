@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
@@ -29,6 +28,7 @@ import qbsData from "@/lib/mock-data/qbs.json";
 import bookSellersData from "@/lib/mock-data/book-sellers.json";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 import specimensData from "@/lib/mock-data/specimens.json";
+import schoolsDataRaw from "@/lib/mock-data/schools.json";
 import { QB } from "@/types";
 
 // Components
@@ -181,7 +181,7 @@ function SchoolVisitForm() {
     selectedContacts: [] as string[],
     newContacts: [] as { name: string; role: string }[],
     purposes: [] as string[], needMappingType: "",
-    hasManager: false, managerId: "", managerType: "",
+    hasManager: false, managerId: "", managerType: "", managerRows: [] as { managerId: string; managerName: string; managerType: string }[],
     specimenRequired: "",
     givenRows: [{ specimenId: "", book: "", subject: "", class: "", mrp: 0, qty: 1, price: 0, amount: 0 }] as any[],
     returnRows: [{ specimenId: "", book: "", subject: "", class: "", qty: 1, condition: "" }] as any[],
@@ -216,9 +216,44 @@ function SchoolVisitForm() {
   const handleSubmit = () => {
     setIsSubmitting(true);
     setTimeout(() => {
+      // Build visit record for My Visits
+      const school = (schoolsDataRaw as any[]).find((s: any) => s.id === formData.schoolId);
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const now = new Date();
+      const contactsAll = school ? school.contacts || [] : [];
+      const selectedContactObjs = contactsAll.filter((c: any) => (formData.selectedContacts || []).includes(c.id));
+      const allContacts = [...selectedContactObjs, ...(formData.newContacts || [])];
+      const firstContact = allContacts[0];
+      const jointRows: any[] = formData.managerRows || [];
+      const jointStr = formData.hasManager && jointRows.some((r: any) => r.managerName)
+        ? jointRows.filter((r: any) => r.managerName).map((r: any) => `${r.managerName} (${r.managerType})`).join(", ")
+        : "—";
+      const givenStr = (formData.givenRows || []).filter((r: any) => r.book).map((r: any) => `${r.book} (×${r.qty})`).join(", ") || "—";
+      const newVisit = {
+        type: "school",
+        date: now.toISOString().split("T")[0],
+        time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+        day: days[now.getDay()],
+        jointWorking: jointStr,
+        schoolName: school ? school.name : "",
+        purpose: (formData.purposes || []).join(", "),
+        schoolCity: formData.city,
+        board: school ? school.board : "",
+        strength: school ? school.strength : "",
+        contactPerson: firstContact ? firstContact.name : "",
+        contactNo: firstContact ? (firstContact.phone || firstContact.contactNo || "") : "",
+        supplyThrough: formData.supplyThrough,
+        specimenGiven: givenStr,
+        specimenRequired: formData.specimenRequired || "",
+        schoolComment: formData.schoolFeedback || "",
+        yourComment: formData.feedbackComment || "",
+      };
+      const existing = JSON.parse(localStorage.getItem("myVisits_school") || "[]");
+      localStorage.setItem("myVisits_school", JSON.stringify([newVisit, ...existing]));
+
       toast.success("School visit logged successfully!");
       setIsSubmitting(false);
-      router.push("/salesman/schools");
+      router.push("/salesman/my-visits");
     }, 1200);
   };
 
@@ -379,16 +414,31 @@ function QBVisitForm() {
     }
     setIsSubmitting(true);
     setTimeout(() => {
+      const now = new Date();
+      const newVisit = {
+        type: "qb",
+        date: now.toISOString().split("T")[0],
+        schoolName: formData.schoolName,
+        board: formData.schoolBoard,
+        subject: formData.purposeOfVisit,
+        supplyThrough: "Direct",
+        teacher: formData.teacherName,
+        designation: formData.teacherDesignation,
+        contactNo: formData.teacherContactNo,
+        remarks: formData.remarks || "",
+        city: formData.schoolCity,
+        address: formData.schoolAddress || "",
+      };
+      const existing = JSON.parse(localStorage.getItem("myVisits_qb") || "[]");
+      localStorage.setItem("myVisits_qb", JSON.stringify([newVisit, ...existing]));
+
       toast.success("QB visit recorded successfully!");
       setIsSubmitting(false);
-      router.push("/salesman/qbs");
+      router.push("/salesman/my-visits");
     }, 1200);
   };
 
-  const qbPurposes = [
-    ...dropdownOptions.visitPurposes,
-    "QB Discussion", "QB Sample Distribution", "Question Paper Review",
-  ];
+  const qbPurposes = ["Follow Up", "Given QB Sample"];
 
   return (
     <div className="space-y-4 pb-4">
@@ -425,15 +475,25 @@ function QBVisitForm() {
           </div>
 
           {formData.schoolName && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Board</Label>
-                <Input value={formData.schoolBoard} disabled className="bg-muted text-sm h-9" />
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Board</Label>
+                  <Input value={formData.schoolBoard} disabled className="bg-muted text-sm h-9" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Strength</Label>
+                  <Input value={formData.schoolStrength} disabled className="bg-muted text-sm h-9" />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Strength</Label>
-                <Input value={formData.schoolStrength} disabled className="bg-muted text-sm h-9" />
-              </div>
+              {formData.schoolAddress && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Address</Label>
+                  <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground leading-snug">
+                    {formData.schoolAddress}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -652,9 +712,39 @@ function BookSellerVisitForm() {
     }
     setIsSubmitting(true);
     setTimeout(() => {
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const now = new Date();
+      const seller = (bookSellersData as any[]).find((s: any) => s.id === formData.bookSellerId);
+      const jointRows: any[] = formData.jointRows || [];
+      const jointStr = formData.hasJoint && jointRows.some((r: any) => r.personName)
+        ? jointRows.filter((r: any) => r.personName).map((r: any) => `${r.personName} (${r.personRole})`).join(", ")
+        : "—";
+      const givenStr = (formData.givenRows || []).filter((r: any) => r.book).map((r: any) => `${r.book} (×${r.qty})`).join(", ") || "—";
+      const glAmt = formData.paymentReceivedGL ? `₹${Number(formData.paymentReceivedGL).toLocaleString()}` : "—";
+      const vpAmt = formData.paymentReceivedVP ? `₹${Number(formData.paymentReceivedVP).toLocaleString()}` : "—";
+      const newVisit = {
+        type: "bookseller",
+        date: now.toISOString().split("T")[0],
+        time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+        day: days[now.getDay()],
+        jointWorking: jointStr,
+        name: seller ? seller.shopName : "",
+        contactNo: seller ? seller.phone : "",
+        email: seller ? seller.email : "",
+        address: seller ? seller.address : "",
+        city: seller ? seller.city : "",
+        purpose: (formData.purposes || []).join(", "),
+        specimenGiven: givenStr,
+        paymentGL: glAmt,
+        paymentVP: vpAmt,
+        remarks: formData.remark || "",
+      };
+      const existing = JSON.parse(localStorage.getItem("myVisits_bookseller") || "[]");
+      localStorage.setItem("myVisits_bookseller", JSON.stringify([newVisit, ...existing]));
+
       toast.success("Book seller visit logged successfully!");
       setIsSubmitting(false);
-      router.push("/salesman/booksellers");
+      router.push("/salesman/my-visits");
     }, 1200);
   };
 
@@ -1206,7 +1296,7 @@ function AddVisitPageContent() {
         </Button>
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] font-bold tracking-tight">Add Visit</h1>
-          <Button size="sm" onClick={() => router.push("/salesman/next-visits")}>
+          <Button size="sm" onClick={() => router.push("/salesman/my-visits")}>
             My Visits
           </Button>
         </div>

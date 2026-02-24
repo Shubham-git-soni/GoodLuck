@@ -18,7 +18,7 @@ const navItems = [
   { href: "/salesman/today-visits", label: "Today's Visits", icon: MapPinned },
   { href: "/salesman/tour-plan", label: "My Tour Plan", icon: ClipboardList },
   { href: "/salesman/visit-history", label: "Visit History", icon: History },
-  { href: "/salesman/next-visits", label: "My Visits", icon: Calendar },
+  { href: "/salesman/next-visits", label: "Schedule Visits", icon: Calendar },
   { type: "separator", label: "Masters" },
   { href: "/salesman/schools", label: "My Schools", icon: School },
   { href: "/salesman/qbs", label: "My QBs", icon: BookOpen },

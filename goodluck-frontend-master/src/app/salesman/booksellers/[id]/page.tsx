@@ -110,38 +110,29 @@ export default function BookSellerProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Current Outstanding</p>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold text-destructive">
-              ₹{(seller.currentOutstanding / 100000).toFixed(2)}L
+      {/* Financial Summary — always 3 cols */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        <Card className="border-0 shadow-sm bg-destructive/5">
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight mb-1">Outstanding</p>
+            <p className="text-base font-bold text-destructive leading-tight">
+              ₹{(seller.currentOutstanding / 100000).toFixed(1)}L
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Credit Limit</p>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold">
-              ₹{(seller.creditLimit / 100000).toFixed(2)}L
+        <Card className="border-0 shadow-sm bg-muted/50">
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight mb-1">Credit Limit</p>
+            <p className="text-base font-bold leading-tight">
+              ₹{(seller.creditLimit / 100000).toFixed(1)}L
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Available Credit</p>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold text-green-600">
-              ₹{((seller.creditLimit - seller.currentOutstanding) / 100000).toFixed(2)}L
+        <Card className="border-0 shadow-sm bg-green-50 dark:bg-green-950/20">
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight mb-1">Available</p>
+            <p className="text-base font-bold text-green-600 leading-tight">
+              ₹{((seller.creditLimit - seller.currentOutstanding) / 100000).toFixed(1)}L
             </p>
           </CardContent>
         </Card>

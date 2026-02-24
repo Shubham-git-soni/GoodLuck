@@ -100,7 +100,7 @@ export default function BookSellerListPage() {
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-2">
           <Label>Contact Number</Label>
-          <Input value={newSeller.contactNumber} onChange={(e) => setNewSeller({ ...newSeller, contactNumber: e.target.value })} placeholder="Enter number" />
+          <Input type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} value={newSeller.contactNumber} onChange={(e) => setNewSeller({ ...newSeller, contactNumber: e.target.value.replace(/\D/g, "") })} placeholder="10-digit number" />
         </div>
         <div className="grid gap-2">
           <Label>Email</Label>

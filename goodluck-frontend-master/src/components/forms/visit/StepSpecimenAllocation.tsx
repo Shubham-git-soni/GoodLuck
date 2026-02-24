@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, X, Package, IndianRupee } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Separator } from "@/components/ui/separator";
 
 import specimensData from "@/lib/mock-data/specimens.json";
@@ -19,358 +16,406 @@ interface StepProps {
   updateFormData: (data: any) => void;
 }
 
+interface SpecimenRow {
+  specimenId: string;
+  book: string;
+  subject: string;
+  class: string;
+  mrp: number;
+  qty: number;
+  price: number; // price per unit = 50% MRP
+  amount: number; // qty × price
+}
+
+interface ReturnRow {
+  specimenId: string;
+  book: string;
+  subject: string;
+  class: string;
+  qty: number;
+  condition: string;
+}
+
+// Specimens allocated to current salesman
+const availableSpecimens = specimensData.filter(
+  (s) => s.allocated["SM001"] && s.allocated["SM001"] > 0
+);
+
+function halfMrp(mrp: number) {
+  return Math.round(mrp * 0.5);
+}
+
+function emptyRow(): SpecimenRow {
+  return { specimenId: "", book: "", subject: "", class: "", mrp: 0, qty: 1, price: 0, amount: 0 };
+}
+
+function emptyReturnRow(): ReturnRow {
+  return { specimenId: "", book: "", subject: "", class: "", qty: 1, condition: "" };
+}
+
 export default function StepSpecimenAllocation({ formData, updateFormData }: StepProps) {
-  const [selectedSpecimen, setSelectedSpecimen] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [returnSpecimen, setReturnSpecimen] = useState("");
-  const [returnQuantity, setReturnQuantity] = useState(1);
-  const [returnCondition, setReturnCondition] = useState("");
+  const purposes: string[] = formData.purposes ?? [];
+  const showSpecimenGiven = purposes.includes("Given Specimen");
+  const showSpecimenReturned = purposes.includes("Collect Specimen");
+  const showPayment = purposes.includes("Order Finalization");
 
-  // Check purposes
-  const showSpecimenGiven = formData.purposes?.includes("Specimen Distribution");
-  const showSpecimenReturned = formData.purposes?.includes("Sales Return Follow-Up");
-  const showPayment = formData.purposes?.includes("Payment Collection");
+  // ── Given rows (stored in formData)
+  const givenRows: SpecimenRow[] = formData.givenRows ?? [emptyRow()];
+  const returnRows: ReturnRow[] = formData.returnRows ?? [emptyReturnRow()];
 
-  // Filter specimens for current salesman (SM001)
-  const availableSpecimens = specimensData.filter(
-    (s) => s.allocated["SM001"] && s.allocated["SM001"] > 0
-  );
+  const setGivenRows = (rows: SpecimenRow[]) => updateFormData({ givenRows: rows });
+  const setReturnRows = (rows: ReturnRow[]) => updateFormData({ returnRows: rows });
 
-  const handleAddSpecimen = () => {
-    if (selectedSpecimen && quantity > 0) {
-      const specimen = availableSpecimens.find((s) => s.id === selectedSpecimen);
-      if (specimen) {
-        const cost = (specimen.mrp * quantity) / 2; // 50% of MRP
-        const specimensGiven = formData.specimensGiven || [];
-        updateFormData({
-          specimensGiven: [
-            ...specimensGiven,
-            {
-              subject: specimen.subject,
-              class: specimen.class,
-              book: specimen.bookName,
-              quantity,
-              cost,
-              mrp: specimen.mrp,
-            },
-          ],
-        });
-        setSelectedSpecimen("");
-        setQuantity(1);
-      }
+  // ── Specimen row handlers
+  const handleSpecimenSelect = (index: number, specimenId: string) => {
+    const spec = availableSpecimens.find((s) => s.id === specimenId);
+    const rows = [...givenRows];
+    if (spec) {
+      const price = halfMrp(spec.mrp);
+      rows[index] = {
+        ...rows[index],
+        specimenId,
+        book: spec.bookName,
+        subject: spec.subject,
+        class: spec.class,
+        mrp: spec.mrp,
+        price,
+        qty: 1,
+        amount: price * 1,
+      };
+    } else {
+      rows[index] = emptyRow();
     }
+    setGivenRows(rows);
   };
 
-  const handleRemoveSpecimen = (index: number) => {
-    const specimensGiven = formData.specimensGiven || [];
-    updateFormData({
-      specimensGiven: specimensGiven.filter((_: any, i: number) => i !== index),
-    });
+  const handleQtyChange = (index: number, qty: number) => {
+    const rows = [...givenRows];
+    const safeQty = Math.max(1, qty);
+    rows[index] = { ...rows[index], qty: safeQty, amount: rows[index].price * safeQty };
+    setGivenRows(rows);
   };
 
-  const handleAddReturn = () => {
-    if (returnSpecimen && returnQuantity > 0 && returnCondition) {
-      const specimen = availableSpecimens.find((s) => s.id === returnSpecimen);
-      if (specimen) {
-        const specimensReturned = formData.specimensReturned || [];
-        updateFormData({
-          specimensReturned: [
-            ...specimensReturned,
-            {
-              subject: specimen.subject,
-              class: specimen.class,
-              book: specimen.bookName,
-              quantity: returnQuantity,
-              condition: returnCondition,
-            },
-          ],
-        });
-        setReturnSpecimen("");
-        setReturnQuantity(1);
-        setReturnCondition("");
-      }
+  const handleAddGivenRow = () => {
+    setGivenRows([...givenRows, emptyRow()]);
+  };
+
+  const handleRemoveGivenRow = (index: number) => {
+    const rows = givenRows.filter((_, i) => i !== index);
+    setGivenRows(rows.length ? rows : [emptyRow()]);
+  };
+
+  const totalSpecimenAmount = givenRows.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+  // ── Return row handlers
+  const handleReturnSpecimenSelect = (index: number, specimenId: string) => {
+    const spec = availableSpecimens.find((s) => s.id === specimenId);
+    const rows = [...returnRows];
+    if (spec) {
+      rows[index] = { ...rows[index], specimenId, book: spec.bookName, subject: spec.subject, class: spec.class, qty: 1 };
+    } else {
+      rows[index] = emptyReturnRow();
     }
+    setReturnRows(rows);
   };
 
-  const handleRemoveReturn = (index: number) => {
-    const specimensReturned = formData.specimensReturned || [];
-    updateFormData({
-      specimensReturned: specimensReturned.filter((_: any, i: number) => i !== index),
-    });
+  const handleReturnQtyChange = (index: number, qty: number) => {
+    const rows = [...returnRows];
+    rows[index] = { ...rows[index], qty: Math.max(1, qty) };
+    setReturnRows(rows);
   };
 
-  const totalCost = (formData.specimensGiven || []).reduce(
-    (sum: number, item: any) => sum + item.cost,
-    0
-  );
+  const handleReturnConditionChange = (index: number, condition: string) => {
+    const rows = [...returnRows];
+    rows[index] = { ...rows[index], condition };
+    setReturnRows(rows);
+  };
+
+  const handleAddReturnRow = () => {
+    setReturnRows([...returnRows, emptyReturnRow()]);
+  };
+
+  const handleRemoveReturnRow = (index: number) => {
+    const rows = returnRows.filter((_, i) => i !== index);
+    setReturnRows(rows.length ? rows : [emptyReturnRow()]);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Specimen Required */}
-      <div className="space-y-2">
-        <Label htmlFor="specimenRequired">Specimen Required (Optional)</Label>
-        <Textarea
-          id="specimenRequired"
-          placeholder="e.g., Mathematics Class 10, Science Class 9, English Class 8..."
-          rows={3}
-          value={formData.specimenRequired}
-          onChange={(e) => updateFormData({ specimenRequired: e.target.value })}
-        />
-        <p className="text-xs text-muted-foreground">
-          List the specimens required by the school
-        </p>
-      </div>
 
-      {/* Payment Collection Fields */}
+      {/* ── Payment ── */}
       {showPayment && (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">Payment Collection</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="paymentReceivedGL">Payment Received GL (₹)</Label>
-                <Input
-                  id="paymentReceivedGL"
-                  type="number"
-                  min="0"
-                  placeholder="Enter GL payment amount"
-                  value={formData.paymentReceivedGL || ""}
-                  onChange={(e) =>
-                    updateFormData({
-                      paymentReceivedGL: parseInt(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="paymentReceivedVP">Payment Received VP (₹)</Label>
-                <Input
-                  id="paymentReceivedVP"
-                  type="number"
-                  min="0"
-                  placeholder="Enter VP payment amount"
-                  value={formData.paymentReceivedVP || ""}
-                  onChange={(e) =>
-                    updateFormData({
-                      paymentReceivedVP: parseInt(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Order / Payment
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Payment Received GL (₹)</Label>
+              <Input
+                type="number" min="0" inputMode="numeric"
+                placeholder="Enter GL payment amount"
+                value={formData.paymentReceivedGL || ""}
+                onChange={(e) => updateFormData({ paymentReceivedGL: parseInt(e.target.value) || 0 })}
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Payment Received VP (₹)</Label>
+              <Input
+                type="number" min="0" inputMode="numeric"
+                placeholder="Enter VP payment amount"
+                value={formData.paymentReceivedVP || ""}
+                onChange={(e) => updateFormData({ paymentReceivedVP: parseInt(e.target.value) || 0 })}
+                className="h-11"
+              />
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Specimen Given Section */}
-      {showSpecimenGiven && (
-        <>
-          <Separator />
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Specimens Given</Label>
+      {showPayment && (showSpecimenGiven || showSpecimenReturned) && <Separator />}
 
-            {/* Add Specimen Form */}
-            <Card>
-              <CardContent className="pt-6 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2">
-                    <Select value={selectedSpecimen} onValueChange={setSelectedSpecimen}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select specimen book" />
+      {/* ── Given Specimen ── */}
+      {showSpecimenGiven && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Given Specimen
+          </p>
+
+          {/* Row list */}
+          <div className="space-y-3">
+            {givenRows.map((row, index) => (
+              <div key={index} className="rounded-xl border border-border bg-background p-3 space-y-3">
+
+                {/* Row header: index + remove */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Book {index + 1}
+                  </span>
+                  {givenRows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGivenRow(index)}
+                      className="h-7 w-7 flex items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Book dropdown */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Select Book</Label>
+                  {/* Mobile */}
+                  <div className="md:hidden">
+                    <NativeSelect
+                      value={row.specimenId}
+                      onValueChange={(v) => handleSpecimenSelect(index, v)}
+                      placeholder="Choose allocated specimen…"
+                    >
+                      {availableSpecimens.map((s) => (
+                        <NativeSelectOption key={s.id} value={s.id}>
+                          {s.bookName} — Cl.{s.class} ({s.subject})
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  {/* Desktop */}
+                  <div className="hidden md:block">
+                    <Select value={row.specimenId} onValueChange={(v) => handleSpecimenSelect(index, v)}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Choose allocated specimen…" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableSpecimens.map((specimen) => (
-                          <SelectItem key={specimen.id} value={specimen.id}>
-                            {specimen.bookName} - Class {specimen.class} ({specimen.subject})
+                        {availableSpecimens.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.bookName} — Class {s.class} ({s.subject})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Qty"
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  />
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddSpecimen}
-                  disabled={!selectedSpecimen || quantity < 1}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Specimen
-                </Button>
-              </CardContent>
-            </Card>
 
-            {/* Specimens Given List */}
-            {formData.specimensGiven && formData.specimensGiven.length > 0 ? (
-              <div className="space-y-2">
-                {formData.specimensGiven.map((item: any, index: number) => (
-                  <Card key={index}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium">{item.book}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.subject} - Class {item.class}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="secondary">Qty: {item.quantity}</Badge>
-                            <Badge variant="outline">₹{item.cost.toLocaleString()}</Badge>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveSpecimen(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold">Total Specimen Cost</p>
-                      <p className="text-lg font-bold text-primary">
-                        ₹{totalCost.toLocaleString()}
-                      </p>
+                {/* Qty + Price + Amount row — only shown once book is selected */}
+                {row.specimenId && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Quantity</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        inputMode="numeric"
+                        value={row.qty}
+                        onChange={(e) => handleQtyChange(index, parseInt(e.target.value) || 1)}
+                        className="h-10 text-sm"
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      (Calculated at 50% of MRP)
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4 bg-muted/50 rounded-lg">
-                No specimens added yet. Add specimen books if applicable.
-              </p>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Specimen Return Section */}
-      {showSpecimenReturned && (
-        <>
-          <Separator />
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Specimens Returned</Label>
-
-            {/* Add Return Form */}
-            <Card>
-              <CardContent className="pt-6 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Select value={returnSpecimen} onValueChange={setReturnSpecimen}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select book" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSpecimens.map((specimen) => (
-                        <SelectItem key={specimen.id} value={specimen.id}>
-                          {specimen.bookName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Quantity"
-                    value={returnQuantity}
-                    onChange={(e) => setReturnQuantity(parseInt(e.target.value) || 1)}
-                  />
-                </div>
-                <Select value={returnCondition} onValueChange={setReturnCondition}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select condition" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dropdownOptions.specimenConditions.map((condition) => (
-                      <SelectItem key={condition} value={condition}>
-                        {condition}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddReturn}
-                  disabled={!returnSpecimen || !returnCondition || returnQuantity < 1}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Return
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Returns List */}
-            {formData.specimensReturned && formData.specimensReturned.length > 0 && (
-              <div className="space-y-2">
-                {formData.specimensReturned.map((item: any, index: number) => (
-                  <Card key={index}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium">{item.book}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.subject} - Class {item.class}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="secondary">Qty: {item.quantity}</Badge>
-                            <Badge
-                              variant={
-                                item.condition === "Good" ? "default" : "destructive"
-                              }
-                            >
-                              {item.condition}
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveReturn(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Price / Unit</Label>
+                      <div className="flex h-10 items-center rounded-lg border border-border bg-muted/60 px-3 text-sm text-muted-foreground">
+                        ₹{row.price.toLocaleString()}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Amount</Label>
+                      <div className="flex h-10 items-center rounded-lg border border-primary/30 bg-primary/5 px-3 text-sm font-bold text-primary">
+                        ₹{row.amount.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
-        </>
+
+          {/* Add More button */}
+          <Button
+            type="button"
+            onClick={handleAddGivenRow}
+            className="w-full h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            Add More
+          </Button>
+
+          {/* Total Specimen Amount */}
+          <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <IndianRupee className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Total Specimen Amount</span>
+            </div>
+            <span className="text-lg font-bold text-primary">
+              ₹{totalSpecimenAmount.toLocaleString()}
+            </span>
+          </div>
+        </div>
       )}
 
-      {/* Info message when no relevant purposes selected */}
+      {showSpecimenGiven && showSpecimenReturned && <Separator />}
+
+      {/* ── Collect Specimen (Returns) ── */}
+      {showSpecimenReturned && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Collect Specimen
+          </p>
+
+          <div className="space-y-3">
+            {returnRows.map((row, index) => (
+              <div key={index} className="rounded-xl border border-border bg-background p-3 space-y-3">
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Book {index + 1}
+                  </span>
+                  {returnRows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveReturnRow(index)}
+                      className="h-7 w-7 flex items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Book dropdown */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Select Book</Label>
+                  <div className="md:hidden">
+                    <NativeSelect
+                      value={row.specimenId}
+                      onValueChange={(v) => handleReturnSpecimenSelect(index, v)}
+                      placeholder="Choose specimen book…"
+                    >
+                      {availableSpecimens.map((s) => (
+                        <NativeSelectOption key={s.id} value={s.id}>
+                          {s.bookName} — Cl.{s.class} ({s.subject})
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  <div className="hidden md:block">
+                    <Select value={row.specimenId} onValueChange={(v) => handleReturnSpecimenSelect(index, v)}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Choose specimen book…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSpecimens.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.bookName} — Class {s.class} ({s.subject})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {row.specimenId && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Quantity</Label>
+                      <Input
+                        type="number" min={1} inputMode="numeric"
+                        value={row.qty}
+                        onChange={(e) => handleReturnQtyChange(index, parseInt(e.target.value) || 1)}
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Condition</Label>
+                      <div className="md:hidden">
+                        <NativeSelect
+                          value={row.condition}
+                          onValueChange={(v) => handleReturnConditionChange(index, v)}
+                          placeholder="Select condition"
+                        >
+                          {dropdownOptions.specimenConditions.map((c) => (
+                            <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      </div>
+                      <div className="hidden md:block">
+                        <Select value={row.condition} onValueChange={(v) => handleReturnConditionChange(index, v)}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dropdownOptions.specimenConditions.map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleAddReturnRow}
+            className="w-full h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            Add More
+          </Button>
+        </div>
+      )}
+
+      {/* ── No relevant purposes ── */}
       {!showSpecimenGiven && !showSpecimenReturned && !showPayment && (
-        <Card className="bg-muted/50">
-          <CardContent className="p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              No specimen or payment fields are required based on your selected purposes.
-              You can proceed to the next step.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-8 rounded-xl border border-dashed border-muted-foreground/20 bg-muted/20">
+          <Package className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+          <p className="text-sm text-muted-foreground">
+            No specimen or payment fields required for the selected purposes.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">You can proceed to the next step.</p>
+        </div>
       )}
     </div>
   );

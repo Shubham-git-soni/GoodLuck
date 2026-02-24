@@ -96,11 +96,13 @@ export function MultiSelect({
     };
   }, [open]);
 
-  // Focus search on open — no auto-scroll on mobile
+  // Focus search on open — desktop only, never on mobile (keyboard hides options)
   React.useEffect(() => {
     if (open && searchable && searchRef.current) {
-      // preventScroll stops iOS from scrolling the page when input is focused
-      setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 80);
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile) {
+        setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 80);
+      }
     }
   }, [open, searchable]);
 
@@ -207,6 +209,7 @@ export function MultiSelect({
               "fixed left-0 right-0 bottom-0 z-[61] md:hidden",
               "rounded-t-2xl border-t border-border bg-popover shadow-2xl",
               "animate-in slide-in-from-bottom duration-200",
+              "max-h-[75dvh] flex flex-col",
               // Desktop: absolute dropdown
               "md:absolute md:left-0 md:right-auto md:bottom-auto md:top-[calc(100%+6px)] md:w-full md:z-50",
               "md:rounded-xl md:border md:shadow-lg",
@@ -230,6 +233,8 @@ export function MultiSelect({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={searchPlaceholder}
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    onFocus={(e) => e.target.removeAttribute("readOnly")}
+                    readOnly
                   />
                   {search && (
                     <button
@@ -279,8 +284,8 @@ export function MultiSelect({
 
             {/* Options list */}
             <div
-              className="overflow-y-auto p-1.5"
-              style={{ maxHeight }}
+              className="overflow-y-auto p-1.5 md:max-h-none flex-1"
+              style={{ maxHeight: typeof window !== "undefined" && window.innerWidth >= 768 ? maxHeight : undefined }}
               // Prevent touch scroll from closing the dropdown
               onTouchMove={(e) => e.stopPropagation()}
             >

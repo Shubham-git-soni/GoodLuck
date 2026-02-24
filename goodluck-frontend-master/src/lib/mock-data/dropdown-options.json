@@ -21,9 +21,18 @@
     "Purchase Manager", "Admin Officer"
   ],
   "visitPurposes": [
-    "Need Mapping", "Post-Sales Engagement", "Relationship Building",
-    "Reminder/Follow-Up", "Specimen Distribution", "Payment Collection",
-    "Documentation", "Inquiry", "Sales Return Follow-Up"
+    "Relationship Building",
+    "Follow Up",
+    "Need Mapping",
+    "Marketing Brochures",
+    "Product Demos",
+    "Given Specimen",
+    "Collect Specimen",
+    "Workshop",
+    "Feedback",
+    "Final Pitch",
+    "Order Finalization",
+    "Post Sale Engagement"
   ],
   "needMappingTypes": [
     "No change", "Implementing NCERT", "Changing specific subjects"

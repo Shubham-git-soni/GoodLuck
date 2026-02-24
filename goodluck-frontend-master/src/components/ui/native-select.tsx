@@ -60,7 +60,7 @@ export function NativeSelect({
         {...props}
       >
         {placeholder && (
-          <option value="" disabled hidden>
+          <option value="" disabled>
             {placeholder}
           </option>
         )}

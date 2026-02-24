@@ -57,7 +57,7 @@ export default function FeedbackManagerPage() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 mb-6">
         <StatsCard title="Pending" value={pending.length} icon={MessageSquare} />
         <StatsCard title="In Progress" value={inProgress.length} icon={MessageSquare} />
         <StatsCard title="Resolved" value={resolved.length} icon={MessageSquare} />

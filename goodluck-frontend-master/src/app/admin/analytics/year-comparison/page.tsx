@@ -258,7 +258,7 @@ export default function YearComparisonPage() {
       />
 
       {/* Top Stats */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 mb-6">
         <StatsCard
           title="1-Year Schools"
           value={oneYearSchools.length}

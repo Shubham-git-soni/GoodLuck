@@ -1,5 +1,4 @@
 import { LucideIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
@@ -14,6 +13,28 @@ interface StatsCardProps {
   className?: string;
 }
 
+// Cycle through gradient styles for visual variety
+const gradients = [
+  "gradient-card-orange",
+  "gradient-card-amber",
+  "gradient-card-neutral",
+  "gradient-card-orange",
+];
+
+const iconBgs = [
+  "bg-primary/10",
+  "bg-amber-100 dark:bg-amber-900/30",
+  "bg-muted",
+  "bg-primary/10",
+];
+
+const iconColors = [
+  "text-primary",
+  "text-amber-600 dark:text-amber-400",
+  "text-muted-foreground",
+  "text-primary",
+];
+
 export default function StatsCard({
   title,
   value,
@@ -22,38 +43,38 @@ export default function StatsCard({
   trend,
   className,
 }: StatsCardProps) {
+  // Use a stable index based on title string so it's consistent across renders
+  const idx = Math.abs(title.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % gradients.length;
+  const gradient = gradients[idx];
+  const iconBg = iconBgs[idx];
+  const iconColor = iconColors[idx];
+
   return (
-    <Card className={cn("transition-all hover:shadow-md", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+    <div className={cn("rounded-xl border-0 shadow-sm p-4", gradient, className)}>
+      <div className="flex items-center justify-between mb-3">
         {Icon && (
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
-        {trend && (
-          <div className="flex items-center mt-2">
-            <span
-              className={cn(
-                "text-xs font-medium",
-                trend.isPositive ? "text-green-600" : "text-red-600"
-              )}
-            >
-              {trend.isPositive ? "+" : "-"}
-              {Math.abs(trend.value)}%
-            </span>
-            <span className="text-xs text-muted-foreground ml-1">
-              vs last period
-            </span>
+          <div className={cn("p-1.5 rounded-lg", iconBg)}>
+            <Icon className={cn("h-4 w-4", iconColor)} />
           </div>
         )}
-      </CardContent>
-    </Card>
+        {trend && (
+          <span className={cn(
+            "text-xs font-semibold px-2 py-0.5 rounded-full",
+            trend.isPositive
+              ? "text-primary bg-primary/10"
+              : "text-destructive bg-destructive/10"
+          )}>
+            {trend.isPositive ? "+" : "-"}{Math.abs(trend.value)}%
+          </span>
+        )}
+      </div>
+      <p className="text-xl font-bold tracking-tight">{value}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
+      {description && (
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      )}
+    </div>
   );
 }

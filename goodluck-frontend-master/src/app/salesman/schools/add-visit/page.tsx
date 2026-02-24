@@ -20,7 +20,6 @@ import StepSchoolSelection from "@/components/forms/visit/StepSchoolSelection";
 import StepContactPerson from "@/components/forms/visit/StepContactPerson";
 import StepPurpose from "@/components/forms/visit/StepPurpose";
 import StepJointWorking from "@/components/forms/visit/StepJointWorking";
-import StepSpecimenAllocation from "@/components/forms/visit/StepSpecimenAllocation";
 import StepFeedback from "@/components/forms/visit/StepFeedback";
 import StepNextVisit from "@/components/forms/visit/StepNextVisit";
 
@@ -45,10 +44,106 @@ const SCHOOL_STEPS = [
   { number: 2, title: "Contact" },
   { number: 3, title: "Purpose" },
   { number: 4, title: "Joint" },
-  { number: 5, title: "Specimen" },
+  { number: 5, title: "Payment" },
   { number: 6, title: "Feedback" },
   { number: 7, title: "Next Visit" },
 ];
+
+// ─── Step 5: Payment ─────────────────────────────────────────────────────────
+
+function StepPayment({ formData, updateFormData }: { formData: any; updateFormData: (d: any) => void }) {
+  const paymentFor: string = formData.paymentFor || "";
+  const gl: number = formData.paymentReceivedGL || 0;
+  const vp: number = formData.paymentReceivedVP || 0;
+  const amount = paymentFor === "GL" ? gl : paymentFor === "VP" ? vp : 0;
+
+  const sanitize = (val: string) => {
+    const digits = val.replace(/[^0-9]/g, "");
+    return digits === "" ? 0 : parseInt(digits, 10);
+  };
+
+  const handlePaymentFor = (val: string) => {
+    updateFormData({ paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 });
+  };
+
+  const handleAmount = (val: string) => {
+    const num = sanitize(val);
+    if (paymentFor === "GL") updateFormData({ paymentReceivedGL: num });
+    else if (paymentFor === "VP") updateFormData({ paymentReceivedVP: num });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Select company */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Payment Received For</Label>
+        <div className="grid grid-cols-2 gap-3 mt-1">
+          {[
+            { key: "GL", label: "Goodluck", color: "blue" },
+            { key: "VP", label: "Vidhyapith", color: "violet" },
+          ].map(({ key, label, color }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handlePaymentFor(key)}
+              className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
+                paymentFor === key
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-background hover:border-muted-foreground/30"
+              }`}
+            >
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
+              }`}>
+                {key}
+              </span>
+              <span className="text-sm font-medium">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Amount input — shown after selection */}
+      {paymentFor && (
+        <div className="space-y-1.5">
+          <Label className="text-sm font-semibold">
+            Amount Received (₹) —{" "}
+            <span className={paymentFor === "GL" ? "text-blue-600" : "text-violet-600"}>
+              {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
+            </span>
+          </Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+            <Input
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Enter payment amount"
+              value={amount || ""}
+              onChange={(e) => handleAmount(e.target.value)}
+              className="h-12 pl-7 text-base font-semibold"
+              autoFocus
+            />
+          </div>
+
+          {/* Summary chip */}
+          {amount > 0 && (
+            <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 mt-2">
+              <span className="text-sm font-semibold">Total Payment</span>
+              <span className="text-base font-bold text-primary">₹{amount.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!paymentFor && (
+        <p className="text-xs text-muted-foreground text-center py-2">
+          Select the company for which payment was received. Leave unselected if no payment was collected.
+        </p>
+      )}
+    </div>
+  );
+}
 
 // ─── School Visit Form ────────────────────────────────────────────────────────
 
@@ -64,8 +159,11 @@ function SchoolVisitForm() {
     newContacts: [] as { name: string; role: string }[],
     purposes: [] as string[], needMappingType: "",
     hasManager: false, managerId: "", managerType: "",
-    specimenRequired: "", specimensGiven: [] as any[], specimensReturned: [] as any[],
-    paymentReceivedGL: 0, paymentReceivedVP: 0,
+    specimenRequired: "",
+    givenRows: [{ specimenId: "", book: "", subject: "", class: "", mrp: 0, qty: 1, price: 0, amount: 0 }] as any[],
+    returnRows: [{ specimenId: "", book: "", subject: "", class: "", qty: 1, condition: "" }] as any[],
+    specimensGiven: [] as any[], specimensReturned: [] as any[],
+    paymentFor: "", paymentReceivedGL: 0, paymentReceivedVP: 0,
     feedbackCategory: "", feedbackComment: "", schoolFeedback: "", schoolSpecialRequest: "",
     nextVisitDate: "", nextVisitPurpose: "", reminder: "",
   });
@@ -108,7 +206,7 @@ function SchoolVisitForm() {
     "Add or select contact persons you met",
     "Select the purpose(s) of your visit",
     "Was this a joint visit with your manager?",
-    "Record specimen books given and returned",
+    "Enter payment received from the school",
     "Share your feedback about the visit",
     "Schedule the next visit (optional)",
   ];
@@ -186,7 +284,7 @@ function SchoolVisitForm() {
           {currentStep === 2 && <StepContactPerson formData={formData} updateFormData={updateFormData} />}
           {currentStep === 3 && <StepPurpose formData={formData} updateFormData={updateFormData} />}
           {currentStep === 4 && <StepJointWorking formData={formData} updateFormData={updateFormData} />}
-          {currentStep === 5 && <StepSpecimenAllocation formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 5 && <StepPayment formData={formData} updateFormData={updateFormData} />}
           {currentStep === 6 && <StepFeedback formData={formData} updateFormData={updateFormData} />}
           {currentStep === 7 && <StepNextVisit formData={formData} updateFormData={updateFormData} />}
         </CardContent>

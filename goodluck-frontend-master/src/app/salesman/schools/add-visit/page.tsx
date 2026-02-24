@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, School, BookOpen, Store, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, School, BookOpen, Store, Save, Plus, X, IndianRupee } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 
@@ -27,7 +28,29 @@ import StepNextVisit from "@/components/forms/visit/StepNextVisit";
 import qbsData from "@/lib/mock-data/qbs.json";
 import bookSellersData from "@/lib/mock-data/book-sellers.json";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
+import specimensData from "@/lib/mock-data/specimens.json";
 import { QB } from "@/types";
+
+// Components
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+
+// Specimens allocated to current salesman (shared)
+const availableSpecimens = (specimensData as any[]).filter(
+  (s) => s.allocated?.["SM001"] && s.allocated["SM001"] > 0
+);
+
+function halfMrp(mrp: number) { return Math.round(mrp * 0.5); }
+function emptyGivenRow() { return { specimenId: "", book: "", subject: "", class: "", mrp: 0, qty: 1, price: 0, amount: 0 }; }
+function emptyReturnRow() { return { specimenId: "", book: "", subject: "", class: "", qty: 1, condition: "" }; }
+
+const JOINT_PERSONS = [
+  { id: "MGR001", name: "Amit Sharma",  role: "Regional Manager" },
+  { id: "MGR002", name: "Neha Gupta",   role: "Regional Manager" },
+  { id: "MGR003", name: "Ravi Kumar",   role: "State Manager" },
+  { id: "SM002",  name: "Rahul Verma",  role: "Salesman" },
+  { id: "SM003",  name: "Priya Singh",  role: "Salesman" },
+  { id: "SM004",  name: "Deepak Joshi", role: "Salesman" },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -507,6 +530,17 @@ function QBVisitForm() {
 
 const BS_PURPOSES = [
   "Relationship Building",
+  "Follow Up",
+  "Need Mapping",
+  "Marketing Brochures",
+  "Product Demos",
+  "Given Specimen",
+  "Collect Specimen",
+  "Workshop",
+  "Feedback",
+  "Final Pitch",
+  "Order Finalization",
+  "Post Sale Engagement",
   "Payment Collection",
   "Documentation",
   "Inquiry",
@@ -521,12 +555,20 @@ function BookSellerVisitForm() {
   const [formData, setFormData] = useState({
     bookSellerId: "",
     purposes: [] as string[],
+    givenRows: [emptyGivenRow()] as any[],
+    returnRows: [emptyReturnRow()] as any[],
+    paymentFor: "",
     paymentReceivedGL: 0,
     paymentReceivedVP: 0,
+    hasJoint: false,
+    jointRows: [{ personId: "", personName: "", personRole: "" }] as any[],
     remark: "",
     nextVisitDate: "",
     reminder: "",
   });
+
+  const updateFormData = (data: Partial<typeof formData>) =>
+    setFormData((prev) => ({ ...prev, ...data }));
 
   const cities = Array.from(
     new Set(bookSellersData.filter((s) => s.assignedTo === "SM001").map((s) => s.city))
@@ -538,13 +580,69 @@ function BookSellerVisitForm() {
 
   const selectedSeller = bookSellersData.find((s) => s.id === formData.bookSellerId);
 
-  const togglePurpose = (p: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      purposes: prev.purposes.includes(p)
-        ? prev.purposes.filter((x) => x !== p)
-        : [...prev.purposes, p],
-    }));
+  const showGivenSpecimen = formData.purposes.includes("Given Specimen");
+  const showCollectSpecimen = formData.purposes.includes("Collect Specimen");
+
+  // ── Given rows handlers
+  const givenRows = formData.givenRows;
+  const setGivenRows = (rows: any[]) => updateFormData({ givenRows: rows });
+
+  const handleSpecimenSelect = (index: number, specimenId: string) => {
+    const spec = availableSpecimens.find((s) => s.id === specimenId);
+    const rows = [...givenRows];
+    if (spec) {
+      const price = halfMrp(spec.mrp);
+      rows[index] = { ...rows[index], specimenId, book: spec.bookName, subject: spec.subject, class: spec.class, mrp: spec.mrp, price, qty: 1, amount: price };
+    } else {
+      rows[index] = emptyGivenRow();
+    }
+    setGivenRows(rows);
+  };
+
+  const handleQtyChange = (index: number, qty: number) => {
+    const rows = [...givenRows];
+    const safeQty = Math.max(1, qty);
+    rows[index] = { ...rows[index], qty: safeQty, amount: rows[index].price * safeQty };
+    setGivenRows(rows);
+  };
+
+  const handleRemoveGivenRow = (index: number) => {
+    const rows = givenRows.filter((_: any, i: number) => i !== index);
+    setGivenRows(rows.length ? rows : [emptyGivenRow()]);
+  };
+
+  const totalSpecimenAmount = givenRows.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+
+  // ── Return rows handlers
+  const returnRows = formData.returnRows;
+  const setReturnRows = (rows: any[]) => updateFormData({ returnRows: rows });
+
+  const handleReturnSpecimenSelect = (index: number, specimenId: string) => {
+    const spec = availableSpecimens.find((s) => s.id === specimenId);
+    const rows = [...returnRows];
+    if (spec) {
+      rows[index] = { ...rows[index], specimenId, book: spec.bookName, subject: spec.subject, class: spec.class, qty: 1 };
+    } else {
+      rows[index] = emptyReturnRow();
+    }
+    setReturnRows(rows);
+  };
+
+  const handleReturnQtyChange = (index: number, qty: number) => {
+    const rows = [...returnRows];
+    rows[index] = { ...rows[index], qty: Math.max(1, qty) };
+    setReturnRows(rows);
+  };
+
+  const handleReturnConditionChange = (index: number, condition: string) => {
+    const rows = [...returnRows];
+    rows[index] = { ...rows[index], condition };
+    setReturnRows(rows);
+  };
+
+  const handleRemoveReturnRow = (index: number) => {
+    const rows = returnRows.filter((_: any, i: number) => i !== index);
+    setReturnRows(rows.length ? rows : [emptyReturnRow()]);
   };
 
   const handleSubmit = () => {
@@ -622,68 +720,415 @@ function BookSellerVisitForm() {
           <CardTitle className="text-base">Purpose of Visit *</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {BS_PURPOSES.map((p) => (
-              <label
-                key={p}
-                htmlFor={`bsp-${p}`}
-                className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 cursor-pointer active:bg-muted/50"
-              >
-                <Checkbox
-                  id={`bsp-${p}`}
-                  checked={formData.purposes.includes(p)}
-                  onCheckedChange={() => togglePurpose(p)}
-                />
-                <span className="text-sm font-medium flex-1">{p}</span>
-              </label>
-            ))}
-          </div>
+          <MultiSelect
+            options={BS_PURPOSES.map((p) => ({ value: p, label: p }))}
+            value={formData.purposes}
+            onChange={(selected) => setFormData((prev) => ({ ...prev, purposes: selected }))}
+            placeholder="Select visit purpose(s)…"
+            searchable={true}
+            searchPlaceholder="Search purposes…"
+          />
         </CardContent>
       </Card>
 
-      {/* Payment (conditional) */}
-      {formData.purposes.includes("Payment Collection") && (
+      {/* Given Specimen (conditional) */}
+      {showGivenSpecimen && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Payment Details</CardTitle>
+            <CardTitle className="text-base">Given Specimen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">GL Payment (₹)</Label>
-                <Input
-                  type="number" min="0"
-                  placeholder="Amount"
-                  value={formData.paymentReceivedGL || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, paymentReceivedGL: parseInt(e.target.value) || 0 }))}
-                />
+          <CardContent className="space-y-3">
+            {givenRows.map((row: any, index: number) => (
+              <div key={index} className="rounded-xl border border-border bg-muted/20 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Book {index + 1}</span>
+                  {givenRows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGivenRow(index)}
+                      className="h-7 w-7 flex items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Mobile */}
+                <div className="md:hidden">
+                  <NativeSelect
+                    value={row.specimenId}
+                    onValueChange={(v) => handleSpecimenSelect(index, v)}
+                    placeholder="Choose allocated specimen…"
+                  >
+                    {availableSpecimens.map((s) => (
+                      <NativeSelectOption key={s.id} value={s.id}>
+                        {s.bookName} — Cl.{s.class} ({s.subject})
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <Select value={row.specimenId} onValueChange={(v) => handleSpecimenSelect(index, v)}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Choose allocated specimen…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableSpecimens.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.bookName} — Class {s.class} ({s.subject})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {row.specimenId && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Quantity</Label>
+                      <Input
+                        type="number" min={1} inputMode="numeric"
+                        value={row.qty}
+                        onChange={(e) => handleQtyChange(index, parseInt(e.target.value) || 1)}
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Price/Unit</Label>
+                      <div className="flex h-10 items-center rounded-lg border border-border bg-muted/60 px-3 text-sm text-muted-foreground">
+                        ₹{row.price.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Amount</Label>
+                      <div className="flex h-10 items-center rounded-lg border border-primary/30 bg-primary/5 px-3 text-sm font-bold text-primary">
+                        ₹{row.amount.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">VP Payment (₹)</Label>
-                <Input
-                  type="number" min="0"
-                  placeholder="Amount"
-                  value={formData.paymentReceivedVP || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, paymentReceivedVP: parseInt(e.target.value) || 0 }))}
-                />
+            ))}
+
+            <Button
+              type="button"
+              onClick={() => setGivenRows([...givenRows, emptyGivenRow()])}
+              className="w-full h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90 border-0"
+            >
+              <Plus className="h-4 w-4" />
+              Add More
+            </Button>
+
+            <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">Total Specimen Amount</span>
               </div>
+              <span className="text-base font-bold text-primary">₹{totalSpecimenAmount.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Remark */}
+      {/* Collect Specimen (conditional) */}
+      {showCollectSpecimen && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Collect Specimen</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {returnRows.map((row: any, index: number) => (
+              <div key={index} className="rounded-xl border border-border bg-muted/20 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Book {index + 1}</span>
+                  {returnRows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveReturnRow(index)}
+                      className="h-7 w-7 flex items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Mobile */}
+                <div className="md:hidden">
+                  <NativeSelect
+                    value={row.specimenId}
+                    onValueChange={(v) => handleReturnSpecimenSelect(index, v)}
+                    placeholder="Choose specimen book…"
+                  >
+                    {availableSpecimens.map((s) => (
+                      <NativeSelectOption key={s.id} value={s.id}>
+                        {s.bookName} — Cl.{s.class} ({s.subject})
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <Select value={row.specimenId} onValueChange={(v) => handleReturnSpecimenSelect(index, v)}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Choose specimen book…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableSpecimens.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.bookName} — Class {s.class} ({s.subject})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {row.specimenId && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Quantity</Label>
+                      <Input
+                        type="number" min={1} inputMode="numeric"
+                        value={row.qty}
+                        onChange={(e) => handleReturnQtyChange(index, parseInt(e.target.value) || 1)}
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Condition</Label>
+                      <div className="md:hidden">
+                        <NativeSelect
+                          value={row.condition}
+                          onValueChange={(v) => handleReturnConditionChange(index, v)}
+                          placeholder="Select condition"
+                        >
+                          {dropdownOptions.specimenConditions.map((c) => (
+                            <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      </div>
+                      <div className="hidden md:block">
+                        <Select value={row.condition} onValueChange={(v) => handleReturnConditionChange(index, v)}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dropdownOptions.specimenConditions.map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              onClick={() => setReturnRows([...returnRows, emptyReturnRow()])}
+              className="w-full h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" />
+              Add More
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment (conditional) */}
+      {formData.purposes.includes("Payment Collection") && (() => {
+        const paymentFor = formData.paymentFor;
+        const amount = paymentFor === "GL" ? formData.paymentReceivedGL : paymentFor === "VP" ? formData.paymentReceivedVP : 0;
+        const sanitize = (val: string) => { const d = val.replace(/[^0-9]/g, ""); return d === "" ? 0 : parseInt(d, 10); };
+        const handlePaymentFor = (val: string) => setFormData((prev) => ({ ...prev, paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 }));
+        const handleAmount = (val: string) => {
+          const num = sanitize(val);
+          if (paymentFor === "GL") setFormData((prev) => ({ ...prev, paymentReceivedGL: num }));
+          else if (paymentFor === "VP") setFormData((prev) => ({ ...prev, paymentReceivedVP: num }));
+        };
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Payment Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Company selector */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold">Payment Received For</Label>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  {[
+                    { key: "GL", label: "Goodluck", color: "blue" },
+                    { key: "VP", label: "Vidhyapith", color: "violet" },
+                  ].map(({ key, label, color }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handlePaymentFor(key)}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
+                        paymentFor === key
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-background hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                        color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
+                      }`}>
+                        {key}
+                      </span>
+                      <span className="text-sm font-medium">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Amount input */}
+              {paymentFor && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold">
+                    Amount Received (₹) —{" "}
+                    <span className={paymentFor === "GL" ? "text-blue-600" : "text-violet-600"}>
+                      {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
+                    </span>
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+                    <Input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Enter payment amount"
+                      value={amount || ""}
+                      onChange={(e) => handleAmount(e.target.value)}
+                      className="h-12 pl-7 text-base font-semibold"
+                    />
+                  </div>
+                  {amount > 0 && (
+                    <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                      <span className="text-sm font-semibold">Total Payment</span>
+                      <span className="text-base font-bold text-primary">₹{amount.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!paymentFor && (
+                <p className="text-xs text-muted-foreground text-center py-1">
+                  Select the company for which payment was received.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      {/* Joint Visit */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Remark</CardTitle>
+          <CardTitle className="text-base">Joint Visit</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Textarea
-            placeholder="Any remarks about this visit…"
-            rows={3}
-            value={formData.remark}
-            onChange={(e) => setFormData((prev) => ({ ...prev, remark: e.target.value }))}
-          />
+        <CardContent className="space-y-4">
+          {/* Toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Joint Visit?</p>
+                <p className="text-xs text-muted-foreground">Was anyone else accompanying you?</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={formData.hasJoint}
+              onClick={() => setFormData((prev) => ({
+                ...prev,
+                hasJoint: !prev.hasJoint,
+                jointRows: [{ personId: "", personName: "", personRole: "" }],
+              }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.hasJoint ? "bg-primary" : "bg-muted-foreground/30"
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                formData.hasJoint ? "translate-x-6" : "translate-x-1"
+              }`} />
+            </button>
+          </div>
+
+          {/* Joint persons list */}
+          {formData.hasJoint && (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Joint Person(s)</p>
+
+              {formData.jointRows.map((row: any, index: number) => (
+                <div key={index} className="rounded-xl border border-border bg-muted/20 p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">Person {index + 1}</span>
+                    {formData.jointRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rows = formData.jointRows.filter((_: any, i: number) => i !== index);
+                          setFormData((prev) => ({ ...prev, jointRows: rows }));
+                        }}
+                        className="h-7 w-7 flex items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+
+                  <MultiSelect
+                    options={JOINT_PERSONS.map((p) => ({ value: p.id, label: `${p.name} — ${p.role}` }))}
+                    value={row.personId ? [row.personId] : []}
+                    onChange={(selected) => {
+                      const id = selected[selected.length - 1] ?? "";
+                      const person = JOINT_PERSONS.find((p) => p.id === id);
+                      const rows = [...formData.jointRows];
+                      rows[index] = person
+                        ? { personId: person.id, personName: person.name, personRole: person.role }
+                        : { personId: "", personName: "", personRole: "" };
+                      setFormData((prev) => ({ ...prev, jointRows: rows }));
+                    }}
+                    placeholder="Choose person…"
+                    maxSelected={1}
+                    searchable={true}
+                    searchPlaceholder="Search person…"
+                  />
+
+                  {row.personId && (
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      {row.personRole}
+                    </span>
+                  )}
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                onClick={() => setFormData((prev) => ({
+                  ...prev,
+                  jointRows: [...prev.jointRows, { personId: "", personName: "", personRole: "" }],
+                }))}
+                className="w-full h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4" />
+                Add More
+              </Button>
+            </div>
+          )}
+
+          {!formData.hasJoint && (
+            <div className="text-center py-4 rounded-xl border border-dashed border-muted-foreground/20 bg-muted/20">
+              <p className="text-sm text-muted-foreground">Solo visit — no one accompanied</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -710,6 +1155,21 @@ function BookSellerVisitForm() {
               onChange={(e) => setFormData((prev) => ({ ...prev, reminder: e.target.value }))}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Remark */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Remark</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Any remarks about this visit…"
+            rows={3}
+            value={formData.remark}
+            onChange={(e) => setFormData((prev) => ({ ...prev, remark: e.target.value }))}
+          />
         </CardContent>
       </Card>
 

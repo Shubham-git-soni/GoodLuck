@@ -130,7 +130,8 @@ export default function StepPurpose({ formData, updateFormData }: StepProps) {
           value={formData.purposes ?? []}
           onChange={handleChange}
           placeholder="Select visit purpose(s)…"
-          searchable={false}
+          searchable={true}
+          searchPlaceholder="Search purposes…"
         />
       </div>
 

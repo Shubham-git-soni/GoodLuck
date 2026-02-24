@@ -130,17 +130,18 @@ export function MultiSelect({
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       {/* ── Trigger ── */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setOpen((o) => !o)}
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
         aria-expanded={open}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        onKeyDown={(e) => { if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setOpen((o) => !o); } }}
         className={cn(
-          "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm transition-all duration-150",
+          "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm transition-all duration-150 cursor-pointer select-none",
           "hover:border-ring/50 hover:bg-accent/30",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring",
           open && "border-ring ring-2 ring-ring",
-          "disabled:cursor-not-allowed disabled:opacity-50"
+          disabled && "cursor-not-allowed opacity-50 pointer-events-none"
         )}
       >
         {/* Left: chips or placeholder */}
@@ -192,75 +193,82 @@ export function MultiSelect({
             )}
           />
         </div>
-      </button>
+      </div>
 
-      {/* ── Dropdown — fixed on mobile, absolute on desktop ── */}
+      {/* ── Dropdown — centered modal on mobile, absolute on desktop ── */}
       {open && (
         <>
-          {/* Mobile: full-width bottom sheet style overlay */}
+          {/* Mobile: backdrop */}
           <div
-            className="fixed inset-0 z-[60] md:hidden"
+            className="fixed inset-0 z-[60] bg-black/40 md:hidden"
             onClick={() => { setOpen(false); setSearch(""); }}
           />
           <div
             ref={dropdownRef}
             className={cn(
-              // Mobile: fixed bottom panel
-              "fixed left-0 right-0 bottom-0 z-[61] md:hidden",
-              "rounded-t-2xl border-t border-border bg-popover shadow-2xl",
-              "animate-in slide-in-from-bottom duration-200",
-              "max-h-[75dvh] flex flex-col",
+              // Mobile: centered modal
+              "fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[61] md:hidden",
+              "rounded-2xl border border-border bg-popover shadow-2xl",
+              "animate-in fade-in zoom-in-95 duration-200",
+              "max-h-[70dvh] flex flex-col",
               // Desktop: absolute dropdown
-              "md:absolute md:left-0 md:right-auto md:bottom-auto md:top-[calc(100%+6px)] md:w-full md:z-50",
+              "md:absolute md:left-0 md:right-auto md:top-[calc(100%+6px)] md:translate-y-0 md:w-full md:z-50",
               "md:rounded-xl md:border md:shadow-lg",
               "md:animate-in md:fade-in-0 md:zoom-in-95 md:slide-in-from-top-2 md:duration-150"
             )}
           >
-            {/* Mobile drag handle */}
-            <div className="flex justify-center pt-2.5 pb-1 md:hidden">
-              <div className="w-8 h-1 rounded-full bg-border" />
+            {/* Title bar — mobile & desktop */}
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/50">
+              <p className="text-sm font-semibold">
+                {selectedOptions.length > 0 ? `${selectedOptions.length} selected` : "Select option(s)"}
+              </p>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setSearch(""); }}
+                className="h-7 w-7 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
             </div>
 
-            {/* Search */}
-            {searchable && (
-              <div className="border-b border-border/60 p-2">
-                <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5">
-                  <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder={searchPlaceholder}
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    onFocus={(e) => e.target.removeAttribute("readOnly")}
-                    readOnly
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+            {/* Search — always shown, mobile-safe (no auto-focus) */}
+            <div className="px-3 pt-2.5 pb-1">
+              <div className="flex items-center gap-2 rounded-xl bg-muted/60 border border-border/60 px-3 py-2">
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  // readOnly on mount so mobile keyboard doesn't pop up automatically;
+                  // removed on tap so user can type when they explicitly want to search
+                  onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
+                  readOnly
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-            )}
+            </div>
 
-            {/* Header row: count + select-all/clear */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border/40">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {selectedOptions.length > 0
-                  ? `${selectedOptions.length} selected`
-                  : "Select options"}
+            {/* Select-all / Clear row */}
+            <div className="flex items-center justify-between px-3 py-1.5">
+              <span className="text-[11px] text-muted-foreground">
+                {filtered.length} option{filtered.length !== 1 ? "s" : ""}
               </span>
               {selectedOptions.length > 0 ? (
                 <button
                   type="button"
                   onClick={() => onChange([])}
-                  className="text-[11px] font-medium text-primary hover:text-primary/70 transition-colors"
+                  className="text-[11px] font-medium text-destructive hover:text-destructive/70 transition-colors"
                 >
                   Clear all
                 </button>
@@ -342,22 +350,19 @@ export function MultiSelect({
               )}
             </div>
 
-            {/* Footer: max limit hint + close button on mobile */}
-            <div className={cn(
-              "border-t border-border/40 px-3 py-2 flex items-center",
-              maxSelected ? "justify-between" : "justify-end"
-            )}>
+            {/* Footer: Done button */}
+            <div className="border-t border-border/40 px-3 py-3">
               {maxSelected && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground text-center mb-2">
                   {value.length} / {maxSelected} selected
                 </p>
               )}
               <button
                 type="button"
                 onClick={() => { setOpen(false); setSearch(""); }}
-                className="md:hidden text-xs font-semibold text-primary px-3 py-1.5 rounded-lg bg-primary/10 active:bg-primary/20"
+                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:bg-primary/90 transition-colors"
               >
-                Done
+                Done{selectedOptions.length > 0 ? ` (${selectedOptions.length})` : ""}
               </button>
             </div>
           </div>

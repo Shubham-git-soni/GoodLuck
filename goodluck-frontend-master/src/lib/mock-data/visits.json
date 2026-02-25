@@ -225,5 +225,393 @@
     "feedback": null,
     "nextVisit": null,
     "status": "Scheduled"
+  },
+  {
+    "id": "V009",
+    "type": "school",
+    "schoolId": "SCH008",
+    "schoolName": "Modern School",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar",
+    "date": "2025-11-25",
+    "contacts": [
+      { "id": "C014", "name": "Dr. Priya Kapoor", "role": "Principal" }
+    ],
+    "purposes": ["Need Mapping", "Specimen Distribution"],
+    "needMappingType": "Changing specific subjects",
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "English", "class": "10", "book": "English Communicative", "quantity": 4, "cost": 800 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 800,
+    "feedback": null,
+    "nextVisit": {
+      "date": "2025-12-30",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V010",
+    "type": "bookseller",
+    "bookSellerId": "BS003",
+    "bookSellerName": "Scholastic Books",
+    "salesmanId": "SM002",
+    "salesmanName": "Priya Sharma",
+    "date": "2025-11-25",
+    "purposes": ["Payment Collection", "Relationship Building"],
+    "paymentCollected": 75000,
+    "paymentDeadlineSet": [],
+    "notes": "Collected partial payment. Discussed new catalog.",
+    "status": "Completed"
+  },
+  {
+    "id": "V011",
+    "type": "school",
+    "schoolId": "SCH009",
+    "schoolName": "St. Xavier's School",
+    "salesmanId": "SM003",
+    "salesmanName": "Vikram Singh",
+    "date": "2025-11-25",
+    "contacts": [
+      { "id": "C015", "name": "Fr. Thomas D'Souza", "role": "Principal" }
+    ],
+    "purposes": ["Specimen Distribution", "Relationship Building"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "Geography", "class": "9", "book": "Social Science Geography", "quantity": 5, "cost": 1000 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 1000,
+    "feedback": null,
+    "nextVisit": {
+      "date": "2025-12-25",
+      "purpose": "Need Mapping"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V012",
+    "type": "school",
+    "schoolId": "SCH010",
+    "schoolName": "Kendriya Vidyalaya",
+    "salesmanId": "SM005",
+    "salesmanName": "Arjun Mehta",
+    "date": "2025-11-25",
+    "contacts": [
+      { "id": "C016", "name": "Mrs. Sunita Rao", "role": "Principal" }
+    ],
+    "purposes": ["Need Mapping", "Post-Sales Engagement"],
+    "needMappingType": "No change",
+    "jointWorking": {
+      "hasManager": true,
+      "managerName": "Rahul Gupta",
+      "managerType": "Area Manager"
+    },
+    "specimensGiven": [
+      { "subject": "Hindi", "class": "10", "book": "Sparsh Hindi", "quantity": 6, "cost": 1200 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 1200,
+    "feedback": {
+      "category": "Book Quality",
+      "comment": "Teachers appreciate the updated content"
+    },
+    "nextVisit": {
+      "date": "2026-01-15",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V013",
+    "type": "bookseller",
+    "bookSellerId": "BS004",
+    "bookSellerName": "Readers Paradise",
+    "salesmanId": "SM004",
+    "salesmanName": "Sneha Reddy",
+    "date": "2025-11-25",
+    "purposes": ["Payment Collection", "Documentation"],
+    "paymentCollected": 125000,
+    "paymentDeadlineSet": [],
+    "notes": "Full payment collected. Renewal agreement signed.",
+    "status": "Completed"
+  },
+  {
+    "id": "V014",
+    "type": "school",
+    "schoolId": "SCH011",
+    "schoolName": "Army Public School",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar",
+    "date": "2025-11-24",
+    "contacts": [
+      { "id": "C017", "name": "Col. Rakesh Sharma", "role": "Principal" }
+    ],
+    "purposes": ["Need Mapping", "Specimen Distribution"],
+    "needMappingType": "Implementing NCERT",
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "Mathematics", "class": "11", "book": "Mathematics XI", "quantity": 5, "cost": 1250 },
+      { "subject": "Physics", "class": "11", "book": "Physics Part 1", "quantity": 5, "cost": 1375 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 2625,
+    "feedback": null,
+    "nextVisit": {
+      "date": "2025-12-24",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V015",
+    "type": "bookseller",
+    "bookSellerId": "BS005",
+    "bookSellerName": "Knowledge Hub",
+    "salesmanId": "SM002",
+    "salesmanName": "Priya Sharma",
+    "date": "2025-11-24",
+    "purposes": ["Relationship Building", "Payment Collection"],
+    "paymentCollected": 0,
+    "paymentDeadlineSet": [
+      { "amount": 180000, "dueDate": "2025-12-20", "percentage": 60 }
+    ],
+    "notes": "Discussed upcoming requirements for next session.",
+    "status": "Completed"
+  },
+  {
+    "id": "V016",
+    "type": "school",
+    "schoolId": "SCH012",
+    "schoolName": "Amity International School",
+    "salesmanId": "SM003",
+    "salesmanName": "Vikram Singh",
+    "date": "2025-11-24",
+    "contacts": [
+      { "id": "C018", "name": "Dr. Ashok Pandey", "role": "Principal" }
+    ],
+    "purposes": ["Post-Sales Engagement", "Relationship Building"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [],
+    "specimensReturned": [
+      { "subject": "Science", "class": "9", "book": "Science for IX", "quantity": 3, "condition": "Excellent" }
+    ],
+    "totalSpecimenCost": 0,
+    "feedback": {
+      "category": "Pricing",
+      "comment": "Pricing structure is competitive"
+    },
+    "nextVisit": {
+      "date": "2026-01-20",
+      "purpose": "Need Mapping"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V017",
+    "type": "school",
+    "schoolId": "SCH013",
+    "schoolName": "Bal Bharati Public School",
+    "salesmanId": "SM005",
+    "salesmanName": "Arjun Mehta",
+    "date": "2025-11-24",
+    "contacts": [
+      { "id": "C019", "name": "Mrs. Meera Nair", "role": "Principal" }
+    ],
+    "purposes": ["Need Mapping", "Specimen Distribution"],
+    "needMappingType": "Changing specific subjects",
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "Computer Science", "class": "12", "book": "Computer Science XII", "quantity": 4, "cost": 1040 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 1040,
+    "feedback": null,
+    "nextVisit": {
+      "date": "2025-12-28",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V018",
+    "type": "school",
+    "schoolId": "SCH014",
+    "schoolName": "Greenwood High School",
+    "salesmanId": "SM004",
+    "salesmanName": "Sneha Reddy",
+    "date": "2025-11-23",
+    "contacts": [
+      { "id": "C020", "name": "Ms. Kavita Singh", "role": "Principal" }
+    ],
+    "purposes": ["Specimen Distribution", "Relationship Building"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "Biology", "class": "12", "book": "Biology Class XII", "quantity": 5, "cost": 1500 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 1500,
+    "feedback": {
+      "category": "Book Quality",
+      "comment": "Detailed diagrams appreciated by biology dept"
+    },
+    "nextVisit": {
+      "date": "2025-12-23",
+      "purpose": "Need Mapping"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V019",
+    "type": "bookseller",
+    "bookSellerId": "BS006",
+    "bookSellerName": "Book Emporium",
+    "salesmanId": "SM001",
+    "salesmanName": "Rajesh Kumar",
+    "date": "2025-11-23",
+    "purposes": ["Payment Collection"],
+    "paymentCollected": 95000,
+    "paymentDeadlineSet": [],
+    "notes": "Partial payment received. Balance to be cleared next month.",
+    "status": "Completed"
+  },
+  {
+    "id": "V020",
+    "type": "school",
+    "schoolId": "SCH015",
+    "schoolName": "Lotus Valley International",
+    "salesmanId": "SM002",
+    "salesmanName": "Priya Sharma",
+    "date": "2025-11-22",
+    "contacts": [
+      { "id": "C021", "name": "Mrs. Anjali Gupta", "role": "Principal" }
+    ],
+    "purposes": ["Need Mapping", "Post-Sales Engagement"],
+    "needMappingType": "No change",
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [
+      { "subject": "Economics", "class": "12", "book": "Introductory Microeconomics", "quantity": 4, "cost": 920 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 920,
+    "feedback": null,
+    "nextVisit": {
+      "date": "2026-01-22",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V021",
+    "type": "school",
+    "schoolId": "SCH016",
+    "schoolName": "Springdales School",
+    "salesmanId": "SM003",
+    "salesmanName": "Vikram Singh",
+    "date": "2025-11-21",
+    "contacts": [
+      { "id": "C022", "name": "Dr. Shalini Verma", "role": "Principal" }
+    ],
+    "purposes": ["Specimen Distribution", "Need Mapping"],
+    "needMappingType": "Changing specific subjects",
+    "jointWorking": {
+      "hasManager": true,
+      "managerName": "Amit Sharma",
+      "managerType": "Regional Manager"
+    },
+    "specimensGiven": [
+      { "subject": "Social Science", "class": "10", "book": "India and Contemporary World", "quantity": 6, "cost": 1140 }
+    ],
+    "specimensReturned": [],
+    "totalSpecimenCost": 1140,
+    "feedback": {
+      "category": "Book Quality",
+      "comment": "Content is well-aligned with curriculum"
+    },
+    "nextVisit": {
+      "date": "2025-12-21",
+      "purpose": "Follow-Up"
+    },
+    "status": "Completed"
+  },
+  {
+    "id": "V022",
+    "type": "bookseller",
+    "bookSellerId": "BS007",
+    "bookSellerName": "City Books",
+    "salesmanId": "SM005",
+    "salesmanName": "Arjun Mehta",
+    "date": "2025-11-21",
+    "purposes": ["Documentation", "Relationship Building"],
+    "paymentCollected": 0,
+    "paymentDeadlineSet": [
+      { "amount": 165000, "dueDate": "2025-12-18", "percentage": 55 }
+    ],
+    "notes": "New agreement terms discussed.",
+    "status": "Completed"
+  },
+  {
+    "id": "V023",
+    "type": "school",
+    "schoolId": "SCH017",
+    "schoolName": "Vasant Valley School",
+    "salesmanId": "SM004",
+    "salesmanName": "Sneha Reddy",
+    "date": "2025-11-20",
+    "contacts": [
+      { "id": "C023", "name": "Mrs. Nita Arora", "role": "Principal" }
+    ],
+    "purposes": ["Post-Sales Engagement", "Relationship Building"],
+    "needMappingType": null,
+    "jointWorking": {
+      "hasManager": false,
+      "managerName": null,
+      "managerType": null
+    },
+    "specimensGiven": [],
+    "specimensReturned": [],
+    "totalSpecimenCost": 0,
+    "feedback": {
+      "category": "Service",
+      "comment": "Prompt delivery appreciated"
+    },
+    "nextVisit": {
+      "date": "2026-01-18",
+      "purpose": "Need Mapping"
+    },
+    "status": "Completed"
   }
 ]

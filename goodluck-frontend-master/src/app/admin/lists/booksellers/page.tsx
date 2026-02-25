@@ -1,262 +1,257 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Store, Phone, Mail, MapPin, Edit, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Search, MapPin, DollarSign, Calendar, ChevronRight, Plus } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ListItemSkeleton } from "@/components/ui/skeleton-loaders";
+import EmptyState from "@/components/ui/empty-state";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { BookSeller } from "@/types";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
-// Import mock data
 import bookSellersData from "@/lib/mock-data/book-sellers.json";
-import salesmenData from "@/lib/mock-data/salesmen.json";
+import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 
-export default function BooksellerListPage() {
-  const [booksellers, setBooksellers] = useState<BookSeller[]>([]);
-  const [filteredBooksellers, setFilteredBooksellers] = useState<BookSeller[]>([]);
+export default function AdminBookSellerListPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [bookSellers, setBookSellers] = useState<BookSeller[]>([]);
+  const [filteredSellers, setFilteredSellers] = useState<BookSeller[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [cityFilter, setCityFilter] = useState("all");
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [isDesktopDialogOpen, setIsDesktopDialogOpen] = useState(false);
+
+  const [newSeller, setNewSeller] = useState({
+    shopName: "", ownerName: "", city: "", address: "", contactNumber: "", email: "", gstNumber: "", creditLimit: "",
+  });
 
   useEffect(() => {
-    setBooksellers(bookSellersData as BookSeller[]);
-    setFilteredBooksellers(bookSellersData as BookSeller[]);
+    setTimeout(() => {
+      setBookSellers(bookSellersData as BookSeller[]);
+      setFilteredSellers(bookSellersData as BookSeller[]);
+      setIsLoading(false);
+    }, 800);
   }, []);
 
   useEffect(() => {
-    let filtered = booksellers;
-
-    // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(
+      const filtered = bookSellers.filter(
         (seller) =>
           seller.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           seller.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          seller.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          seller.phone.includes(searchQuery) ||
-          seller.email.toLowerCase().includes(searchQuery.toLowerCase())
+          seller.city.toLowerCase().includes(searchQuery.toLowerCase())
       );
+      setFilteredSellers(filtered);
+    } else {
+      setFilteredSellers(bookSellers);
     }
+  }, [searchQuery, bookSellers]);
 
-    // City filter
-    if (cityFilter !== "all") {
-      filtered = filtered.filter((seller) => seller.city === cityFilter);
+  const resetForm = () => setNewSeller({ shopName: "", ownerName: "", city: "", address: "", contactNumber: "", email: "", gstNumber: "", creditLimit: "" });
+
+  const handleAddSeller = () => {
+    if (!newSeller.shopName || !newSeller.ownerName || !newSeller.city) {
+      toast.error("Please fill all required fields");
+      return;
     }
-
-    setFilteredBooksellers(filtered);
-  }, [searchQuery, cityFilter, booksellers]);
-
-  const handleDelete = (bookseller: BookSeller) => {
-    const updatedData = booksellers.filter((b) => b.id !== bookseller.id);
-    setBooksellers(updatedData);
-
-    toast({
-      title: "Bookseller Deleted",
-      description: `${bookseller.shopName} has been removed from the list.`,
-      variant: "destructive",
-    });
+    toast.success("Book seller added successfully! Pending admin approval.");
+    setIsMobileSheetOpen(false);
+    setIsDesktopDialogOpen(false);
+    resetForm();
   };
 
-  const handleEdit = (bookseller: BookSeller) => {
-    toast({
-      title: "Edit Bookseller",
-      description: `Opening edit form for ${bookseller.shopName}`,
-    });
-  };
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="All Book Sellers" description="Manage all book seller relationships" />
+        <div className="space-y-3">
+          <ListItemSkeleton /><ListItemSkeleton /><ListItemSkeleton />
+        </div>
+      </PageContainer>
+    );
+  }
 
-  // Get unique cities for filter
-  const cities = Array.from(new Set(booksellers.map((b) => b.city))).sort();
+  // Common fields shared by mobile + desktop
+  const commonFields = (
+    <>
+      <div className="grid gap-2">
+        <Label>Shop Name *</Label>
+        <Input value={newSeller.shopName} onChange={(e) => setNewSeller({ ...newSeller, shopName: e.target.value })} placeholder="Enter shop name" />
+      </div>
+      <div className="grid gap-2">
+        <Label>Owner Name *</Label>
+        <Input value={newSeller.ownerName} onChange={(e) => setNewSeller({ ...newSeller, ownerName: e.target.value })} placeholder="Enter owner name" />
+      </div>
+      <div className="grid gap-2">
+        <Label>Address</Label>
+        <Textarea value={newSeller.address} onChange={(e) => setNewSeller({ ...newSeller, address: e.target.value })} placeholder="Enter complete address" rows={2} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2">
+          <Label>Contact Number</Label>
+          <Input type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} value={newSeller.contactNumber} onChange={(e) => setNewSeller({ ...newSeller, contactNumber: e.target.value.replace(/\D/g, "") })} placeholder="10-digit number" />
+        </div>
+        <div className="grid gap-2">
+          <Label>Email</Label>
+          <Input type="email" value={newSeller.email} onChange={(e) => setNewSeller({ ...newSeller, email: e.target.value })} placeholder="Enter email" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2">
+          <Label>GST Number</Label>
+          <Input value={newSeller.gstNumber} onChange={(e) => setNewSeller({ ...newSeller, gstNumber: e.target.value })} placeholder="Enter GST number" />
+        </div>
+        <div className="grid gap-2">
+          <Label>Credit Limit</Label>
+          <Input type="number" value={newSeller.creditLimit} onChange={(e) => setNewSeller({ ...newSeller, creditLimit: e.target.value })} placeholder="Enter amount" />
+        </div>
+      </div>
+    </>
+  );
+
+  // Mobile form — uses NativeSelect for City (works inside mobile sheet)
+  const mobileFormFields = (
+    <div className="grid gap-4">
+      {commonFields}
+      <div className="grid gap-2">
+        <Label>City *</Label>
+        <NativeSelect value={newSeller.city} onValueChange={(v) => setNewSeller({ ...newSeller, city: v })} placeholder="Select city">
+          {dropdownOptions.cities.map((city) => <NativeSelectOption key={city} value={city}>{city}</NativeSelectOption>)}
+        </NativeSelect>
+      </div>
+    </div>
+  );
+
+  // Desktop form — uses Radix Select for City
+  const desktopFormFields = (
+    <div className="grid gap-4">
+      {commonFields}
+      <div className="grid gap-2">
+        <Label>City *</Label>
+        <Select value={newSeller.city} onValueChange={(v) => setNewSeller({ ...newSeller, city: v })}>
+          <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+          <SelectContent>
+            {dropdownOptions.cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <PageHeader
-          title="Bookseller List"
-          description={`Complete list of ${booksellers.length} booksellers`}
-        />
+      {/* Mobile Bottom Sheet */}
+      <MobileSheet
+        open={isMobileSheetOpen}
+        onClose={() => { setIsMobileSheetOpen(false); resetForm(); }}
+        title="Add Book Seller"
+        description="Details will be submitted for admin approval"
+        footer={
+          <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleAddSeller}>Submit for Approval</Button>
+        }
+      >
+        {mobileFormFields}
+      </MobileSheet>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search booksellers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+      {/* Desktop Dialog */}
+      <Dialog open={isDesktopDialogOpen} onOpenChange={(o) => { setIsDesktopDialogOpen(o); if (!o) resetForm(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Book Seller</DialogTitle>
+            <DialogDescription>Fill in the book seller details. This will be submitted for admin approval.</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">{desktopFormFields}</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsDesktopDialogOpen(false); resetForm(); }}>Cancel</Button>
+            <Button onClick={handleAddSeller}>Submit for Approval</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-              <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Cities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center text-sm text-muted-foreground">
-                {filteredBooksellers.length} booksellers found
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Booksellers Table */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[80px] text-center font-semibold">Sr. No.</TableHead>
-                    <TableHead className="min-w-[150px] font-semibold">Salesman</TableHead>
-                    <TableHead className="min-w-[220px] font-semibold">Bookseller Name</TableHead>
-                    <TableHead className="min-w-[140px] font-semibold">Contact No.</TableHead>
-                    <TableHead className="min-w-[220px] font-semibold">Email</TableHead>
-                    <TableHead className="min-w-[280px] font-semibold">Address</TableHead>
-                    <TableHead className="min-w-[120px] font-semibold">City</TableHead>
-                    <TableHead className="min-w-[120px] font-semibold">State</TableHead>
-                    <TableHead className="w-[80px] text-center font-semibold">Delete</TableHead>
-                    <TableHead className="w-[80px] text-center font-semibold">Edit</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBooksellers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                        No booksellers found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredBooksellers.map((seller, index) => {
-                      // Get salesman name from assignedTo
-                      const salesman = salesmenData.find((s) => s.id === seller.assignedTo);
-                      const salesmanName = salesman ? salesman.name : seller.assignedTo;
-
-                      // Extract state from address or use a default
-                      const state = seller.city === "Mumbai" || seller.city === "Pune"
-                        ? "Maharashtra"
-                        : seller.city === "Delhi"
-                        ? "Delhi"
-                        : seller.city === "Bangalore"
-                        ? "Karnataka"
-                        : seller.city === "Hyderabad"
-                        ? "Telangana"
-                        : seller.city === "Chennai"
-                        ? "Tamil Nadu"
-                        : seller.city === "Kolkata"
-                        ? "West Bengal"
-                        : "India";
-
-                      return (
-                        <TableRow key={seller.id} className="hover:bg-muted/30">
-                          <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-medium">
-                              {salesmanName}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold">{seller.shopName}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm">{seller.phone}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm truncate max-w-[190px]" title={seller.email}>
-                                {seller.email}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                              <span className="text-sm line-clamp-2">{seller.address}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{seller.city}</TableCell>
-                          <TableCell className="font-medium">{state}</TableCell>
-                          <TableCell className="text-center">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Bookseller</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete <strong>{seller.shopName}</strong>?
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(seller)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEdit(seller)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Mobile Header */}
+      <div className="md:hidden mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">All Booksellers</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">{bookSellers.length} total booksellers</p>
+          </div>
+          <Button size="sm" className="h-9 px-3" onClick={() => setIsMobileSheetOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add
+          </Button>
+        </div>
       </div>
+
+      <div className="hidden md:block">
+        <PageHeader
+          title="All Book Sellers"
+          description={`${bookSellers.length} total book sellers`}
+          action={
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setIsDesktopDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />Add Book Seller
+              </Button>
+            </div>
+          }
+        />
+      </div>
+
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by shop name, owner, or city..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">Showing {filteredSellers.length} of {bookSellers.length} book sellers</p>
+      </div>
+
+      {filteredSellers.length === 0 ? (
+        <EmptyState icon={Search} title="No book sellers found" description="Try adjusting your search criteria" action={{ label: "Clear Search", onClick: () => setSearchQuery("") }} />
+      ) : (
+        <div className="space-y-3">
+          {filteredSellers.map((seller) => (
+            <Link key={seller.id} href={`/admin/lists/booksellers/${seller.id}`}>
+              <Card className="hover:shadow-md transition-all cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-base mb-1 truncate">{seller.shopName}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">Owner: {seller.ownerName}</p>
+                          <div className="flex flex-col gap-1.5 text-xs text-muted-foreground mb-3">
+                            <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /><span>{seller.city}</span></div>
+                            <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /><span>Last visit: {new Date(seller.lastVisitDate).toLocaleDateString()}</span></div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant={seller.currentOutstanding > seller.creditLimit * 0.8 ? "destructive" : seller.currentOutstanding > seller.creditLimit * 0.5 ? "secondary" : "outline"}>
+                              <DollarSign className="h-3 w-3 mr-1" />Outstanding: ₹{(seller.currentOutstanding / 1000).toFixed(0)}K
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">Credit: ₹{(seller.creditLimit / 100000).toFixed(1)}L</Badge>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </PageContainer>
   );
 }

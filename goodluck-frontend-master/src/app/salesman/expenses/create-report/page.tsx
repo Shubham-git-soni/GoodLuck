@@ -12,14 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
@@ -105,237 +97,151 @@ export default function CreateReportPage() {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
-          {/* Report Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="reportTitle">
-                  Report Title <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="reportTitle"
-                  placeholder="e.g., Mumbai Trip - Week 50"
-                  value={reportTitle}
-                  onChange={(e) => setReportTitle(e.target.value)}
-                />
-              </div>
+      <div className="space-y-4">
+        {/* Report Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Report Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reportTitle">
+                Report Title <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="reportTitle"
+                placeholder="e.g., Mumbai Trip - Week 50"
+                value={reportTitle}
+                onChange={(e) => setReportTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reportNotes">Report Notes (Optional)</Label>
+              <Textarea
+                id="reportNotes"
+                placeholder="Add any additional context or notes for this report"
+                value={reportNotes}
+                onChange={(e) => setReportNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="reportNotes">Report Notes (Optional)</Label>
-                <Textarea
-                  id="reportNotes"
-                  placeholder="Add any additional context or notes for this report"
-                  value={reportNotes}
-                  onChange={(e) => setReportNotes(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Select Expenses */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Select Expenses</CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectAll}
-                >
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  {selectedExpenses.length === draftExpenses.length
-                    ? "Deselect All"
-                    : "Select All"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {draftExpenses.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">
-                    No draft expenses available to create a report
-                  </p>
-                  <Link href="/salesman/expenses/add">
-                    <Button className="mt-4" size="sm">
-                      Add Expense First
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {draftExpenses.map((expense) => (
-                      <TableRow
-                        key={expense.id}
-                        className={
-                          selectedExpenses.includes(expense.id)
-                            ? "bg-blue-50 dark:bg-blue-950/20"
-                            : ""
-                        }
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedExpenses.includes(expense.id)}
-                            onCheckedChange={() =>
-                              handleSelectExpense(expense.id)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {new Date(expense.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{expense.expenseType}</Badge>
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          ₹{expense.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {expense.description || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {expense.policyViolation ? (
-                            <Badge
-                              variant="destructive"
-                              className="text-xs"
-                            >
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Warning
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-green-500 text-white text-xs">
-                              OK
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Report Summary Sidebar */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Report Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <span className="text-sm text-muted-foreground">
-                    Selected Items
-                  </span>
-                  <span className="text-lg font-bold">
-                    {selectedExpenses.length}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
-                    Total Amount
-                  </span>
-                  <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
-                    ₹{totalAmount.toLocaleString()}
-                  </span>
-                </div>
-
-                {violationCount > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
-                      Policy Warnings
-                    </span>
-                    <span className="text-lg font-bold text-orange-700 dark:text-orange-400">
-                      {violationCount}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {violationCount > 0 && (
-                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-700 dark:text-yellow-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                      This report contains expenses that exceed policy limits.
-                      Admin will review before approval.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={selectedExpenses.length === 0 || !reportTitle.trim()}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Submit Report
+        {/* Select Expenses */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Select Expenses</CardTitle>
+              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                {selectedExpenses.length === draftExpenses.length ? "Deselect All" : "Select All"}
               </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                Once submitted, you cannot edit the report
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Date Range Info */}
-          {selectedExpensesList.length > 0 && (
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="text-sm">Date Range</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-muted-foreground">From:</span>
-                    <span className="font-medium">
-                      {new Date(
-                        Math.min(
-                          ...selectedExpensesList.map((e) =>
-                            new Date(e.date).getTime()
-                          )
-                        )
-                      ).toLocaleDateString()}
-                    </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {draftExpenses.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">No draft expenses available to create a report</p>
+                <Link href="/salesman/expenses/add">
+                  <Button className="mt-4" size="sm">Add Expense First</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {draftExpenses.map((expense) => (
+                  <div
+                    key={expense.id}
+                    onClick={() => handleSelectExpense(expense.id)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                      selectedExpenses.includes(expense.id)
+                        ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800"
+                        : "bg-background hover:bg-muted/50"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedExpenses.includes(expense.id)}
+                      onCheckedChange={() => handleSelectExpense(expense.id)}
+                      className="mt-0.5 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">{expense.expenseType}</Badge>
+                        <span className="font-bold text-base">₹{expense.amount.toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{expense.description || "—"}</p>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(expense.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                        {expense.policyViolation ? (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Warning
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-green-500 text-white text-xs">OK</Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">To:</span>
-                    <span className="font-medium">
-                      {new Date(
-                        Math.max(
-                          ...selectedExpensesList.map((e) =>
-                            new Date(e.date).getTime()
-                          )
-                        )
-                      ).toLocaleDateString()}
-                    </span>
-                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Report Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Report Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-0.5 p-3 bg-muted/30 rounded-lg">
+                <span className="text-xs text-muted-foreground">Selected Items</span>
+                <span className="text-2xl font-bold">{selectedExpenses.length}</span>
+              </div>
+              <div className="flex flex-col gap-0.5 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Total Amount</span>
+                <span className="text-2xl font-bold text-blue-700 dark:text-blue-400">₹{totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {violationCount > 0 && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-700 dark:text-yellow-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                    {violationCount} expense{violationCount > 1 ? "s" : ""} exceed policy limits. Admin will review before approval.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </div>
+            )}
+
+            {selectedExpensesList.length > 0 && (
+              <div className="flex justify-between text-sm px-1">
+                <span className="text-muted-foreground">Date range:</span>
+                <span className="font-medium">
+                  {new Date(Math.min(...selectedExpensesList.map((e) => new Date(e.date).getTime()))).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  {" – "}
+                  {new Date(Math.max(...selectedExpensesList.map((e) => new Date(e.date).getTime()))).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                </span>
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={selectedExpenses.length === 0 || !reportTitle.trim()}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Submit Report
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">Once submitted, you cannot edit the report</p>
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );

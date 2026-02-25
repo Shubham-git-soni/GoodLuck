@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ function AddBookSellerVisitForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedCity, setSelectedCity] = useState("");
+  const [tourPlanInfo, setTourPlanInfo] = useState<{ planId: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     bookSellerId: "",
     purposes: [] as string[],
@@ -34,8 +35,29 @@ function AddBookSellerVisitForm() {
   });
 
   useEffect(() => {
-    const sellerId = searchParams.get("sellerId");
-    if (sellerId) {
+    const fromTourPlan = searchParams.get("fromTourPlan");
+    const name        = searchParams.get("name");
+    const city        = searchParams.get("city");
+    const objectives  = searchParams.get("objectives");
+    const planId      = searchParams.get("planId");
+    const sellerId    = searchParams.get("sellerId");
+
+    if (fromTourPlan && name && city) {
+      // Match bookseller by shop name from mock data
+      const matched = bookSellersData.find(
+        (s) => s.shopName.toLowerCase() === name.toLowerCase()
+      );
+      const parsedPurposes = objectives
+        ? objectives.split(",").map((o) => o.trim()).filter(Boolean)
+        : [];
+      setSelectedCity(city);
+      setFormData((prev) => ({
+        ...prev,
+        bookSellerId: matched ? matched.id : "",
+        purposes: parsedPurposes,
+      }));
+      setTourPlanInfo({ planId: planId || "", name });
+    } else if (sellerId) {
       setFormData((prev) => ({ ...prev, bookSellerId: sellerId }));
     }
   }, [searchParams]);
@@ -105,6 +127,20 @@ function AddBookSellerVisitForm() {
           description="Log your visit to a book seller"
         />
       </div>
+
+      {/* Tour Plan banner */}
+      {tourPlanInfo && (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 mb-4">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-emerald-800">Auto-filled from Tour Plan</p>
+            <p className="text-xs text-emerald-700 truncate">
+              {tourPlanInfo.planId && <span className="font-medium">{tourPlanInfo.planId} · </span>}
+              Seller, city &amp; objectives pre-filled. You can edit if needed.
+            </p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* City and Book Seller Selection */}

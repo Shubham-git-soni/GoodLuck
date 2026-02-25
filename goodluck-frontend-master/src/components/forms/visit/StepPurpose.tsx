@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, X, IndianRupee } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -15,6 +15,97 @@ import specimensData from "@/lib/mock-data/specimens.json";
 interface StepProps {
   formData: any;
   updateFormData: (data: any) => void;
+}
+
+// ─── Numpad for payment ───────────────────────────────────────────────────────
+function AmountNumpad({ amount, onDigit, onBackspace, onClear }: {
+  amount: string; onDigit: (d: string) => void; onBackspace: () => void; onClear: () => void;
+}) {
+  const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-center gap-1 py-5 bg-muted/30 rounded-2xl">
+        <span className="text-3xl font-light text-muted-foreground">₹</span>
+        <span className={`text-4xl font-bold tracking-tight ${amount ? "text-foreground" : "text-muted-foreground"}`}>
+          {amount ? Number(amount).toLocaleString("en-IN") : "0"}
+        </span>
+        {amount && (
+          <button type="button" onClick={onClear} className="ml-2 text-xs text-muted-foreground underline self-end pb-1">clear</button>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {keys.map((k, i) =>
+          k === "" ? <div key={i} /> :
+          k === "⌫" ? (
+            <button key={i} type="button" onClick={onBackspace}
+              className="h-14 rounded-2xl bg-muted flex items-center justify-center text-xl font-medium active:scale-95 transition-transform">⌫</button>
+          ) : (
+            <button key={i} type="button" onClick={() => onDigit(k)}
+              className="h-14 rounded-2xl bg-background border border-border text-xl font-semibold active:bg-muted active:scale-95 transition-all shadow-sm">{k}</button>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PaymentCollectionSection({ formData, updateFormData }: { formData: any; updateFormData: (d: any) => void }) {
+  const paymentFor: string = formData.paymentFor || "";
+  const existing = paymentFor === "GL" ? formData.paymentReceivedGL : paymentFor === "VP" ? formData.paymentReceivedVP : 0;
+  const [raw, setRaw] = useState(existing > 0 ? String(existing) : "");
+
+  const handlePaymentFor = (val: string) => {
+    updateFormData({ paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 });
+    setRaw("");
+  };
+
+  const commit = (r: string) => {
+    const num = r === "" ? 0 : parseInt(r, 10);
+    if (paymentFor === "GL") updateFormData({ paymentReceivedGL: num });
+    else if (paymentFor === "VP") updateFormData({ paymentReceivedVP: num });
+  };
+
+  const handleDigit = (d: string) => {
+    const next = raw === "0" ? d : raw + d;
+    if (next.length > 9) return;
+    setRaw(next); commit(next);
+  };
+  const handleBackspace = () => { const next = raw.slice(0, -1); setRaw(next); commit(next); };
+  const handleClear = () => { setRaw(""); commit(""); };
+
+  return (
+    <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payment Collection</p>
+      {/* Company selector */}
+      <div className="grid grid-cols-2 gap-3">
+        {[{ key: "GL", label: "Goodluck", color: "blue" }, { key: "VP", label: "Vidhyapith", color: "violet" }]
+          .map(({ key, label, color }) => (
+          <button key={key} type="button" onClick={() => handlePaymentFor(key)}
+            className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
+              paymentFor === key ? "border-primary bg-primary/5" : "border-border bg-background hover:border-muted-foreground/30"
+            }`}>
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+              color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
+            }`}>{key}</span>
+            <span className="text-sm font-medium">{label}</span>
+          </button>
+        ))}
+      </div>
+      {/* Numpad */}
+      {paymentFor ? (
+        <div className="space-y-2">
+          <p className="text-xs text-center text-muted-foreground">
+            Amount for <span className={paymentFor === "GL" ? "font-semibold text-blue-600" : "font-semibold text-violet-600"}>
+              {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
+            </span>
+          </p>
+          <AmountNumpad amount={raw} onDigit={handleDigit} onBackspace={handleBackspace} onClear={handleClear} />
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground text-center py-1">Select the company for which payment was received.</p>
+      )}
+    </div>
+  );
 }
 
 // Specimens allocated to current salesman
@@ -52,6 +143,7 @@ export default function StepPurpose({ formData, updateFormData }: StepProps) {
   const showNeedMapping = purposes.includes("Need Mapping");
   const showGivenSpecimen = purposes.includes("Given Specimen");
   const showCollectSpecimen = purposes.includes("Collect Specimen");
+  const showPaymentCollection = purposes.includes("Payment Collection");
 
   // ── Given rows
   const givenRows: any[] = formData.givenRows ?? [emptyGivenRow()];
@@ -219,12 +311,20 @@ export default function StepPurpose({ formData, updateFormData }: StepProps) {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Quantity</Label>
-                      <Input
-                        type="number" min={1} inputMode="numeric"
-                        value={row.qty}
-                        onChange={(e) => handleQtyChange(index, parseInt(e.target.value) || 1)}
-                        className="h-10 text-sm"
-                      />
+                      <div className="flex items-center h-10 rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(index, row.qty - 1)}
+                          disabled={row.qty <= 1}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 disabled:opacity-30 transition-colors shrink-0"
+                        >−</button>
+                        <span className="flex-1 text-center text-sm font-semibold">{row.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(index, row.qty + 1)}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 transition-colors shrink-0"
+                        >+</button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Price/Unit</Label>
@@ -320,12 +420,20 @@ export default function StepPurpose({ formData, updateFormData }: StepProps) {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Quantity</Label>
-                      <Input
-                        type="number" min={1} inputMode="numeric"
-                        value={row.qty}
-                        onChange={(e) => handleReturnQtyChange(index, parseInt(e.target.value) || 1)}
-                        className="h-10 text-sm"
-                      />
+                      <div className="flex items-center h-10 rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => handleReturnQtyChange(index, row.qty - 1)}
+                          disabled={row.qty <= 1}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 disabled:opacity-30 transition-colors shrink-0"
+                        >−</button>
+                        <span className="flex-1 text-center text-sm font-semibold">{row.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleReturnQtyChange(index, row.qty + 1)}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 transition-colors shrink-0"
+                        >+</button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Condition</Label>
@@ -368,6 +476,11 @@ export default function StepPurpose({ formData, updateFormData }: StepProps) {
             Add More
           </Button>
         </div>
+      )}
+
+      {/* ── Payment Collection inline section ── */}
+      {showPaymentCollection && (
+        <PaymentCollectionSection formData={formData} updateFormData={updateFormData} />
       )}
     </div>
   );

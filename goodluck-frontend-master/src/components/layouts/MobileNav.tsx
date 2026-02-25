@@ -5,8 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Home, School, Users, DollarSign, Bell, CheckCircle2, Plus,
-  Calendar, UserCircle, BookOpen, X, ClipboardList, MapPinned,
-  History, Receipt, FileText, ChevronRight, LogOut, AlertTriangle,
+  Calendar, BookOpen, X, ClipboardList, MapPinned,
+  History, Receipt, FileText, ChevronRight, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,19 +16,17 @@ const navItems = [
   { href: "/salesman/dashboard", label: "Dashboard", icon: Home },
   { href: "/salesman/attendance", label: "Attendance", icon: CheckCircle2 },
   { href: "/salesman/today-visits", label: "Today's Visits", icon: MapPinned },
-  { href: "/salesman/tour-plan", label: "My Tour Plan", icon: ClipboardList },
-  { href: "/salesman/visit-history", label: "Visit History", icon: History },
+  { href: "/salesman/tour-plans", label: "Tour Plans", icon: ClipboardList },
   { href: "/salesman/next-visits", label: "Schedule Visits", icon: Calendar },
+  { href: "/salesman/visit-history", label: "Visit History", icon: History },
   { type: "separator", label: "Masters" },
   { href: "/salesman/schools", label: "My Schools", icon: School },
-  { href: "/salesman/qbs", label: "My QBs", icon: BookOpen },
   { href: "/salesman/booksellers", label: "Book Sellers", icon: Users },
   { type: "separator", label: "Expenses" },
   { href: "/salesman/expenses", label: "My Expenses", icon: Receipt },
   { href: "/salesman/expenses/add", label: "Add Expense", icon: Plus },
   { href: "/salesman/expenses/create-report", label: "Create Report", icon: FileText },
   { type: "separator", label: "Other" },
-  { href: "/salesman/contacts", label: "My Contact Persons", icon: UserCircle },
   { href: "/salesman/tada", label: "TA/DA Claims", icon: DollarSign },
   { href: "/salesman/notifications", label: "Notifications", icon: Bell },
 ] as const;

@@ -1,0 +1,272 @@
+{
+    "states": [
+        {
+            "id": "ST001",
+            "name": "Delhi"
+        },
+        {
+            "id": "ST002",
+            "name": "Gujarat"
+        },
+        {
+            "id": "ST003",
+            "name": "Rajasthan"
+        },
+        {
+            "id": "ST004",
+            "name": "Telangana"
+        },
+        {
+            "id": "ST005",
+            "name": "Maharashtra"
+        },
+        {
+            "id": "ST006",
+            "name": "Karnataka"
+        },
+        {
+            "id": "ST007",
+            "name": "Uttar Pradesh"
+        }
+    ],
+    "cities": [
+        {
+            "id": "CT001",
+            "name": "Delhi",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "CT002",
+            "name": "Ghaziabad",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "CT003",
+            "name": "Noida",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "CT004",
+            "name": "Ahmedabad",
+            "stateId": "ST002",
+            "stateName": "Gujarat"
+        },
+        {
+            "id": "CT005",
+            "name": "Vadodara",
+            "stateId": "ST002",
+            "stateName": "Gujarat"
+        },
+        {
+            "id": "CT006",
+            "name": "Surat",
+            "stateId": "ST002",
+            "stateName": "Gujarat"
+        },
+        {
+            "id": "CT007",
+            "name": "Jaipur",
+            "stateId": "ST003",
+            "stateName": "Rajasthan"
+        },
+        {
+            "id": "CT008",
+            "name": "Udaipur",
+            "stateId": "ST003",
+            "stateName": "Rajasthan"
+        },
+        {
+            "id": "CT009",
+            "name": "Jodhpur",
+            "stateId": "ST003",
+            "stateName": "Rajasthan"
+        },
+        {
+            "id": "CT010",
+            "name": "Hyderabad",
+            "stateId": "ST004",
+            "stateName": "Telangana"
+        },
+        {
+            "id": "CT011",
+            "name": "Warangal",
+            "stateId": "ST004",
+            "stateName": "Telangana"
+        },
+        {
+            "id": "CT012",
+            "name": "Mumbai",
+            "stateId": "ST005",
+            "stateName": "Maharashtra"
+        },
+        {
+            "id": "CT013",
+            "name": "Pune",
+            "stateId": "ST005",
+            "stateName": "Maharashtra"
+        },
+        {
+            "id": "CT014",
+            "name": "Nashik",
+            "stateId": "ST005",
+            "stateName": "Maharashtra"
+        },
+        {
+            "id": "CT015",
+            "name": "Bangalore",
+            "stateId": "ST006",
+            "stateName": "Karnataka"
+        },
+        {
+            "id": "CT016",
+            "name": "Mysore",
+            "stateId": "ST006",
+            "stateName": "Karnataka"
+        },
+        {
+            "id": "CT017",
+            "name": "Lucknow",
+            "stateId": "ST007",
+            "stateName": "Uttar Pradesh"
+        },
+        {
+            "id": "CT018",
+            "name": "Agra",
+            "stateId": "ST007",
+            "stateName": "Uttar Pradesh"
+        }
+    ],
+    "stations": [
+        {
+            "id": "STN001",
+            "name": "Connaught Place",
+            "cityId": "CT001",
+            "cityName": "Delhi",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "STN002",
+            "name": "Dwarka",
+            "cityId": "CT001",
+            "cityName": "Delhi",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "STN003",
+            "name": "Rohini",
+            "cityId": "CT001",
+            "cityName": "Delhi",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "STN004",
+            "name": "Kaushambi",
+            "cityId": "CT002",
+            "cityName": "Ghaziabad",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "STN005",
+            "name": "Sector 18",
+            "cityId": "CT003",
+            "cityName": "Noida",
+            "stateId": "ST001",
+            "stateName": "Delhi"
+        },
+        {
+            "id": "STN006",
+            "name": "Navrangpura",
+            "cityId": "CT004",
+            "cityName": "Ahmedabad",
+            "stateId": "ST002",
+            "stateName": "Gujarat"
+        },
+        {
+            "id": "STN007",
+            "name": "Maninagar",
+            "cityId": "CT004",
+            "cityName": "Ahmedabad",
+            "stateId": "ST002",
+            "stateName": "Gujarat"
+        },
+        {
+            "id": "STN008",
+            "name": "C-Scheme",
+            "cityId": "CT007",
+            "cityName": "Jaipur",
+            "stateId": "ST003",
+            "stateName": "Rajasthan"
+        },
+        {
+            "id": "STN009",
+            "name": "Mansarovar",
+            "cityId": "CT007",
+            "cityName": "Jaipur",
+            "stateId": "ST003",
+            "stateName": "Rajasthan"
+        },
+        {
+            "id": "STN010",
+            "name": "Gachibowli",
+            "cityId": "CT010",
+            "cityName": "Hyderabad",
+            "stateId": "ST004",
+            "stateName": "Telangana"
+        },
+        {
+            "id": "STN011",
+            "name": "Banjara Hills",
+            "cityId": "CT010",
+            "cityName": "Hyderabad",
+            "stateId": "ST004",
+            "stateName": "Telangana"
+        },
+        {
+            "id": "STN012",
+            "name": "Goregaon",
+            "cityId": "CT012",
+            "cityName": "Mumbai",
+            "stateId": "ST005",
+            "stateName": "Maharashtra"
+        },
+        {
+            "id": "STN013",
+            "name": "Andheri",
+            "cityId": "CT012",
+            "cityName": "Mumbai",
+            "stateId": "ST005",
+            "stateName": "Maharashtra"
+        },
+        {
+            "id": "STN014",
+            "name": "Koregaon Park",
+            "cityId": "CT013",
+            "cityName": "Pune",
+            "stateId": "ST005",
+            "stateName": "Maharashtra"
+        },
+        {
+            "id": "STN015",
+            "name": "Malleswaram",
+            "cityId": "CT015",
+            "cityName": "Bangalore",
+            "stateId": "ST006",
+            "stateName": "Karnataka"
+        },
+        {
+            "id": "STN016",
+            "name": "Indiranagar",
+            "cityId": "CT015",
+            "cityName": "Bangalore",
+            "stateId": "ST006",
+            "stateName": "Karnataka"
+        }
+    ]
+}

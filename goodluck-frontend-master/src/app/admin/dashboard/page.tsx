@@ -56,12 +56,11 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (v: string)
     : "Pick month";
 
   return (
-    <div className="flex items-center gap-1.5 relative">
-      <span className="text-xs text-muted-foreground shrink-0">Month:</span>
+    <div className="relative w-full">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="h-8 w-36 flex items-center gap-2 rounded-md border border-input bg-background px-3 text-xs hover:bg-accent transition-colors"
+        className="h-9 w-full flex items-center gap-2 rounded-lg border-0 bg-muted/60 px-3 text-xs hover:bg-muted transition-colors"
       >
         <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className={value ? "text-foreground" : "text-muted-foreground"}>{label}</span>
@@ -69,7 +68,7 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (v: string)
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-10 left-0 z-50 bg-background border rounded-xl shadow-xl p-3 w-52">
+          <div className="absolute top-11 right-0 z-50 bg-background border rounded-xl shadow-xl p-3 w-52">
             {/* Year nav */}
             <div className="flex items-center justify-between mb-2">
               <button type="button" onClick={() => setYear(y => y - 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
@@ -450,63 +449,17 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Global Filters ── */}
-      <div className="mb-6 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
-        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
-
-        {/* State */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground shrink-0">State:</span>
-          <Select value={stateFilter} onValueChange={setStateFilter}>
-            <SelectTrigger className="h-8 w-36 text-xs">
-              <SelectValue placeholder="All States" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All States</SelectItem>
-              {states.map((state) => (
-                <SelectItem key={state} value={state}>{state}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Visits */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground shrink-0">Visits:</span>
-          <Select value={visitsFilter} onValueChange={setVisitsFilter}>
-            <SelectTrigger className="h-8 w-32 text-xs">
-              <SelectValue placeholder="All Visits" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Visits</SelectItem>
-              <SelectItem value="0">0 Visits</SelectItem>
-              <SelectItem value="1-2">1-2 Visits</SelectItem>
-              <SelectItem value="3-5">3-5 Visits</SelectItem>
-              <SelectItem value="5+">5+ Visits</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Date */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground shrink-0">Date:</span>
-          <DatePicker
-            value={globalDateFilter}
-            onChange={(v) => setGlobalDateFilter(v || "2025-11-25")}
-            placeholder="Pick date"
-            className="h-8 w-36 text-xs"
-          />
-        </div>
-
-        {/* Month */}
-        <MonthPicker value={monthFilter} onChange={setMonthFilter} />
-
-        {/* Reset */}
-        <div className="ml-auto">
+      <div className="mb-6 bg-card border rounded-2xl shadow-sm overflow-hidden">
+        {/* Header row */}
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <div className="flex items-center gap-2">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Filters</span>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 text-xs text-muted-foreground hover:text-primary"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
             onClick={() => {
               setStateFilter("all");
               setVisitsFilter("all");
@@ -514,22 +467,75 @@ export default function AdminDashboard() {
               setMonthFilter("2025-11");
             }}
           >
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            <RotateCcw className="h-3 w-3" />
             Reset
           </Button>
         </div>
+
+        {/* Filter grid — 2 cols on mobile, 4 cols on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border">
+          {/* State */}
+          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">State</span>
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg px-3">
+                <SelectValue placeholder="All States" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All States</SelectItem>
+                {states.map((state) => (
+                  <SelectItem key={state} value={state}>{state}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Visits */}
+          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Visits</span>
+            <Select value={visitsFilter} onValueChange={setVisitsFilter}>
+              <SelectTrigger className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg px-3">
+                <SelectValue placeholder="All Visits" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Visits</SelectItem>
+                <SelectItem value="0">0 Visits</SelectItem>
+                <SelectItem value="1-2">1-2 Visits</SelectItem>
+                <SelectItem value="3-5">3-5 Visits</SelectItem>
+                <SelectItem value="5+">5+ Visits</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date */}
+          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</span>
+            <DatePicker
+              value={globalDateFilter}
+              onChange={(v) => setGlobalDateFilter(v || "2025-11-25")}
+              placeholder="Pick date"
+              className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg"
+            />
+          </div>
+
+          {/* Month */}
+          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Month</span>
+            <MonthPicker value={monthFilter} onChange={setMonthFilter} />
+          </div>
+        </div>
       </div>
 
-      {/* ── Combined Visits Chart ── */}
-      <Card className="mb-6">
+      {/* ── Chart: Salesman Performance — full width ── */}
+      <Card className="mb-5">
         <CardHeader className="pb-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
               Salesman Performance
             </CardTitle>
             <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectTrigger className="w-[130px] h-8 text-xs">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
@@ -541,18 +547,17 @@ export default function AdminDashboard() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
+        <CardContent className="pt-0">
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={dateFilter === "month" ? monthlyVisitsPerSalesman : visitsPerSalesman}
-              margin={{ top: 0, right: 8, left: -20, bottom: 0 }}
+              margin={{ top: 0, right: 16, left: -20, bottom: 0 }}
+              barSize={32}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-              />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
               <Bar dataKey="schoolVisits" stackId="a" fill={COLORS.primary} name="School Visits" radius={[0, 0, 0, 0]} />
               <Bar dataKey="booksellerVisits" stackId="a" fill={COLORS.success} name="Bookseller Visits" radius={[4, 4, 0, 0]} />
@@ -561,56 +566,16 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* ── Specimen Budget ── */}
-      <Card className="mb-6">
+      {/* ── Chart: Team Sales Performance — full width ── */}
+      <Card className="mb-5">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Specimen Budget Utilization
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {specimenDetailData.map((salesman, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{salesman.fullName}</p>
-                    <p className="text-xs text-muted-foreground">{salesman.state}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <Badge variant={
-                      salesman.utilization >= 90 ? "destructive" :
-                        salesman.utilization >= 75 ? "secondary" : "default"
-                    }>
-                      {salesman.utilization}%
-                    </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ₹{(salesman.used / 1000).toFixed(1)}K / ₹{(salesman.budget / 1000).toFixed(1)}K
-                    </p>
-                  </div>
-                </div>
-                <Progress value={salesman.utilization} className="h-2" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Used: ₹{salesman.used.toLocaleString()}</span>
-                  <span>Rem: ₹{salesman.remaining.toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Team Sales Performance ── */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
               Team Sales Performance
             </CardTitle>
             <Select value={performanceFilter} onValueChange={setPerformanceFilter}>
-              <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectTrigger className="w-[130px] h-8 text-xs">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
@@ -621,23 +586,22 @@ export default function AdminDashboard() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={teamPerformance} margin={{ top: 0, right: 8, left: -10, bottom: 0 }}>
+        <CardContent className="pt-0">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={teamPerformance} margin={{ top: 0, right: 16, left: -10, bottom: 0 }} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
-                formatter={(value: any) => [`₹${(value / 100000).toFixed(2)}L`, ""]}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="bg-background border rounded-lg p-3 shadow-lg">
-                        <p className="font-medium text-sm mb-1">{data.fullName || data.name}</p>
-                        <p className="text-xs text-muted-foreground mb-2">Achievement: <span className="font-bold text-primary">{data.achievement}%</span></p>
-                        <p className="text-xs">Achieved: <span className="font-semibold">₹{(data.achieved / 100000).toFixed(2)}L</span></p>
-                        <p className="text-xs">Target: <span className="font-semibold">₹{(data.target / 100000).toFixed(2)}L</span></p>
+                      <div className="bg-background border rounded-lg p-3 shadow-lg text-xs">
+                        <p className="font-semibold mb-1">{data.fullName || data.name}</p>
+                        <p className="text-muted-foreground">Achievement: <span className="font-bold text-primary">{data.achievement}%</span></p>
+                        <p>Achieved: <span className="font-semibold">₹{(data.achieved / 100000).toFixed(2)}L</span></p>
+                        <p>Target: <span className="font-semibold">₹{(data.target / 100000).toFixed(2)}L</span></p>
                       </div>
                     );
                   }
@@ -652,21 +616,21 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* ── Visit Trends ── */}
-      <Card className="mb-6">
+      {/* ── Chart: Visit Trends — full width ── */}
+      <Card className="mb-5">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Visit Trends (Last 7 Days)
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            Visit Trends — Last 7 Days
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={visitTrends} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip />
+              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
               <Line type="monotone" dataKey="schools" stroke={COLORS.primary} strokeWidth={2} name="School" dot={false} />
               <Line type="monotone" dataKey="booksellers" stroke={COLORS.success} strokeWidth={2} name="Bookseller" dot={false} />
@@ -675,28 +639,63 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* ── Recent Activities ── */}
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
+      {/* ── Bottom row: Specimen Budget · Recent TA/DA Claims · Recent Feedback ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+
+        {/* Specimen Budget */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recent TA/DA Claims</CardTitle>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              Specimen Budget
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              {specimenDetailData.map((salesman, index) => (
+                <div key={index}>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate">{salesman.fullName}</p>
+                      <p className="text-[10px] text-muted-foreground">{salesman.state}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold",
+                        salesman.utilization >= 90 ? "bg-red-100 text-red-700" :
+                        salesman.utilization >= 75 ? "bg-amber-100 text-amber-700" :
+                        "bg-emerald-100 text-emerald-700"
+                      )}>
+                        {salesman.utilization}%
+                      </span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        ₹{(salesman.used / 1000).toFixed(1)}K / ₹{(salesman.budget / 1000).toFixed(1)}K
+                      </p>
+                    </div>
+                  </div>
+                  <Progress value={salesman.utilization} className="h-1.5" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent TA/DA Claims */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Recent TA/DA Claims</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
             <div className="space-y-2">
               {tadaClaimsData.slice(0, 5).map((claim) => (
-                <div key={claim.id} className="flex items-center justify-between p-3 rounded-xl border gap-2">
+                <div key={claim.id} className="flex items-center justify-between gap-2 py-2 border-b last:border-0">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{claim.salesmanName}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      ₹{claim.amount.toLocaleString()} · {claim.city}
-                    </p>
+                    <p className="text-xs font-semibold truncate">{claim.salesmanName}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">₹{claim.amount.toLocaleString()} · {claim.city}</p>
                   </div>
                   <Badge
-                    variant={
-                      claim.status === "Approved" ? "default" :
-                        claim.status === "Rejected" || claim.status === "Flagged" ? "destructive" : "secondary"
-                    }
-                    className="shrink-0"
+                    variant={claim.status === "Approved" ? "default" : claim.status === "Rejected" || claim.status === "Flagged" ? "destructive" : "secondary"}
+                    className="shrink-0 text-[10px] px-2 py-0.5"
                   >
                     {claim.status}
                   </Badge>
@@ -706,26 +705,22 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Recent Feedback */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recent Feedback</CardTitle>
+            <CardTitle className="text-sm font-semibold">Recent Feedback</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="space-y-2">
               {feedbackData.slice(0, 5).map((feedback) => (
-                <div key={feedback.id} className="flex items-center justify-between p-3 rounded-xl border gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{feedback.schoolName}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {feedback.category} · {feedback.salesmanName}
-                    </p>
+                <div key={feedback.id} className="flex items-center justify-between gap-2 py-2 border-b last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">{feedback.schoolName}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{feedback.category} · {feedback.salesmanName}</p>
                   </div>
                   <Badge
-                    variant={
-                      feedback.status === "Resolved" ? "default" :
-                        feedback.status === "Pending" ? "secondary" : "outline"
-                    }
-                    className="shrink-0"
+                    variant={feedback.status === "Resolved" ? "default" : feedback.status === "Pending" ? "secondary" : "outline"}
+                    className="shrink-0 text-[10px] px-2 py-0.5"
                   >
                     {feedback.status}
                   </Badge>
@@ -734,6 +729,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
       </div>
 
     </PageContainer >

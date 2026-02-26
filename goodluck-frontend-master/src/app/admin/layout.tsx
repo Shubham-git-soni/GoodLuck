@@ -1,4 +1,5 @@
 import AdminSidebar from "@/components/layouts/AdminSidebar";
+import AdminMainContent from "@/components/layouts/AdminMainContent";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function AdminLayout({
@@ -9,9 +10,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-background">
       <AdminSidebar />
-      <main className="pt-16 lg:pt-0 lg:pl-64">
-        {children}
-      </main>
+      <AdminMainContent>{children}</AdminMainContent>
       <Toaster />
     </div>
   );

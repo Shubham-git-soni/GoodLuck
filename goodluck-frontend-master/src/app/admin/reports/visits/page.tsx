@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis,
@@ -151,84 +152,153 @@ export default function VisitAnalyticsPage() {
       <PageHeader
         title="Visit Analytics"
         description="Track visits, specimen distribution and salesperson performance"
-        action={
-          <Button size="sm" onClick={exportCSV} variant="outline">
-            <Download className="h-4 w-4 mr-1.5" /> Export CSV
-          </Button>
-        }
       />
 
-      {/* ── Filters ── */}
-      <Card className="mb-5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Filter className="h-4 w-4" /> Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{DATE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-            </Select>
+      {/* ── Filters — compact bar ── */}
+      <div className="mb-5 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
-            <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger><SelectValue placeholder="All States" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* Date Range */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Period:</span>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{DATE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
 
-            <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
-              <SelectTrigger><SelectValue placeholder="All Salesperson" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Salesperson</SelectItem>
-                {salesmenData.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* State */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">State:</span>
+          <Select value={stateFilter} onValueChange={setStateFilter}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All States</SelectItem>
+              {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger><SelectValue placeholder="All Types" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="school">School</SelectItem>
-                <SelectItem value="bookseller">Bookseller</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Salesperson */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Person:</span>
+          <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
+            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All Salesperson" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Salesperson</SelectItem>
+              {salesmenData.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Button variant="outline" onClick={reset} className="w-full">
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Type */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Type:</span>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-8 w-28 text-xs"><SelectValue placeholder="All Types" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="school">School</SelectItem>
+              <SelectItem value="bookseller">Bookseller</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* ── KPI Cards ── */}
+        {/* Actions — right side */}
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-primary" onClick={reset}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
+          </Button>
+          <Button size="sm" className="h-8 text-xs" onClick={exportCSV}>
+            <Download className="h-3.5 w-3.5 mr-1" /> Export
+          </Button>
+        </div>
+      </div>
+
+      {/* ── KPI Cards — dashboard style ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-        {[
-          { label: "Total Visits", value: kpis.total, icon: Calendar, chg: totalChg, color: "text-primary" },
-          { label: "School Visits", value: kpis.school, icon: School, chg: null, color: "text-primary" },
-          { label: "Bookseller", value: kpis.bs, icon: BookOpen, chg: null, color: "text-teal-600" },
-          { label: "Active Salesmen", value: kpis.active, icon: Users, chg: null, color: "text-indigo-600" },
-          { label: "Specimens Given", value: kpis.specs, icon: BarChart3, chg: null, color: "text-amber-600" },
-        ].map(({ label, value, icon: Icon, chg, color }) => (
-          <Card key={label} className="border-0 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-1.5 rounded-lg bg-muted"><Icon className={`h-4 w-4 ${color}`} /></div>
-                {chg && (
-                  <span className={`flex items-center text-xs font-semibold ${parseFloat(chg) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                    {parseFloat(chg) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                    {Math.abs(parseFloat(chg))}%
-                  </span>
-                )}
+        {/* Total Visits */}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Calendar className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-2xl font-bold">{value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-            </CardContent>
-          </Card>
-        ))}
+              {totalChg && (
+                <span className={`flex items-center text-xs font-semibold ${parseFloat(totalChg) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                  {parseFloat(totalChg) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                  {Math.abs(parseFloat(totalChg))}%
+                </span>
+              )}
+            </div>
+            <p className="text-xl font-bold tracking-tight">{kpis.total}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Visits</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">vs previous period</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* School Visits */}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <School className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{kpis.school}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">School Visits</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">{kpis.total > 0 ? Math.round((kpis.school / kpis.total) * 100) : 0}% of total</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Bookseller */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-teal-100">
+                <BookOpen className="h-4 w-4 text-teal-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{kpis.bs}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Bookseller Visits</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">{kpis.total > 0 ? Math.round((kpis.bs / kpis.total) * 100) : 0}% of total</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Active Salesmen */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-indigo-100">
+                <Users className="h-4 w-4 text-indigo-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{kpis.active}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Active Salesmen</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">With visits</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Specimens */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-amber-100">
+                <BarChart3 className="h-4 w-4 text-amber-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{kpis.specs}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Specimens Given</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">This period</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Charts ── */}
@@ -289,9 +359,9 @@ export default function VisitAnalyticsPage() {
         <TabsContent value="summary">
           <Card>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
                       <TableHead className="w-10">Sr.</TableHead>
                       <TableHead>Salesperson</TableHead>
@@ -342,9 +412,9 @@ export default function VisitAnalyticsPage() {
         <TabsContent value="log">
           <Card>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div className="max-h-[480px] overflow-y-auto overflow-x-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
                       <TableHead className="w-8"></TableHead>
                       <TableHead>Date</TableHead>

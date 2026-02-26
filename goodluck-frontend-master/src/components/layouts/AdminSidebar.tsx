@@ -25,6 +25,7 @@ import {
   CalendarCheck,
   Receipt,
   ClipboardList,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -61,6 +62,7 @@ const navGroups = [
     items: [
       { href: "/admin/team", label: "Sales Person", icon: Users },
       { href: "/admin/managers", label: "Managers", icon: UserCog },
+      { href: "/admin/masters/locations", label: "Location Master", icon: Globe },
       { href: "/admin/lists/schools", label: "Schools", icon: School },
       { href: "/admin/lists/booksellers", label: "Book Sellers", icon: Store },
       { href: "/admin/books", label: "Books", icon: BookOpen },

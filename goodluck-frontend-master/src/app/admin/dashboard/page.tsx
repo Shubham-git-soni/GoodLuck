@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, School, BookOpen, DollarSign, TrendingUp, CheckCircle2, AlertCircle, BarChart3, Filter, Calendar } from "lucide-react";
+import { Users, School, BookOpen, DollarSign, TrendingUp, CheckCircle2, AlertCircle, BarChart3, Filter, Calendar, RotateCcw, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -34,10 +37,72 @@ const COLORS = {
   primary: "#F47B20",   // brand orange
   success: "#2DD4BF",   // teal
   warning: "#94A3B8",   // slate
-  danger:  "#F43F5E",   // rose
-  purple:  "#818CF8",   // indigo
-  cyan:    "#38BDF8",   // sky
+  danger: "#F43F5E",   // rose
+  purple: "#818CF8",   // indigo
+  cyan: "#38BDF8",   // sky
 };
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// ─── Compact Month Picker ──────────────────────────────────────────────────────
+function MonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const parsed = value ? value.split("-") : ["2025", "11"];
+  const [year, setYear] = useState(parseInt(parsed[0]));
+  const selMonth = value ? parseInt(parsed[1]) - 1 : -1;
+
+  const label = value
+    ? `${MONTHS[parseInt(value.split("-")[1]) - 1]} ${value.split("-")[0]}`
+    : "Pick month";
+
+  return (
+    <div className="flex items-center gap-1.5 relative">
+      <span className="text-xs text-muted-foreground shrink-0">Month:</span>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="h-8 w-36 flex items-center gap-2 rounded-md border border-input bg-background px-3 text-xs hover:bg-accent transition-colors"
+      >
+        <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className={value ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-10 left-0 z-50 bg-background border rounded-xl shadow-xl p-3 w-52">
+            {/* Year nav */}
+            <div className="flex items-center justify-between mb-2">
+              <button type="button" onClick={() => setYear(y => y - 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <span className="text-sm font-bold">{year}</span>
+              <button type="button" onClick={() => setYear(y => y + 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {/* Month grid */}
+            <div className="grid grid-cols-3 gap-1">
+              {MONTHS.map((m, i) => {
+                const isSel = selMonth === i && parseInt(parsed[0]) === year;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { onChange(`${year}-${String(i + 1).padStart(2, "0")}`); setOpen(false); }}
+                    className={cn(
+                      "text-xs py-1.5 rounded-lg font-medium transition-all",
+                      isSel ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    )}
+                  >{m}</button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -385,89 +450,75 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Global Filters ── */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Global Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* State Filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium shrink-0">State:</span>
-                <Select value={stateFilter} onValueChange={setStateFilter}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="All States" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All States</SelectItem>
-                    {states.map((state) => (
-                      <SelectItem key={state} value={state}>{state}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <div className="mb-6 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
-              {/* Number of Visits Filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium shrink-0">Visits:</span>
-                <Select value={visitsFilter} onValueChange={setVisitsFilter}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="All Visits" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Visits</SelectItem>
-                    <SelectItem value="0">0 Visits</SelectItem>
-                    <SelectItem value="1-2">1-2 Visits</SelectItem>
-                    <SelectItem value="3-5">3-5 Visits</SelectItem>
-                    <SelectItem value="5+">5+ Visits</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* State */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">State:</span>
+          <Select value={stateFilter} onValueChange={setStateFilter}>
+            <SelectTrigger className="h-8 w-36 text-xs">
+              <SelectValue placeholder="All States" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All States</SelectItem>
+              {states.map((state) => (
+                <SelectItem key={state} value={state}>{state}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-              {/* Date Picker */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium shrink-0">Date:</span>
-                <input
-                  type="date"
-                  value={globalDateFilter}
-                  onChange={(e) => setGlobalDateFilter(e.target.value)}
-                  className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
+        {/* Visits */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Visits:</span>
+          <Select value={visitsFilter} onValueChange={setVisitsFilter}>
+            <SelectTrigger className="h-8 w-32 text-xs">
+              <SelectValue placeholder="All Visits" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Visits</SelectItem>
+              <SelectItem value="0">0 Visits</SelectItem>
+              <SelectItem value="1-2">1-2 Visits</SelectItem>
+              <SelectItem value="3-5">3-5 Visits</SelectItem>
+              <SelectItem value="5+">5+ Visits</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-              {/* Month Picker */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium shrink-0">Month:</span>
-                <input
-                  type="month"
-                  value={monthFilter}
-                  onChange={(e) => setMonthFilter(e.target.value)}
-                  className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-            </div>
+        {/* Date */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Date:</span>
+          <DatePicker
+            value={globalDateFilter}
+            onChange={(v) => setGlobalDateFilter(v || "2025-11-25")}
+            placeholder="Pick date"
+            className="h-8 w-36 text-xs"
+          />
+        </div>
 
-            {/* Reset Button */}
-            <div className="flex items-center">
-              <button
-                onClick={() => {
-                  setStateFilter("all");
-                  setVisitsFilter("all");
-                  setGlobalDateFilter("2025-11-25");
-                  setMonthFilter("2025-11");
-                }}
-                className="text-sm text-primary hover:underline font-medium"
-              >
-                Reset All Filters
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Month */}
+        <MonthPicker value={monthFilter} onChange={setMonthFilter} />
+
+        {/* Reset */}
+        <div className="ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-muted-foreground hover:text-primary"
+            onClick={() => {
+              setStateFilter("all");
+              setVisitsFilter("all");
+              setGlobalDateFilter("2025-11-25");
+              setMonthFilter("2025-11");
+            }}
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            Reset
+          </Button>
+        </div>
+      </div>
 
       {/* ── Combined Visits Chart ── */}
       <Card className="mb-6">
@@ -530,7 +581,7 @@ export default function AdminDashboard() {
                   <div className="text-right shrink-0">
                     <Badge variant={
                       salesman.utilization >= 90 ? "destructive" :
-                      salesman.utilization >= 75 ? "secondary" : "default"
+                        salesman.utilization >= 75 ? "secondary" : "default"
                     }>
                       {salesman.utilization}%
                     </Badge>
@@ -643,7 +694,7 @@ export default function AdminDashboard() {
                   <Badge
                     variant={
                       claim.status === "Approved" ? "default" :
-                      claim.status === "Rejected" || claim.status === "Flagged" ? "destructive" : "secondary"
+                        claim.status === "Rejected" || claim.status === "Flagged" ? "destructive" : "secondary"
                     }
                     className="shrink-0"
                   >
@@ -672,7 +723,7 @@ export default function AdminDashboard() {
                   <Badge
                     variant={
                       feedback.status === "Resolved" ? "default" :
-                      feedback.status === "Pending" ? "secondary" : "outline"
+                        feedback.status === "Pending" ? "secondary" : "outline"
                     }
                     className="shrink-0"
                   >
@@ -685,6 +736,6 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-    </PageContainer>
+    </PageContainer >
   );
 }

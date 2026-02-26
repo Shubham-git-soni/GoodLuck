@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Minus, Award, School, Download, Save, BookOpen, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Award, School, Download, Save, BookOpen, Calendar, Filter, RotateCcw } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -223,45 +223,63 @@ export default function YearComparisonPage() {
         />
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Analytics Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Select value={yearFilter} onValueChange={setYearFilter}>
-              <SelectTrigger><SelectValue placeholder="Years Active" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All School Types</SelectItem>
-                <SelectItem value="1">1-Year</SelectItem>
-                <SelectItem value="2">2-Year</SelectItem>
-                <SelectItem value="3">3-Year</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Filters — compact bar */}
+      <div className="mb-6 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
-            <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger><SelectValue placeholder="All States" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {states.map((state) => <SelectItem key={state} value={state}>{state}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* Years Active */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Active:</span>
+          <Select value={yearFilter} onValueChange={setYearFilter}>
+            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="Years Active" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All School Types</SelectItem>
+              <SelectItem value="1">1-Year</SelectItem>
+              <SelectItem value="2">2-Year</SelectItem>
+              <SelectItem value="3">3-Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
-              <SelectTrigger><SelectValue placeholder="All Salespersons" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Salespersons</SelectItem>
-                {salesmen.map((salesman) => <SelectItem key={salesman} value={salesman}>{salesman}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* State */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">State:</span>
+          <Select value={stateFilter} onValueChange={setStateFilter}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All States</SelectItem>
+              {states.map((state) => <SelectItem key={state} value={state}>{state}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Button onClick={() => toast.success("Exporting...")} variant="outline" className="w-full h-10 border-slate-300">
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Salesperson */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Person:</span>
+          <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
+            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All Salespersons" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Salespersons</SelectItem>
+              {salesmen.map((salesman) => <SelectItem key={salesman} value={salesman}>{salesman}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Actions */}
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="ghost" size="sm"
+            className="h-8 text-xs text-muted-foreground hover:text-primary"
+            onClick={() => { setYearFilter("all"); setStateFilter("all"); setSalesmanFilter("all"); }}
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
+          </Button>
+          <Button size="sm" className="h-8 text-xs" onClick={() => toast.success("Exporting...")}>
+            <Download className="h-3.5 w-3.5 mr-1" /> Export
+          </Button>
+        </div>
+      </div>
 
       {/* Complex Data Table */}
       <Card>

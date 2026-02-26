@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Download, CheckCircle, XCircle, Clock, AlertCircle, User, Filter, RotateCcw } from "lucide-react";
+import { Download, CheckCircle, XCircle, Clock, AlertCircle, User, Filter, RotateCcw, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -17,6 +18,7 @@ import salesmenData from "@/lib/mock-data/salesmen.json";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AttendanceRecord {
+  id: string;
   date: string;
   salesmanId: string;
   salesmanName: string;
@@ -75,6 +77,7 @@ function generateAttendance(): AttendanceRecord[] {
         }
 
         records.push({
+          id: `${sm.id}-${date}`,
           date,
           salesmanId: sm.id,
           salesmanName: sm.name,
@@ -106,10 +109,122 @@ const STATUS_CONFIG = {
   "On Leave": { icon: AlertCircle, color: "text-slate-500", bg: "bg-slate-50", badge: "outline" as const },
 };
 
-const MONTHS = [
-  { value: "2025-11", label: "November 2025" },
-  { value: "2025-10", label: "October 2025" },
-  { value: "2025-09", label: "September 2025" },
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function MonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const parsed = value ? value.split("-") : ["2025", "11"];
+  const [year, setYear] = useState(parseInt(parsed[0]));
+  const selMonth = value ? parseInt(parsed[1]) - 1 : -1;
+  const label = value
+    ? `${MONTH_NAMES[parseInt(value.split("-")[1]) - 1]} ${value.split("-")[0]}`
+    : "Pick month";
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="h-8 w-36 flex items-center gap-2 rounded-md border border-input bg-background px-3 text-xs hover:bg-accent transition-colors"
+      >
+        <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className={value ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-10 left-0 z-50 bg-background border rounded-xl shadow-xl p-3 w-52">
+            <div className="flex items-center justify-between mb-2">
+              <button type="button" onClick={() => setYear(y => y - 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <span className="text-sm font-bold">{year}</span>
+              <button type="button" onClick={() => setYear(y => y + 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              {MONTH_NAMES.map((m, i) => {
+                const isSel = selMonth === i && parseInt(parsed[0]) === year;
+                return (
+                  <button key={m} type="button"
+                    onClick={() => { onChange(`${year}-${String(i + 1).padStart(2, "0")}`); setOpen(false); }}
+                    className={cn("text-xs py-1.5 rounded-lg font-medium transition-all",
+                      isSel ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    )}>{m}</button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Columns ──────────────────────────────────────────────────────────────────
+const MONTHLY_COLUMNS: GridColumn<any>[] = [
+  { key: "sr", header: "Sr.", width: 60, pinned: "left", sortable: false, filterable: false, render: (_, __, i) => <span className="text-muted-foreground text-xs">{i + 1}</span> },
+  {
+    key: "name", header: "Salesperson", width: 220, pinned: "left", sortable: true, render: (_, row) => (
+      <div className="flex flex-col">
+        <span className="font-semibold text-sm">{row.name}</span>
+        <span className="text-xs text-muted-foreground">{row.id}</span>
+      </div>
+    )
+  },
+  { key: "state", header: "State", width: 150, filterable: true, sortable: true },
+  { key: "present", header: "Present", align: "center", width: 90, sortable: true, render: (v) => <span className="font-semibold text-emerald-700">{v}</span> },
+  { key: "absent", header: "Absent", align: "center", width: 90, sortable: true, render: (v) => <span className="font-semibold text-rose-700">{v}</span> },
+  { key: "halfDay", header: "Half Day", align: "center", width: 100, sortable: true, render: (v) => <span className="font-semibold text-amber-700">{v}</span> },
+  { key: "onLeave", header: "On Leave", align: "center", width: 100, sortable: true, render: (v) => <span className="text-slate-500">{v}</span> },
+  {
+    key: "attPct",
+    header: "Attendance %",
+    width: 140,
+    align: "center",
+    sortable: true,
+    render: (v) => (
+      <div className="flex flex-col items-center gap-1">
+        <span className={cn("text-xs font-bold", v >= 85 ? "text-emerald-600" : v >= 70 ? "text-amber-600" : "text-rose-600")}>
+          {v}%
+        </span>
+        <Progress value={v} className="h-1.5 w-16" />
+      </div>
+    )
+  },
+  { key: "totalVisits", header: "Visits", width: 90, align: "center", sortable: true, render: (v) => <span className="font-medium">{v}</span> },
+  { key: "avgHrs", header: "Avg Hrs/Day", width: 120, align: "right", sortable: true, render: (v) => <span className="text-xs text-muted-foreground">{fmtHrs(v as number)}</span> },
+];
+
+const DAILY_COLUMNS: GridColumn<any>[] = [
+  { key: "sr", header: "Sr.", width: 60, pinned: "left", sortable: false, filterable: false, render: (_, __, i) => <span className="text-muted-foreground text-xs">{i + 1}</span> },
+  {
+    key: "date", header: "Date", width: 120, pinned: "left", sortable: true, render: (v) => (
+      <span className="text-xs font-medium whitespace-nowrap">
+        {new Date(v as string).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+      </span>
+    )
+  },
+  {
+    key: "salesmanName", header: "Salesperson", width: 220, pinned: "left", sortable: true, render: (_, row) => (
+      <div className="flex flex-col">
+        <span className="text-sm font-medium">{row.salesmanName}</span>
+        <span className="text-[10px] text-muted-foreground">{row.salesmanId}</span>
+      </div>
+    )
+  },
+  { key: "state", header: "State", width: 120, filterable: true, sortable: true },
+  { key: "city", header: "City", width: 120, filterable: true, sortable: true },
+  { key: "checkIn", header: "Check In", width: 100, align: "center", render: (v) => <span className="text-xs font-mono">{v}</span> },
+  { key: "checkOut", header: "Check Out", width: 100, align: "center", render: (v) => <span className="text-xs font-mono">{v}</span> },
+  { key: "workingHours", header: "Working Hrs", width: 120, align: "right", sortable: true, render: (v) => <span className="text-xs font-medium">{fmtHrs(v as number)}</span> },
+  { key: "visits", header: "Visits", width: 80, align: "center", sortable: true, filterable: false, render: (v) => (v as number) > 0 ? <Badge variant="outline" className="text-[10px]">{v as string}</Badge> : "-" },
+  {
+    key: "status", header: "Status", width: 100, align: "center", sortable: true, render: (v) => {
+      const cfg = STATUS_CONFIG[v as keyof typeof STATUS_CONFIG];
+      return <Badge variant={cfg.badge} className="text-[10px]">{v as string}</Badge>;
+    }
+  },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -176,7 +291,11 @@ export default function AttendanceReportPage() {
       else if (r.status === "On Leave") e.onLeave++;
     });
 
-    return Object.values(map).sort((a, b) => b.present - a.present);
+    return Object.values(map).map(sm => {
+      const attPct = sm.totalDays > 0 ? Math.round(((sm.present + sm.halfDay * 0.5) / sm.totalDays) * 100) : 0;
+      const avgHrs = sm.present > 0 ? Math.round(sm.totalHours / sm.present) : 0;
+      return { ...sm, attPct, avgHrs };
+    }).sort((a, b) => b.present - a.present);
   }, [filtered]);
 
   const handleExport = () => toast.success("Exporting attendance report...");
@@ -196,120 +315,171 @@ export default function AttendanceReportPage() {
         description="Salesperson-wise attendance, working hours & visit tracking"
       />
 
-      {/* ── Filters ── */}
-      <Card className="mb-5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Filter className="h-4 w-4" /> Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {/* Month */}
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+      {/* ── Filters — compact bar ── */}
+      <div className="mb-5 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
-            {/* State */}
-            <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger><SelectValue placeholder="All States" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* Month picker */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Month:</span>
+          <MonthPicker value={monthFilter} onChange={setMonthFilter} />
+        </div>
 
-            {/* City */}
-            <Select value={cityFilter} onValueChange={setCityFilter} disabled={stateFilter === "all"}>
-              <SelectTrigger><SelectValue placeholder="All Cities" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                {availableCities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* State */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">State:</span>
+          <Select value={stateFilter} onValueChange={setStateFilter}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All States</SelectItem>
+              {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            {/* Salesperson */}
-            <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
-              <SelectTrigger><SelectValue placeholder="All Salesperson" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Salesperson</SelectItem>
-                {salesmenData.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* City */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">City:</span>
+          <Select value={cityFilter} onValueChange={setCityFilter} disabled={stateFilter === "all"}>
+            <SelectTrigger className="h-8 w-28 text-xs"><SelectValue placeholder="All Cities" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Cities</SelectItem>
+              {availableCities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            {/* Status */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger><SelectValue placeholder="All Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Present">Present</SelectItem>
-                <SelectItem value="Absent">Absent</SelectItem>
-                <SelectItem value="Half Day">Half Day</SelectItem>
-                <SelectItem value="On Leave">On Leave</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Salesperson */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Person:</span>
+          <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
+            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All Salesperson" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Salesperson</SelectItem>
+              {salesmenData.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={resetFilters}>
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset
-              </Button>
-              <Button className="flex-1" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-1.5" /> Export
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Status */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">Status:</span>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-8 w-28 text-xs"><SelectValue placeholder="All Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="Present">Present</SelectItem>
+              <SelectItem value="Absent">Absent</SelectItem>
+              <SelectItem value="Half Day">Half Day</SelectItem>
+              <SelectItem value="On Leave">On Leave</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* ── Summary KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        {(["Present", "Absent", "Half Day", "On Leave"] as const).map((s) => {
-          const cfg = STATUS_CONFIG[s];
-          const Icon = cfg.icon;
-          const pct = summary.total > 0 ? Math.round((summary[s] / summary.total) * 100) : 0;
-          return (
-            <Card key={s} className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className={`inline-flex p-2 rounded-lg ${cfg.bg} mb-2`}>
-                  <Icon className={`h-4 w-4 ${cfg.color}`} />
-                </div>
-                <p className="text-2xl font-bold">{summary[s]}</p>
-                <p className="text-xs text-muted-foreground">{s}</p>
-                <div className="mt-2">
-                  <Progress value={pct} className="h-1.5" />
-                  <p className="text-[10px] text-muted-foreground mt-1">{pct}% of total days</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {/* Actions — right side */}
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-primary" onClick={resetFilters}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
+          </Button>
+          <Button size="sm" className="h-8 text-xs" onClick={handleExport}>
+            <Download className="h-3.5 w-3.5 mr-1" /> Export
+          </Button>
+        </div>
       </div>
 
-      {/* ── Extra Stats ── */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <User className="h-4 w-4 text-primary" />
+      {/* ── KPI Cards — dashboard style ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
+        {/* Present */}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-emerald-100">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+              </div>
             </div>
-            <div>
-              <p className="text-xl font-bold">{summary.totalVisits}</p>
-              <p className="text-xs text-muted-foreground">Total Visits (Month)</p>
+            <p className="text-xl font-bold tracking-tight">{summary.Present}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Present</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <Progress value={summary.total > 0 ? Math.round((summary.Present / summary.total) * 100) : 0} className="h-1.5" />
+              <p className="text-[10px] text-muted-foreground mt-1">{summary.total > 0 ? Math.round((summary.Present / summary.total) * 100) : 0}% of total</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-100">
-              <Clock className="h-4 w-4 text-emerald-600" />
+        {/* Absent */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-rose-100">
+                <XCircle className="h-4 w-4 text-rose-600" />
+              </div>
             </div>
-            <div>
-              <p className="text-xl font-bold">{fmtHrs(summary.totalHours)}</p>
-              <p className="text-xs text-muted-foreground">Total Working Hours</p>
+            <p className="text-xl font-bold tracking-tight">{summary.Absent}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Absent</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <Progress value={summary.total > 0 ? Math.round((summary.Absent / summary.total) * 100) : 0} className="h-1.5" />
+              <p className="text-[10px] text-muted-foreground mt-1">{summary.total > 0 ? Math.round((summary.Absent / summary.total) * 100) : 0}% of total</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Half Day */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-amber-100">
+                <Clock className="h-4 w-4 text-amber-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{summary["Half Day"]}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Half Day</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <Progress value={summary.total > 0 ? Math.round((summary["Half Day"] / summary.total) * 100) : 0} className="h-1.5" />
+              <p className="text-[10px] text-muted-foreground mt-1">{summary.total > 0 ? Math.round((summary["Half Day"] / summary.total) * 100) : 0}% of total</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* On Leave */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-slate-100">
+                <AlertCircle className="h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{summary["On Leave"]}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">On Leave</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">{summary.total} total days</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Total Visits */}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{summary.totalVisits}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Visits</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">This month</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Working Hours */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-emerald-100">
+                <Clock className="h-4 w-4 text-emerald-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{fmtHrs(summary.totalHours)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Working Hours</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Total logged</p>
             </div>
           </CardContent>
         </Card>
@@ -324,139 +494,28 @@ export default function AttendanceReportPage() {
 
         {/* ─ Monthly Summary Tab ─ */}
         <TabsContent value="summary">
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="w-10">Sr.</TableHead>
-                      <TableHead>Salesperson</TableHead>
-                      <TableHead>State</TableHead>
-                      <TableHead className="text-center text-emerald-700">Present</TableHead>
-                      <TableHead className="text-center text-rose-700">Absent</TableHead>
-                      <TableHead className="text-center text-amber-700">Half Day</TableHead>
-                      <TableHead className="text-center text-slate-500">On Leave</TableHead>
-                      <TableHead className="text-center">Attendance %</TableHead>
-                      <TableHead className="text-center">Visits</TableHead>
-                      <TableHead className="text-right">Avg Hrs/Day</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {salesmanSummary.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                          No records found for selected filters.
-                        </TableCell>
-                      </TableRow>
-                    ) : salesmanSummary.map((sm, i) => {
-                      const attPct = sm.totalDays > 0
-                        ? Math.round(((sm.present + sm.halfDay * 0.5) / sm.totalDays) * 100)
-                        : 0;
-                      const avgHrs = sm.present > 0 ? Math.round(sm.totalHours / sm.present) : 0;
-                      return (
-                        <TableRow key={sm.id} className="hover:bg-slate-50/50">
-                          <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-sm">{sm.name}</span>
-                              <span className="text-xs text-muted-foreground">{sm.id}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs">{sm.state}</TableCell>
-                          <TableCell className="text-center font-semibold text-emerald-700">{sm.present}</TableCell>
-                          <TableCell className="text-center font-semibold text-rose-700">{sm.absent}</TableCell>
-                          <TableCell className="text-center font-semibold text-amber-700">{sm.halfDay}</TableCell>
-                          <TableCell className="text-center text-slate-500">{sm.onLeave}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col items-center gap-1">
-                              <span className={`text-xs font-bold ${attPct >= 85 ? "text-emerald-600" : attPct >= 70 ? "text-amber-600" : "text-rose-600"}`}>
-                                {attPct}%
-                              </span>
-                              <Progress value={attPct} className="h-1.5 w-16" />
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center font-medium">{sm.totalVisits}</TableCell>
-                          <TableCell className="text-right text-xs text-muted-foreground">{fmtHrs(avgHrs)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <DataGrid
+            data={salesmanSummary}
+            columns={MONTHLY_COLUMNS}
+            rowKey="id"
+            defaultPageSize={10}
+            enableRowPinning
+            inlineFilters
+            striped
+          />
         </TabsContent>
 
         {/* ─ Daily Records Tab ─ */}
         <TabsContent value="daily">
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="w-10">Sr.</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Salesperson</TableHead>
-                      <TableHead>State</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Check In</TableHead>
-                      <TableHead>Check Out</TableHead>
-                      <TableHead>Working Hrs</TableHead>
-                      <TableHead className="text-center">Visits</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                          No records found.
-                        </TableCell>
-                      </TableRow>
-                    ) : filtered.slice(0, 200).map((r, i) => {
-                      const cfg = STATUS_CONFIG[r.status];
-                      return (
-                        <TableRow key={`${r.salesmanId}-${r.date}`} className="hover:bg-slate-50/50">
-                          <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
-                          <TableCell className="text-xs font-medium whitespace-nowrap">
-                            {new Date(r.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{r.salesmanName}</span>
-                              <span className="text-[10px] text-muted-foreground">{r.salesmanId}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs">{r.state}</TableCell>
-                          <TableCell className="text-xs">{r.city}</TableCell>
-                          <TableCell className="text-xs font-mono">{r.checkIn}</TableCell>
-                          <TableCell className="text-xs font-mono">{r.checkOut}</TableCell>
-                          <TableCell className="text-xs">{fmtHrs(r.workingHours)}</TableCell>
-                          <TableCell className="text-center">
-                            {r.visits > 0 ? (
-                              <Badge variant="outline" className="text-[10px]">{r.visits}</Badge>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={cfg.badge} className="text-[10px]">{r.status}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {filtered.length > 200 && (
-                      <TableRow>
-                        <TableCell colSpan={10} className="text-center py-3 text-xs text-muted-foreground">
-                          Showing first 200 of {filtered.length} records. Use filters to narrow down.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <DataGrid
+            data={filtered}
+            columns={DAILY_COLUMNS}
+            rowKey="id"
+            defaultPageSize={15}
+            enableRowPinning
+            inlineFilters
+            striped
+          />
         </TabsContent>
       </Tabs>
     </PageContainer>

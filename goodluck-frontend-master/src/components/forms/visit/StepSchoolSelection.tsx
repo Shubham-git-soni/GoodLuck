@@ -17,34 +17,41 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<any>(null);
 
-  // Get unique cities that have schools assigned to SM001
+  // Get unique cities — SM001 assigned + include pre-filled city from tour plan
   const availableCities = Array.from(
-    new Set(
-      schoolsData
-        .filter((s) => s.assignedTo === "SM001")
-        .map((s) => s.city)
-    )
+    new Set([
+      ...schoolsData.filter((s) => s.assignedTo === "SM001").map((s) => s.city),
+      ...(formData.city ? [formData.city] : []),
+    ])
   ).sort();
 
   useEffect(() => {
     if (formData.city) {
-      // Filter schools by city
+      // Show all schools in the city assigned to SM001
+      // Also include the pre-filled school even if it belongs to another salesman
       const citySchools = schoolsData.filter((s) => s.city === formData.city && s.assignedTo === "SM001");
+      // If pre-filled schoolId is in this city but not in SM001 list, include it anyway
+      if (formData.schoolId) {
+        const preFilledSchool = schoolsData.find((s) => s.id === formData.schoolId && s.city === formData.city);
+        if (preFilledSchool && !citySchools.find((s) => s.id === preFilledSchool.id)) {
+          citySchools.push(preFilledSchool);
+        }
+      }
       setSchools(citySchools);
     } else {
       setSchools([]);
     }
-  }, [formData.city]);
+  }, [formData.city, formData.schoolId]);
 
   useEffect(() => {
     if (formData.schoolId) {
       const school = schoolsData.find((s) => s.id === formData.schoolId);
       setSelectedSchool(school || null);
-      if (school) {
+      if (school && !formData.city) {
         updateFormData({ city: school.city });
       }
     }
-  }, [formData.schoolId, updateFormData]);
+  }, [formData.schoolId, formData.city, updateFormData]);
 
   return (
     <div className="space-y-6">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, School, BookOpen, Store, Save, Plus, X, IndianRupee } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, School, Store, Save, Plus, X, IndianRupee, CheckCircle2 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
@@ -25,11 +24,10 @@ import StepFeedback from "@/components/forms/visit/StepFeedback";
 import StepNextVisit from "@/components/forms/visit/StepNextVisit";
 
 // Mock data
-import qbsData from "@/lib/mock-data/qbs.json";
 import bookSellersData from "@/lib/mock-data/book-sellers.json";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 import specimensData from "@/lib/mock-data/specimens.json";
-import { QB } from "@/types";
+import schoolsDataRaw from "@/lib/mock-data/schools.json";
 
 // Components
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -54,11 +52,10 @@ const JOINT_PERSONS = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TabId = "school" | "qb" | "seller";
+type TabId = "school" | "seller";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "school", label: "School Visit", icon: School },
-  { id: "qb", label: "QB Visit", icon: BookOpen },
   { id: "seller", label: "Book Seller", icon: Store },
 ];
 
@@ -67,103 +64,58 @@ const SCHOOL_STEPS = [
   { number: 2, title: "Contact" },
   { number: 3, title: "Purpose" },
   { number: 4, title: "Joint" },
-  { number: 5, title: "Payment" },
-  { number: 6, title: "Feedback" },
-  { number: 7, title: "Next Visit" },
+  { number: 5, title: "Feedback" },
+  { number: 6, title: "Next Visit" },
 ];
 
-// ─── Step 5: Payment ─────────────────────────────────────────────────────────
-
-function StepPayment({ formData, updateFormData }: { formData: any; updateFormData: (d: any) => void }) {
-  const paymentFor: string = formData.paymentFor || "";
-  const gl: number = formData.paymentReceivedGL || 0;
-  const vp: number = formData.paymentReceivedVP || 0;
-  const amount = paymentFor === "GL" ? gl : paymentFor === "VP" ? vp : 0;
-
-  const sanitize = (val: string) => {
-    const digits = val.replace(/[^0-9]/g, "");
-    return digits === "" ? 0 : parseInt(digits, 10);
-  };
-
-  const handlePaymentFor = (val: string) => {
-    updateFormData({ paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 });
-  };
-
-  const handleAmount = (val: string) => {
-    const num = sanitize(val);
-    if (paymentFor === "GL") updateFormData({ paymentReceivedGL: num });
-    else if (paymentFor === "VP") updateFormData({ paymentReceivedVP: num });
-  };
-
+// ─── PhonePe-style Numpad (used by BSPaymentCard) ────────────────────────────
+function AmountNumpad({ amount, onDigit, onBackspace, onClear }: {
+  amount: string;
+  onDigit: (d: string) => void;
+  onBackspace: () => void;
+  onClear: () => void;
+}) {
+  const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
   return (
-    <div className="space-y-4">
-      {/* Select company */}
-      <div className="space-y-1.5">
-        <Label className="text-sm font-semibold">Payment Received For</Label>
-        <div className="grid grid-cols-2 gap-3 mt-1">
-          {[
-            { key: "GL", label: "Goodluck", color: "blue" },
-            { key: "VP", label: "Vidhyapith", color: "violet" },
-          ].map(({ key, label, color }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => handlePaymentFor(key)}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
-                paymentFor === key
-                  ? "border-primary bg-primary/5"
-                  : "border-border bg-background hover:border-muted-foreground/30"
-              }`}
-            >
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
-              }`}>
-                {key}
-              </span>
-              <span className="text-sm font-medium">{label}</span>
-            </button>
-          ))}
-        </div>
+    <div className="space-y-2">
+      {/* Big amount display */}
+      <div className="flex items-center justify-center gap-1 py-6 bg-muted/30 rounded-2xl">
+        <span className="text-3xl font-light text-muted-foreground">₹</span>
+        <span className={`text-4xl font-bold tracking-tight ${amount && amount !== "0" ? "text-foreground" : "text-muted-foreground"}`}>
+          {amount && amount !== "0" ? Number(amount).toLocaleString("en-IN") : "0"}
+        </span>
+        {amount && amount !== "0" && (
+          <button type="button" onClick={onClear} className="ml-2 text-xs text-muted-foreground underline self-end pb-1">
+            clear
+          </button>
+        )}
       </div>
-
-      {/* Amount input — shown after selection */}
-      {paymentFor && (
-        <div className="space-y-1.5">
-          <Label className="text-sm font-semibold">
-            Amount Received (₹) —{" "}
-            <span className={paymentFor === "GL" ? "text-blue-600" : "text-violet-600"}>
-              {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
-            </span>
-          </Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
-            <Input
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Enter payment amount"
-              value={amount || ""}
-              onChange={(e) => handleAmount(e.target.value)}
-              className="h-12 pl-7 text-base font-semibold"
-              autoFocus
-            />
-          </div>
-
-          {/* Summary chip */}
-          {amount > 0 && (
-            <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 mt-2">
-              <span className="text-sm font-semibold">Total Payment</span>
-              <span className="text-base font-bold text-primary">₹{amount.toLocaleString()}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {!paymentFor && (
-        <p className="text-xs text-muted-foreground text-center py-2">
-          Select the company for which payment was received. Leave unselected if no payment was collected.
-        </p>
-      )}
+      {/* Keypad grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {keys.map((k, i) =>
+          k === "" ? (
+            <div key={i} />
+          ) : k === "⌫" ? (
+            <button
+              key={i}
+              type="button"
+              onClick={onBackspace}
+              className="h-14 rounded-2xl bg-muted flex items-center justify-center text-xl font-medium active:scale-95 transition-transform"
+            >
+              ⌫
+            </button>
+          ) : (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onDigit(k)}
+              className="h-14 rounded-2xl bg-background border border-border text-xl font-semibold active:bg-muted active:scale-95 transition-all shadow-sm"
+            >
+              {k}
+            </button>
+          )
+        )}
+      </div>
     </div>
   );
 }
@@ -175,13 +127,14 @@ function SchoolVisitForm() {
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tourPlanInfo, setTourPlanInfo] = useState<{ planId: string; name: string } | null>(null);
 
   const [formData, setFormData] = useState({
     city: "", schoolId: "", supplyThrough: "",
     selectedContacts: [] as string[],
     newContacts: [] as { name: string; role: string }[],
     purposes: [] as string[], needMappingType: "",
-    hasManager: false, managerId: "", managerType: "",
+    hasManager: false, managerId: "", managerType: "", managerRows: [] as { managerId: string; managerName: string; managerType: string }[],
     specimenRequired: "",
     givenRows: [{ specimenId: "", book: "", subject: "", class: "", mrp: 0, qty: 1, price: 0, amount: 0 }] as any[],
     returnRows: [{ specimenId: "", book: "", subject: "", class: "", qty: 1, condition: "" }] as any[],
@@ -192,8 +145,30 @@ function SchoolVisitForm() {
   });
 
   useEffect(() => {
-    const schoolId = searchParams.get("schoolId");
-    if (schoolId) setFormData((prev) => ({ ...prev, schoolId }));
+    const schoolId  = searchParams.get("schoolId");
+    const name      = searchParams.get("name");
+    const city      = searchParams.get("city");
+    const objectives = searchParams.get("objectives");
+    const fromTourPlan = searchParams.get("fromTourPlan");
+
+    if (fromTourPlan && name && city) {
+      // Match school by name from mock data
+      const matched = (schoolsDataRaw as any[]).find(
+        (s: any) => s.name.toLowerCase() === name.toLowerCase()
+      );
+      const parsedPurposes = objectives
+        ? objectives.split(",").map((o) => o.trim()).filter(Boolean)
+        : [];
+      setFormData((prev) => ({
+        ...prev,
+        city: city,
+        schoolId: matched ? matched.id : (schoolId || ""),
+        purposes: parsedPurposes,
+      }));
+      setTourPlanInfo({ planId: fromTourPlan === "1" ? (searchParams.get("planId") || "") : fromTourPlan, name });
+    } else if (schoolId) {
+      setFormData((prev) => ({ ...prev, schoolId }));
+    }
   }, [searchParams]);
 
   const updateFormData = (data: Partial<typeof formData>) =>
@@ -216,9 +191,44 @@ function SchoolVisitForm() {
   const handleSubmit = () => {
     setIsSubmitting(true);
     setTimeout(() => {
+      // Build visit record for My Visits
+      const school = (schoolsDataRaw as any[]).find((s: any) => s.id === formData.schoolId);
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const now = new Date();
+      const contactsAll = school ? school.contacts || [] : [];
+      const selectedContactObjs = contactsAll.filter((c: any) => (formData.selectedContacts || []).includes(c.id));
+      const allContacts = [...selectedContactObjs, ...(formData.newContacts || [])];
+      const firstContact = allContacts[0];
+      const jointRows: any[] = formData.managerRows || [];
+      const jointStr = formData.hasManager && jointRows.some((r: any) => r.managerName)
+        ? jointRows.filter((r: any) => r.managerName).map((r: any) => `${r.managerName} (${r.managerType})`).join(", ")
+        : "—";
+      const givenStr = (formData.givenRows || []).filter((r: any) => r.book).map((r: any) => `${r.book} (×${r.qty})`).join(", ") || "—";
+      const newVisit = {
+        type: "school",
+        date: now.toISOString().split("T")[0],
+        time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+        day: days[now.getDay()],
+        jointWorking: jointStr,
+        schoolName: school ? school.name : "",
+        purpose: (formData.purposes || []).join(", "),
+        schoolCity: formData.city,
+        board: school ? school.board : "",
+        strength: school ? school.strength : "",
+        contactPerson: firstContact ? firstContact.name : "",
+        contactNo: firstContact ? (firstContact.phone || firstContact.contactNo || "") : "",
+        supplyThrough: formData.supplyThrough,
+        specimenGiven: givenStr,
+        specimenRequired: formData.specimenRequired || "",
+        schoolComment: formData.schoolFeedback || "",
+        yourComment: formData.feedbackComment || "",
+      };
+      const existing = JSON.parse(localStorage.getItem("myVisits_school") || "[]");
+      localStorage.setItem("myVisits_school", JSON.stringify([newVisit, ...existing]));
+
       toast.success("School visit logged successfully!");
       setIsSubmitting(false);
-      router.push("/salesman/schools");
+      router.push("/salesman/my-visits");
     }, 1200);
   };
 
@@ -229,13 +239,26 @@ function SchoolVisitForm() {
     "Add or select contact persons you met",
     "Select the purpose(s) of your visit",
     "Was this a joint visit with your manager?",
-    "Enter payment received from the school",
     "Share your feedback about the visit",
     "Schedule the next visit (optional)",
   ];
 
   return (
     <div className="space-y-4">
+      {/* Tour Plan banner */}
+      {tourPlanInfo && (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-emerald-800">Auto-filled from Tour Plan</p>
+            <p className="text-xs text-emerald-700 truncate">
+              {tourPlanInfo.planId && <span className="font-medium">{tourPlanInfo.planId} · </span>}
+              School, city &amp; objectives pre-filled. You can edit if needed.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Progress bar */}
       <Card>
         <CardContent className="pt-4 pb-4">
@@ -247,22 +270,23 @@ function SchoolVisitForm() {
           </div>
           <Progress value={progress} className="h-1.5 mb-3" />
 
-          {/* Mobile: compact dots row */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:hidden">
+          {/* Mobile: compact dots row — evenly distributed */}
+          <div className="flex items-center w-full md:hidden">
             {SCHOOL_STEPS.map((step, idx) => (
-              <div key={step.number} className="flex items-center shrink-0">
+              <div key={step.number} className="flex items-center flex-1 last:flex-none">
                 <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${currentStep > step.number
-                    ? "bg-primary border-primary text-white"
-                    : currentStep === step.number
-                      ? "border-primary text-primary bg-primary/10"
-                      : "border-muted-foreground/30 text-muted-foreground"
-                    }`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-colors shrink-0 ${
+                    currentStep > step.number
+                      ? "bg-primary border-primary text-white"
+                      : currentStep === step.number
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-muted-foreground/30 text-muted-foreground"
+                  }`}
                 >
                   {currentStep > step.number ? <Check className="h-3 w-3" /> : step.number}
                 </div>
                 {idx < SCHOOL_STEPS.length - 1 && (
-                  <div className={`h-px w-4 mx-0.5 ${currentStep > step.number ? "bg-primary" : "bg-muted"}`} />
+                  <div className={`h-px flex-1 mx-1 ${currentStep > step.number ? "bg-primary" : "bg-muted"}`} />
                 )}
               </div>
             ))}
@@ -307,9 +331,8 @@ function SchoolVisitForm() {
           {currentStep === 2 && <StepContactPerson formData={formData} updateFormData={updateFormData} />}
           {currentStep === 3 && <StepPurpose formData={formData} updateFormData={updateFormData} />}
           {currentStep === 4 && <StepJointWorking formData={formData} updateFormData={updateFormData} />}
-          {currentStep === 5 && <StepPayment formData={formData} updateFormData={updateFormData} />}
-          {currentStep === 6 && <StepFeedback formData={formData} updateFormData={updateFormData} />}
-          {currentStep === 7 && <StepNextVisit formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 5 && <StepFeedback formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 6 && <StepNextVisit formData={formData} updateFormData={updateFormData} />}
         </CardContent>
       </Card>
 
@@ -328,200 +351,6 @@ function SchoolVisitForm() {
           </Button>
         )}
       </div>
-    </div>
-  );
-}
-
-// ─── QB Visit Form ────────────────────────────────────────────────────────────
-
-function QBVisitForm() {
-  const router = useRouter();
-  const [qbs] = useState<QB[]>(qbsData as QB[]);
-  const [filteredSchools, setFilteredSchools] = useState<QB[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [formData, setFormData] = useState({
-    schoolCity: "", schoolName: "", schoolBoard: "", schoolStrength: "", schoolAddress: "",
-    purposeOfVisit: "",
-    teacherName: "", teacherDesignation: "", teacherContactNo: "", teacherEmail: "",
-    remarks: "",
-  });
-
-  const cities = Array.from(new Set(qbs.map((qb) => qb.city))).sort();
-
-  useEffect(() => {
-    if (formData.schoolCity) {
-      setFilteredSchools(qbs.filter((qb) => qb.city === formData.schoolCity));
-    } else {
-      setFilteredSchools([]);
-    }
-    setFormData((prev) => ({
-      ...prev, schoolName: "", schoolBoard: "", schoolStrength: "", schoolAddress: "",
-    }));
-  }, [formData.schoolCity]);
-
-  const handleSchoolSelect = (schoolName: string) => {
-    const s = qbs.find((qb) => qb.schoolName === schoolName);
-    if (s) {
-      setFormData((prev) => ({
-        ...prev,
-        schoolName: s.schoolName, schoolBoard: s.schoolBoard,
-        schoolStrength: s.strength.toString(), schoolAddress: s.address,
-      }));
-    }
-  };
-
-  const handleSubmit = () => {
-    if (!formData.schoolCity || !formData.schoolName || !formData.purposeOfVisit ||
-      !formData.teacherName || !formData.teacherDesignation || !formData.teacherContactNo) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-    setIsSubmitting(true);
-    setTimeout(() => {
-      toast.success("QB visit recorded successfully!");
-      setIsSubmitting(false);
-      router.push("/salesman/qbs");
-    }, 1200);
-  };
-
-  const qbPurposes = [
-    ...dropdownOptions.visitPurposes,
-    "QB Discussion", "QB Sample Distribution", "Question Paper Review",
-  ];
-
-  return (
-    <div className="space-y-4 pb-4">
-      {/* School Details */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">School Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">City *</Label>
-            <Select value={formData.schoolCity} onValueChange={(v) => setFormData({ ...formData, schoolCity: v })}>
-              <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-              <SelectContent>
-                {cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">School *</Label>
-            <Select
-              value={formData.schoolName}
-              onValueChange={handleSchoolSelect}
-              disabled={!formData.schoolCity}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={formData.schoolCity ? "Select school" : "Select city first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredSchools.map((s) => <SelectItem key={s.id} value={s.schoolName}>{s.schoolName}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {formData.schoolName && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Board</Label>
-                <Input value={formData.schoolBoard} disabled className="bg-muted text-sm h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Strength</Label>
-                <Input value={formData.schoolStrength} disabled className="bg-muted text-sm h-9" />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Visit Details */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Visit Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Purpose *</Label>
-            <Select value={formData.purposeOfVisit} onValueChange={(v) => setFormData({ ...formData, purposeOfVisit: v })}>
-              <SelectTrigger><SelectValue placeholder="Select purpose" /></SelectTrigger>
-              <SelectContent>
-                {qbPurposes.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Remarks</Label>
-            <Textarea
-              value={formData.remarks}
-              onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-              placeholder="Any additional notes…"
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Teacher Details */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Teacher / Contact Person</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Name *</Label>
-              <Input
-                value={formData.teacherName}
-                onChange={(e) => setFormData({ ...formData, teacherName: e.target.value })}
-                placeholder="Teacher name"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Designation *</Label>
-              <Select value={formData.teacherDesignation} onValueChange={(v) => setFormData({ ...formData, teacherDesignation: v })}>
-                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                <SelectContent>
-                  {dropdownOptions.contactRoles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Contact No *</Label>
-              <Input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={10}
-                value={formData.teacherContactNo}
-                onChange={(e) => setFormData({ ...formData, teacherContactNo: e.target.value.replace(/\D/g, "") })}
-                placeholder="10-digit number"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Email</Label>
-              <Input
-                type="email"
-                value={formData.teacherEmail}
-                onChange={(e) => setFormData({ ...formData, teacherEmail: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
-        {isSubmitting ? "Saving…" : <><Save className="h-4 w-4 mr-2" />Save QB Visit</>}
-      </Button>
     </div>
   );
 }
@@ -546,6 +375,91 @@ const BS_PURPOSES = [
   "Inquiry",
   "Sales Return Follow-Up",
 ];
+
+// ─── BSPaymentCard (needs useState — must be a real component) ────────────────
+function BSPaymentCard({ paymentFor, paymentReceivedGL, paymentReceivedVP, onChange }: {
+  paymentFor: string;
+  paymentReceivedGL: number;
+  paymentReceivedVP: number;
+  onChange: (patch: object) => void;
+}) {
+  const amount = paymentFor === "GL" ? paymentReceivedGL : paymentFor === "VP" ? paymentReceivedVP : 0;
+  const [raw, setRaw] = useState(amount > 0 ? String(amount) : "");
+
+  const handlePaymentFor = (val: string) => {
+    onChange({ paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 });
+    setRaw("");
+  };
+
+  const commit = (r: string) => {
+    const num = r === "" ? 0 : parseInt(r, 10);
+    if (paymentFor === "GL") onChange({ paymentReceivedGL: num });
+    else if (paymentFor === "VP") onChange({ paymentReceivedVP: num });
+  };
+
+  const handleDigit = (d: string) => {
+    const next = raw === "0" ? d : raw + d;
+    if (next.length > 9) return;
+    setRaw(next);
+    commit(next);
+  };
+
+  const handleBackspace = () => { const next = raw.slice(0, -1); setRaw(next); commit(next); };
+  const handleClear = () => { setRaw(""); commit(""); };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Payment Details</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <Label className="text-sm font-semibold">Payment Received For</Label>
+          <div className="grid grid-cols-2 gap-3 mt-1">
+            {[
+              { key: "GL", label: "Goodluck", color: "blue" },
+              { key: "VP", label: "Vidhyapith", color: "violet" },
+            ].map(({ key, label, color }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handlePaymentFor(key)}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
+                  paymentFor === key
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-background hover:border-muted-foreground/30"
+                }`}
+              >
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
+                }`}>{key}</span>
+                <span className="text-sm font-medium">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {paymentFor && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground text-center uppercase tracking-wide">
+              Enter amount for{" "}
+              <span className={paymentFor === "GL" ? "text-blue-600" : "text-violet-600"}>
+                {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
+              </span>
+            </p>
+            <AmountNumpad amount={raw} onDigit={handleDigit} onBackspace={handleBackspace} onClear={handleClear} />
+          </div>
+        )}
+
+        {!paymentFor && (
+          <p className="text-xs text-muted-foreground text-center py-1">
+            Select the company for which payment was received.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function BookSellerVisitForm() {
   const router = useRouter();
@@ -650,11 +564,52 @@ function BookSellerVisitForm() {
       toast.error("Please select a book seller and at least one purpose");
       return;
     }
+    if (formData.purposes.includes("Payment Collection")) {
+      if (!formData.paymentFor) {
+        toast.error("Please select GL or VP for payment collection");
+        return;
+      }
+      const amt = formData.paymentFor === "GL" ? formData.paymentReceivedGL : formData.paymentReceivedVP;
+      if (!amt || amt <= 0) {
+        toast.error("Please enter a payment amount greater than 0");
+        return;
+      }
+    }
     setIsSubmitting(true);
     setTimeout(() => {
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const now = new Date();
+      const seller = (bookSellersData as any[]).find((s: any) => s.id === formData.bookSellerId);
+      const jointRows: any[] = formData.jointRows || [];
+      const jointStr = formData.hasJoint && jointRows.some((r: any) => r.personName)
+        ? jointRows.filter((r: any) => r.personName).map((r: any) => `${r.personName} (${r.personRole})`).join(", ")
+        : "—";
+      const givenStr = (formData.givenRows || []).filter((r: any) => r.book).map((r: any) => `${r.book} (×${r.qty})`).join(", ") || "—";
+      const glAmt = formData.paymentReceivedGL ? `₹${Number(formData.paymentReceivedGL).toLocaleString()}` : "—";
+      const vpAmt = formData.paymentReceivedVP ? `₹${Number(formData.paymentReceivedVP).toLocaleString()}` : "—";
+      const newVisit = {
+        type: "bookseller",
+        date: now.toISOString().split("T")[0],
+        time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+        day: days[now.getDay()],
+        jointWorking: jointStr,
+        name: seller ? seller.shopName : "",
+        contactNo: seller ? seller.phone : "",
+        email: seller ? seller.email : "",
+        address: seller ? seller.address : "",
+        city: seller ? seller.city : "",
+        purpose: (formData.purposes || []).join(", "),
+        specimenGiven: givenStr,
+        paymentGL: glAmt,
+        paymentVP: vpAmt,
+        remarks: formData.remark || "",
+      };
+      const existing = JSON.parse(localStorage.getItem("myVisits_bookseller") || "[]");
+      localStorage.setItem("myVisits_bookseller", JSON.stringify([newVisit, ...existing]));
+
       toast.success("Book seller visit logged successfully!");
       setIsSubmitting(false);
-      router.push("/salesman/booksellers");
+      router.push("/salesman/my-visits");
     }, 1200);
   };
 
@@ -787,12 +742,20 @@ function BookSellerVisitForm() {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Quantity</Label>
-                      <Input
-                        type="number" min={1} inputMode="numeric"
-                        value={row.qty}
-                        onChange={(e) => handleQtyChange(index, parseInt(e.target.value) || 1)}
-                        className="h-10 text-sm"
-                      />
+                      <div className="flex items-center h-10 rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(index, row.qty - 1)}
+                          disabled={row.qty <= 1}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 disabled:opacity-30 transition-colors shrink-0"
+                        >−</button>
+                        <span className="flex-1 text-center text-sm font-semibold">{row.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(index, row.qty + 1)}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 transition-colors shrink-0"
+                        >+</button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Price/Unit</Label>
@@ -887,12 +850,20 @@ function BookSellerVisitForm() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Quantity</Label>
-                      <Input
-                        type="number" min={1} inputMode="numeric"
-                        value={row.qty}
-                        onChange={(e) => handleReturnQtyChange(index, parseInt(e.target.value) || 1)}
-                        className="h-10 text-sm"
-                      />
+                      <div className="flex items-center h-10 rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => handleReturnQtyChange(index, row.qty - 1)}
+                          disabled={row.qty <= 1}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 disabled:opacity-30 transition-colors shrink-0"
+                        >−</button>
+                        <span className="flex-1 text-center text-sm font-semibold">{row.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleReturnQtyChange(index, row.qty + 1)}
+                          className="h-full w-9 flex items-center justify-center text-lg font-bold bg-muted hover:bg-muted/80 transition-colors shrink-0"
+                        >+</button>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Condition</Label>
@@ -938,90 +909,14 @@ function BookSellerVisitForm() {
       )}
 
       {/* Payment (conditional) */}
-      {formData.purposes.includes("Payment Collection") && (() => {
-        const paymentFor = formData.paymentFor;
-        const amount = paymentFor === "GL" ? formData.paymentReceivedGL : paymentFor === "VP" ? formData.paymentReceivedVP : 0;
-        const sanitize = (val: string) => { const d = val.replace(/[^0-9]/g, ""); return d === "" ? 0 : parseInt(d, 10); };
-        const handlePaymentFor = (val: string) => setFormData((prev) => ({ ...prev, paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 }));
-        const handleAmount = (val: string) => {
-          const num = sanitize(val);
-          if (paymentFor === "GL") setFormData((prev) => ({ ...prev, paymentReceivedGL: num }));
-          else if (paymentFor === "VP") setFormData((prev) => ({ ...prev, paymentReceivedVP: num }));
-        };
-        return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Payment Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Company selector */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Payment Received For</Label>
-                <div className="grid grid-cols-2 gap-3 mt-1">
-                  {[
-                    { key: "GL", label: "Goodluck", color: "blue" },
-                    { key: "VP", label: "Vidhyapith", color: "violet" },
-                  ].map(({ key, label, color }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handlePaymentFor(key)}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
-                        paymentFor === key
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-background hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
-                      }`}>
-                        {key}
-                      </span>
-                      <span className="text-sm font-medium">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Amount input */}
-              {paymentFor && (
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold">
-                    Amount Received (₹) —{" "}
-                    <span className={paymentFor === "GL" ? "text-blue-600" : "text-violet-600"}>
-                      {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
-                    </span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
-                    <Input
-                      type="tel"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="Enter payment amount"
-                      value={amount || ""}
-                      onChange={(e) => handleAmount(e.target.value)}
-                      className="h-12 pl-7 text-base font-semibold"
-                    />
-                  </div>
-                  {amount > 0 && (
-                    <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-                      <span className="text-sm font-semibold">Total Payment</span>
-                      <span className="text-base font-bold text-primary">₹{amount.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!paymentFor && (
-                <p className="text-xs text-muted-foreground text-center py-1">
-                  Select the company for which payment was received.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })()}
+      {formData.purposes.includes("Payment Collection") && (
+        <BSPaymentCard
+          paymentFor={formData.paymentFor}
+          paymentReceivedGL={formData.paymentReceivedGL}
+          paymentReceivedVP={formData.paymentReceivedVP}
+          onChange={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+        />
+      )}
 
       {/* Joint Visit */}
       <Card>
@@ -1173,10 +1068,39 @@ function BookSellerVisitForm() {
         </CardContent>
       </Card>
 
+      {/* Payment validation hint */}
+      {formData.purposes.includes("Payment Collection") && (() => {
+        const missingCompany = !formData.paymentFor;
+        const missingAmount = formData.paymentFor === "GL"
+          ? !formData.paymentReceivedGL || formData.paymentReceivedGL <= 0
+          : formData.paymentFor === "VP"
+          ? !formData.paymentReceivedVP || formData.paymentReceivedVP <= 0
+          : true;
+        if (missingCompany || missingAmount) {
+          return (
+            <p className="text-xs text-destructive text-center -mt-2">
+              {missingCompany
+                ? "Please select GL or VP for payment"
+                : "Please enter a payment amount greater than 0"}
+            </p>
+          );
+        }
+        return null;
+      })()}
+
       <Button
         className="w-full"
         onClick={handleSubmit}
-        disabled={isSubmitting || !formData.bookSellerId || formData.purposes.length === 0}
+        disabled={
+          isSubmitting ||
+          !formData.bookSellerId ||
+          formData.purposes.length === 0 ||
+          (formData.purposes.includes("Payment Collection") && (
+            !formData.paymentFor ||
+            (formData.paymentFor === "GL" && (!formData.paymentReceivedGL || formData.paymentReceivedGL <= 0)) ||
+            (formData.paymentFor === "VP" && (!formData.paymentReceivedVP || formData.paymentReceivedVP <= 0))
+          ))
+        }
       >
         {isSubmitting ? "Submitting…" : <><Save className="h-4 w-4 mr-2" />Submit Visit</>}
       </Button>
@@ -1190,10 +1114,10 @@ function AddVisitPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Allow pre-selecting a tab via ?tab=qb or ?tab=seller
+  // Allow pre-selecting a tab via ?tab=seller
   const initialTab = (searchParams.get("tab") as TabId) || "school";
   const [activeTab, setActiveTab] = useState<TabId>(
-    ["school", "qb", "seller"].includes(initialTab) ? initialTab : "school"
+    ["school", "seller"].includes(initialTab) ? initialTab : "school"
   );
 
   return (
@@ -1206,7 +1130,7 @@ function AddVisitPageContent() {
         </Button>
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] font-bold tracking-tight">Add Visit</h1>
-          <Button size="sm" onClick={() => router.push("/salesman/next-visits")}>
+          <Button size="sm" onClick={() => router.push("/salesman/my-visits")}>
             My Visits
           </Button>
         </div>
@@ -1231,7 +1155,6 @@ function AddVisitPageContent() {
 
       {/* Tab content */}
       {activeTab === "school" && <SchoolVisitForm />}
-      {activeTab === "qb" && <QBVisitForm />}
       {activeTab === "seller" && <BookSellerVisitForm />}
     </PageContainer>
   );

@@ -384,11 +384,6 @@ export default function SchoolListPage() {
               My Schools
             </button>
           </Link>
-          <Link href="/salesman/qbs" className="flex-1">
-            <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
-              My QBs
-            </button>
-          </Link>
           <Link href="/salesman/booksellers" className="flex-1">
             <button className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
               Book Sellers

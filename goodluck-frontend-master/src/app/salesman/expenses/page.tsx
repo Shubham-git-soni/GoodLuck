@@ -15,14 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
@@ -73,14 +65,14 @@ export default function MyExpensesPage() {
 
   return (
     <PageContainer>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-3 mb-6">
         <PageHeader
           title="My Expenses"
           description="Manage your expenses and expense reports"
         />
-        <Link href="/salesman/expenses/add">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
+        <Link href="/salesman/expenses/add" className="shrink-0">
+          <Button size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />
             Add Expense
           </Button>
         </Link>
@@ -158,12 +150,12 @@ export default function MyExpensesPage() {
 
       {/* Tabs for Draft Expenses and Reports */}
       <Tabs defaultValue="drafts" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="drafts">
-            Draft Expenses ({draftExpenses.length})
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="drafts" className="text-xs sm:text-sm">
+            Drafts ({draftExpenses.length})
           </TabsTrigger>
-          <TabsTrigger value="reports">
-            Expense Reports ({reports.length})
+          <TabsTrigger value="reports" className="text-xs sm:text-sm">
+            Reports ({reports.length})
           </TabsTrigger>
         </TabsList>
 
@@ -171,13 +163,13 @@ export default function MyExpensesPage() {
         <TabsContent value="drafts" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <CardTitle>Draft Expenses</CardTitle>
                 {draftExpenses.length > 0 && (
                   <Link href="/salesman/expenses/create-report">
                     <Button size="sm">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Create Report from Drafts
+                      <FileText className="h-4 w-4 mr-1.5" />
+                      Create Report
                     </Button>
                   </Link>
                 )}
@@ -202,70 +194,50 @@ export default function MyExpensesPage() {
                   </Link>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Receipt</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {draftExpenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell className="font-medium">
-                          {new Date(expense.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{expense.expenseType}</Badge>
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          ₹{expense.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {expense.description || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {expense.hasReceipt ? (
-                            <Badge className="bg-green-500 text-white">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Yes
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-orange-600">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              No
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {expense.policyViolation ? (
-                            <Badge variant="destructive" className="text-xs">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Policy Warning
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-gray-500 text-white">Draft</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                <div className="space-y-3">
+                  {draftExpenses.map((expense) => (
+                    <div key={expense.id} className="flex items-start gap-3 p-3 rounded-xl border bg-background hover:bg-muted/40 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <Badge variant="outline" className="text-xs">{expense.expenseType}</Badge>
+                          <span className="font-bold text-base">₹{expense.amount.toLocaleString()}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{expense.description || "—"}</p>
+                        <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(expense.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {expense.hasReceipt ? (
+                              <Badge className="bg-green-500 text-white text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />Receipt
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-orange-600 text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />No Receipt
+                              </Badge>
+                            )}
+                            {expense.policyViolation ? (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />Warning
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-gray-500 text-white text-xs">Draft</Badge>
+                            )}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -290,68 +262,50 @@ export default function MyExpensesPage() {
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Report ID</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total Amount</TableHead>
-                      <TableHead>Violations</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reports.map((report) => {
-                      const statusBadge = getReportStatusBadge(report.status);
-                      return (
-                        <TableRow key={report.id}>
-                          <TableCell className="font-medium">{report.id}</TableCell>
-                          <TableCell className="max-w-[200px]">
-                            <div className="font-medium">{report.reportTitle}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {report.startDate} to {report.endDate}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(report.dateSubmitted).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{report.expenseCount}</Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            ₹{report.totalAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
+                <div className="space-y-3">
+                  {reports.map((report) => {
+                    const statusBadge = getReportStatusBadge(report.status);
+                    return (
+                      <div key={report.id} className="p-3 rounded-xl border bg-background hover:bg-muted/40 transition-colors">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm truncate">{report.reportTitle}</p>
+                            <p className="text-xs text-muted-foreground">{report.id}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge className={`${statusBadge.color} text-white text-xs`}>{statusBadge.label}</Badge>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>{new Date(report.dateSubmitted).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                            <span className="flex items-center gap-1">
+                              <Badge variant="secondary" className="text-xs">{report.expenseCount} items</Badge>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             {report.policyViolations > 0 ? (
                               <Badge variant="destructive" className="text-xs">
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                {report.policyViolations}
+                                <AlertTriangle className="h-3 w-3 mr-1" />{report.policyViolations} warning{report.policyViolations > 1 ? "s" : ""}
                               </Badge>
                             ) : (
                               <Badge className="bg-green-500 text-white text-xs">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                None
+                                <CheckCircle2 className="h-3 w-3 mr-1" />Clean
                               </Badge>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`${statusBadge.color} text-white`}>
-                              {statusBadge.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                            <span className="font-bold text-sm">₹{report.totalAmount.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        {(report.startDate || report.endDate) && (
+                          <p className="text-xs text-muted-foreground mt-1.5">{report.startDate} – {report.endDate}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

@@ -387,7 +387,7 @@ export default function SalesmanDashboard() {
         </Card>
       </div>
 
-      {/* Charts Row 2 - Visit Distribution & School Coverage */}
+      {/* Charts Row 2 - Visit Distribution */}
       <div className="grid gap-4 md:grid-cols-2 mb-6">
         {/* Visit Distribution - Donut */}
         <Card>
@@ -431,65 +431,6 @@ export default function SalesmanDashboard() {
           </CardContent>
         </Card>
 
-        {/* School Coverage - Radial Bar Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              School Coverage Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadialBarChart
-                cx="50%"
-                cy="50%"
-                innerRadius="20%"
-                outerRadius="90%"
-                data={schoolCoverage}
-                startAngle={90}
-                endAngle={-270}
-              >
-                <RadialBar
-                  label={false}
-                  background={{ fill: "#f8fafc" }}
-                  dataKey="value"
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: "10px", border: "1px solid #e5e7eb", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                />
-              </RadialBarChart>
-            </ResponsiveContainer>
-            <div className="space-y-2 mt-1">
-              {schoolCoverage.map((item, index) => (
-                <div key={index} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.fill }} />
-                    <span className="text-muted-foreground">{item.name}</span>
-                  </div>
-                  <span className="font-semibold text-foreground">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Progress Cards */}
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
-        <ProgressCard
-          title="Specimen Budget"
-          current={salesmanData.specimenUsed}
-          total={salesmanData.specimenBudget}
-          unit="₹"
-          description={`${specimenPercentage}% of budget utilized`}
-        />
-        <ProgressCard
-          title="School Coverage"
-          current={schoolStats.visitedTwice}
-          total={schoolStats.total}
-          description={`${schoolStats.yetToVisit} schools yet to visit`}
-        />
       </div>
 
       {/* Today's Summary & Alerts */}

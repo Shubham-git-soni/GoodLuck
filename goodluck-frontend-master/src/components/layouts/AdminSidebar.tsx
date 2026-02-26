@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +25,10 @@ import {
   CalendarCheck,
   Receipt,
   ClipboardList,
+
   Globe,
+
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -104,8 +107,45 @@ const navGroups = [
   // { href: "/admin/erp", label: "ERP Integration", icon: Database },
 ];
 
+// ─── Logout Confirmation Dialog ───────────────────────────────────────────────
+function LogoutDialog({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 animate-in fade-in duration-200" onClick={onClose} />
+      <div className="relative bg-background rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 w-full max-w-sm">
+        <div className="px-6 pt-8 pb-2 text-center">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 mb-4">
+            <LogOut className="h-7 w-7 text-destructive" />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight mb-1">Logout</h3>
+          <p className="text-sm text-muted-foreground">Are you sure you want to logout? You will need to sign in again to continue.</p>
+        </div>
+        <div className="px-6 pt-3 pb-6 flex flex-col gap-2.5">
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={() => { onConfirm(); onClose(); }}
+            className="w-full h-12 text-sm font-semibold rounded-2xl"
+          >
+            Yes, Logout
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={onClose}
+            className="w-full h-12 text-sm font-semibold rounded-2xl"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Sidebar content component to be reused
-function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
+function SidebarContent({ onLinkClick, onLogout }: { onLinkClick?: () => void; onLogout: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -159,8 +199,10 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
         }
       </nav >
 
-      {/* User Info */}
-      < div className="border-t p-4" >
+
+      {/* User Info + Logout */}
+      <div className="border-t p-4 space-y-1">
+
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-sm font-medium">GM</span>
@@ -170,16 +212,41 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
             <p className="text-xs text-muted-foreground truncate">admin@company.com</p>
           </div>
         </div>
-      </div >
+
+        <button
+          onClick={() => { onLinkClick?.(); onLogout(); }}
+          className="flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-all"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="font-semibold">Logout</span>
+        </button>
+      </div>
+
     </>
   );
 }
 
 export default function AdminSidebar() {
   const [open, setOpen] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
+    }
+    router.push("/login");
+  };
 
   return (
     <>
+      <LogoutDialog
+        open={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={handleLogout}
+      />
+
       {/* Mobile Header with Hamburger */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-16 items-center border-b bg-background px-4 gap-3">
         <Button
@@ -205,14 +272,14 @@ export default function AdminSidebar() {
         <SheetContent side="left" className="w-64 p-0">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <div className="flex h-full flex-col">
-            <SidebarContent onLinkClick={() => setOpen(false)} />
+            <SidebarContent onLinkClick={() => setOpen(false)} onLogout={() => setShowLogoutDialog(true)} />
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r lg:bg-background">
-        <SidebarContent />
+        <SidebarContent onLogout={() => setShowLogoutDialog(true)} />
       </aside>
     </>
   );

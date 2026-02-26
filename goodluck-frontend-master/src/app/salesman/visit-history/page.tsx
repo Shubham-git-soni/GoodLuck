@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Calendar, MapPin, School, Users, BookOpen, Filter, Search, ChevronRight, Clock } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Calendar, MapPin, School, Users, Search, Filter, Clock, CheckCircle2, X, ChevronRight, User, FileText } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,233 +9,347 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import EmptyState from "@/components/ui/empty-state";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { getApprovedScheduledVisits } from "@/lib/mock-data/tour-plans";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface VisitRecord {
   id: string;
-  type: "school" | "bookseller" | "qb";
-  entityId: string;
+  type: "school" | "bookseller";
   entityName: string;
   city: string;
-  address: string;
-  visitDate: string;
-  checkInTime: string;
-  checkOutTime?: string;
+  date: string;
+  time: string;
   purposes: string[];
   contactPerson: string;
-  notes?: string;
-  status: "completed" | "in-progress";
+  notes: string;
+  source: "manual" | string; // "manual" or tour plan ID like "TP-2025-001"
 }
 
+// ─── Static completed visits (from My Visits mock) ────────────────────────────
+
+const staticVisits: VisitRecord[] = [
+  {
+    id: "V001",
+    type: "school",
+    entityName: "Delhi Public School",
+    city: "Delhi",
+    date: "2025-11-15",
+    time: "10:00 AM",
+    purposes: ["Need Mapping", "Specimen Distribution"],
+    contactPerson: "Dr. Rajesh Sharma",
+    notes: "Principal very cooperative, follow up next month",
+    source: "manual",
+  },
+  {
+    id: "V002",
+    type: "school",
+    entityName: "Ryan International School",
+    city: "Mumbai",
+    date: "2025-11-18",
+    time: "11:30 AM",
+    purposes: ["Post-Sales Engagement", "Relationship Building"],
+    contactPerson: "Mrs. Pooja Mehta",
+    notes: "Needs pricing discussion on next visit",
+    source: "manual",
+  },
+  {
+    id: "V003",
+    type: "school",
+    entityName: "DAV Public School",
+    city: "Delhi",
+    date: "2025-11-10",
+    time: "09:30 AM",
+    purposes: ["Specimen Distribution", "Need Mapping"],
+    contactPerson: "Dr. Ramesh Chand",
+    notes: "Large potential, needs follow up in January",
+    source: "manual",
+  },
+  {
+    id: "V004",
+    type: "school",
+    entityName: "Oakridge International School",
+    city: "Bangalore",
+    date: "2025-11-05",
+    time: "02:00 PM",
+    purposes: ["Relationship Building", "Specimen Distribution"],
+    contactPerson: "Ms. Sarah Williams",
+    notes: "Positive visit, schedule need mapping next",
+    source: "manual",
+  },
+  {
+    id: "V005",
+    type: "school",
+    entityName: "Cathedral School",
+    city: "Mumbai",
+    date: "2025-11-20",
+    time: "03:30 PM",
+    purposes: ["Need Mapping", "Post-Sales Engagement"],
+    contactPerson: "Mrs. Linda Fernandes",
+    notes: "Strong follow up needed for conversion",
+    source: "manual",
+  },
+  {
+    id: "V006",
+    type: "bookseller",
+    entityName: "Academic Books Pvt Ltd",
+    city: "Delhi",
+    date: "2025-11-19",
+    time: "03:00 PM",
+    purposes: ["Payment Collection", "Relationship Building"],
+    contactPerson: "Mr. Suresh Kapoor",
+    notes: "Owner agreed to clear 50% outstanding by mid-December",
+    source: "manual",
+  },
+  {
+    id: "V007",
+    type: "bookseller",
+    entityName: "Education Corner",
+    city: "Mumbai",
+    date: "2025-11-20",
+    time: "11:00 AM",
+    purposes: ["Payment Collection", "Documentation"],
+    contactPerson: "Mr. Ramesh Gupta",
+    notes: "Agreement renewed for next year, payment plan finalized",
+    source: "manual",
+  },
+  {
+    id: "V008",
+    type: "bookseller",
+    entityName: "Scholar's Choice",
+    city: "Ahmedabad",
+    date: "2025-11-17",
+    time: "02:30 PM",
+    purposes: ["Follow Up"],
+    contactPerson: "Ms. Meena Shah",
+    notes: "Discussed upcoming season requirements",
+    source: "manual",
+  },
+];
+
+// Convert approved tour plan visits → completed VisitRecord entries
+function getTourPlanCompletedVisits(): VisitRecord[] {
+  return getApprovedScheduledVisits().map((v, i) => ({
+    id: `TP-${v.planId}-${i}`,
+    type: v.type,
+    entityName: v.entityName,
+    city: v.city,
+    date: v.date,
+    time: "—",
+    purposes: v.objectives,
+    contactPerson: "—",
+    notes: `Tour plan visit — ${v.planId}`,
+    source: v.planId,
+  }));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric",
+  });
+}
+
+function SourceBadge({ source }: { source: string }) {
+  if (source === "manual") {
+    return <Badge variant="secondary" className="text-[10px]">Manual</Badge>;
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold">
+      <CheckCircle2 className="h-2.5 w-2.5" />
+      {source}
+    </span>
+  );
+}
+
+// ─── Visit Detail Content ──────────────────────────────────────────────────────
+
+function VisitDetailContent({ visit }: { visit: VisitRecord }) {
+  const TypeIcon = visit.type === "school" ? School : Users;
+  return (
+    <div className="space-y-4">
+      {/* Type + Name */}
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <TypeIcon className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-sm">{visit.entityName}</p>
+          <p className="text-xs text-muted-foreground capitalize">{visit.type}</p>
+        </div>
+      </div>
+
+      {/* Info rows */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-[11px] text-muted-foreground">City</p>
+            <p className="text-sm font-medium">{visit.city}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-[11px] text-muted-foreground">Date</p>
+            <p className="text-sm font-medium">{formatDate(visit.date)}</p>
+          </div>
+        </div>
+        {visit.time !== "—" && (
+          <div className="flex items-center gap-3">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground">Time</p>
+              <p className="text-sm font-medium">{visit.time}</p>
+            </div>
+          </div>
+        )}
+        {visit.contactPerson !== "—" && (
+          <div className="flex items-center gap-3">
+            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground">Contact Person</p>
+              <p className="text-sm font-medium">{visit.contactPerson}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Purposes */}
+      <div>
+        <p className="text-[11px] text-muted-foreground mb-2">Purpose of Visit</p>
+        <div className="flex flex-wrap gap-1.5">
+          {visit.purposes.map((p, i) => (
+            <Badge key={i} variant="outline" className="text-xs">{p}</Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Source */}
+      <div className="flex items-center gap-2">
+        <p className="text-[11px] text-muted-foreground">Source:</p>
+        <SourceBadge source={visit.source} />
+      </div>
+
+      {/* Notes */}
+      {visit.notes && visit.notes !== "—" && !visit.notes.startsWith("Tour plan visit") && (
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <p className="text-[11px] text-muted-foreground">Notes</p>
+          </div>
+          <div className="text-sm text-muted-foreground bg-muted/50 rounded-xl px-3 py-2.5 italic">
+            {visit.notes}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function VisitHistoryPage() {
-  const [visits, setVisits] = useState<VisitRecord[]>([]);
-  const [filteredVisits, setFilteredVisits] = useState<VisitRecord[]>([]);
+  const [allVisits, setAllVisits] = useState<VisitRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedVisit, setSelectedVisit] = useState<VisitRecord | null>(null);
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [isDesktopDialogOpen, setIsDesktopDialogOpen] = useState(false);
 
-  // Mock data - In real app, this would come from API
+  function openDetail(visit: VisitRecord) {
+    setSelectedVisit(visit);
+    if (window.innerWidth < 768) {
+      setIsMobileSheetOpen(true);
+    } else {
+      setIsDesktopDialogOpen(true);
+    }
+  }
+
+  function closeDetail() {
+    setIsMobileSheetOpen(false);
+    setIsDesktopDialogOpen(false);
+  }
+
   useEffect(() => {
-    setTimeout(() => {
-      const mockVisits: VisitRecord[] = [
-        {
-          id: "VH001",
-          type: "school",
-          entityId: "SCH001",
-          entityName: "Delhi Public School",
-          city: "Delhi",
-          address: "Mathura Road, New Delhi - 110025",
-          visitDate: "2025-11-20",
-          checkInTime: "10:30 AM",
-          checkOutTime: "12:15 PM",
-          purposes: ["Book Prescription Discussion", "Sample Distribution"],
-          contactPerson: "Dr. Rajesh Sharma",
-          notes: "Principal showed interest in new Mathematics series",
-          status: "completed",
-        },
-        {
-          id: "VH002",
-          type: "qb",
-          entityId: "QB002",
-          entityName: "Ryan International School",
-          city: "Mumbai",
-          address: "Goregaon West, Mumbai - 400062",
-          visitDate: "2025-11-18",
-          checkInTime: "2:00 PM",
-          checkOutTime: "3:30 PM",
-          purposes: ["QB Discussion"],
-          contactPerson: "Mrs. Pooja Mehta",
-          notes: "Reviewed Class 10 sample papers",
-          status: "completed",
-        },
-        {
-          id: "VH003",
-          type: "bookseller",
-          entityId: "BS001",
-          entityName: "Books & More",
-          city: "Delhi",
-          address: "Connaught Place, New Delhi",
-          visitDate: "2025-11-15",
-          checkInTime: "11:00 AM",
-          checkOutTime: "11:45 AM",
-          purposes: ["Payment Collection", "Relationship Building"],
-          contactPerson: "Mr. Anil Kapoor",
-          notes: "Collected payment of ₹45,000",
-          status: "completed",
-        },
-        {
-          id: "VH004",
-          type: "school",
-          entityId: "SCH003",
-          entityName: "St. Xavier's High School",
-          city: "Delhi",
-          address: "Raj Nagar, New Delhi - 110017",
-          visitDate: "2025-11-12",
-          checkInTime: "9:30 AM",
-          checkOutTime: "11:00 AM",
-          purposes: ["Relationship Building", "Feedback Collection"],
-          contactPerson: "Mrs. Priya Mehta",
-          notes: "Discussed upcoming book requirements for next academic year",
-          status: "completed",
-        },
-        {
-          id: "VH005",
-          type: "school",
-          entityId: "SCH005",
-          entityName: "Modern Public School",
-          city: "Delhi",
-          address: "Vasant Vihar, New Delhi - 110057",
-          visitDate: "2025-11-10",
-          checkInTime: "1:00 PM",
-          checkOutTime: "2:30 PM",
-          purposes: ["Sample Distribution"],
-          contactPerson: "Mr. Arun Kumar",
-          notes: "Distributed 20 specimen books for review",
-          status: "completed",
-        },
-        {
-          id: "VH006",
-          type: "qb",
-          entityId: "QB001",
-          entityName: "Delhi Public School",
-          city: "Delhi",
-          address: "Mathura Road, New Delhi - 110025",
-          visitDate: "2025-11-08",
-          checkInTime: "3:00 PM",
-          checkOutTime: "4:15 PM",
-          purposes: ["Question Paper Discussion"],
-          contactPerson: "Dr. Rajesh Sharma",
-          notes: "Reviewed question bank format and content",
-          status: "completed",
-        },
-        {
-          id: "VH007",
-          type: "bookseller",
-          entityId: "BS002",
-          entityName: "Academic Book Store",
-          city: "Delhi",
-          address: "Karol Bagh, New Delhi",
-          visitDate: "2025-11-05",
-          checkInTime: "10:00 AM",
-          checkOutTime: "10:45 AM",
-          purposes: ["Documentation", "Payment Collection"],
-          contactPerson: "Mr. Rajiv Sharma",
-          notes: "Updated GST documentation",
-          status: "completed",
-        },
-        {
-          id: "VH008",
-          type: "school",
-          entityId: "SCH007",
-          entityName: "Bloom Dale School",
-          city: "Delhi",
-          address: "Palam Vihar, New Delhi",
-          visitDate: "2025-10-28",
-          checkInTime: "11:30 AM",
-          checkOutTime: "1:00 PM",
-          purposes: ["New Product Introduction", "Book Prescription Discussion"],
-          contactPerson: "Ms. Kavita Singh",
-          notes: "Introduced new English literature series",
-          status: "completed",
-        },
-      ];
-      setVisits(mockVisits);
-      setFilteredVisits(mockVisits);
-      setIsLoading(false);
-    }, 800);
+    // Merge: static + localStorage (from Add Visit form) + approved tour plan visits
+    const savedSchool: VisitRecord[] = JSON.parse(localStorage.getItem("myVisits_school") || "[]")
+      .map((v: Record<string, unknown>, i: number) => ({
+        id: `LS-S-${i}`,
+        type: "school" as const,
+        entityName: String(v.schoolName || v.entityName || ""),
+        city: String(v.schoolCity || v.city || ""),
+        date: String(v.date || ""),
+        time: String(v.time || "—"),
+        purposes: Array.isArray(v.purposes) ? v.purposes : [String(v.purpose || "")],
+        contactPerson: String(v.contactPerson || "—"),
+        notes: String(v.yourComment || v.notes || ""),
+        source: "manual" as const,
+      }));
+
+    const savedBS: VisitRecord[] = JSON.parse(localStorage.getItem("myVisits_bookseller") || "[]")
+      .map((v: Record<string, unknown>, i: number) => ({
+        id: `LS-B-${i}`,
+        type: "bookseller" as const,
+        entityName: String(v.name || v.entityName || ""),
+        city: String(v.city || ""),
+        date: String(v.date || ""),
+        time: String(v.time || "—"),
+        purposes: Array.isArray(v.purposes) ? v.purposes : [String(v.purpose || "")],
+        contactPerson: String(v.contactPerson || "—"),
+        notes: String(v.remarks || v.notes || ""),
+        source: "manual" as const,
+      }));
+
+    const tourPlanVisits = getTourPlanCompletedVisits();
+
+    const merged = [...savedSchool, ...savedBS, ...staticVisits, ...tourPlanVisits]
+      .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+
+    setAllVisits(merged);
+    setIsLoading(false);
   }, []);
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = visits;
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (visit) =>
-          visit.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          visit.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          visit.contactPerson.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Type filter
-    if (typeFilter !== "all") {
-      filtered = filtered.filter((visit) => visit.type === typeFilter);
-    }
-
-    // Month filter
-    if (monthFilter !== "all") {
-      filtered = filtered.filter((visit) => {
-        const visitMonth = new Date(visit.visitDate).toISOString().slice(0, 7);
-        return visitMonth === monthFilter;
-      });
-    }
-
-    setFilteredVisits(filtered);
-  }, [searchQuery, typeFilter, monthFilter, visits]);
-
-  // Get unique months from visits
-  const getMonthOptions = () => {
-    const months = new Set(
-      visits.map((v) => new Date(v.visitDate).toISOString().slice(0, 7))
-    );
+  const monthOptions = useMemo(() => {
+    const months = new Set(allVisits.map(v => v.date.slice(0, 7)));
     return Array.from(months).sort().reverse();
-  };
+  }, [allVisits]);
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "school":
-        return School;
-      case "qb":
-        return BookOpen;
-      case "bookseller":
-        return Users;
-      default:
-        return MapPin;
-    }
-  };
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return allVisits.filter(v => {
+      if (q && !v.entityName.toLowerCase().includes(q) && !v.city.toLowerCase().includes(q)) return false;
+      if (typeFilter !== "all" && v.type !== typeFilter) return false;
+      if (sourceFilter === "manual" && v.source !== "manual") return false;
+      if (sourceFilter === "tourplan" && v.source === "manual") return false;
+      if (monthFilter !== "all" && v.date.slice(0, 7) !== monthFilter) return false;
+      return true;
+    });
+  }, [allVisits, searchQuery, typeFilter, sourceFilter, monthFilter]);
 
-  const getTypeBadge = (type: string) => {
-    const labels = {
-      school: "School",
-      qb: "QB",
-      bookseller: "Book Seller",
-    };
-    return labels[type as keyof typeof labels] || type;
-  };
+  const hasFilters = !!(searchQuery || typeFilter !== "all" || sourceFilter !== "all" || monthFilter !== "all");
+
+  function resetFilters() {
+    setSearchQuery("");
+    setTypeFilter("all");
+    setSourceFilter("all");
+    setMonthFilter("all");
+  }
 
   if (isLoading) {
     return (
       <PageContainer>
-        <PageHeader title="Visit History" description="View your past visits" />
+        <PageHeader title="Visit History" description="All completed visits" />
         <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3].map(i => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-20 bg-muted rounded" />
-              </CardContent>
+              <CardContent className="p-4"><div className="h-20 bg-muted rounded" /></CardContent>
             </Card>
           ))}
         </div>
@@ -247,181 +361,162 @@ export default function VisitHistoryPage() {
     <PageContainer>
       <PageHeader
         title="Visit History"
-        description={`${visits.length} total visits recorded`}
+        description={`${allVisits.length} total completed visits`}
       />
 
-      {/* Search and Filters */}
-      <div className="space-y-3 mb-6">
+      {/* ── Filters ── */}
+      <div className="space-y-2 mb-5">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, city, or contact person..."
+            placeholder="Search by name or city..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-10 pr-8"
           />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Dropdowns */}
+        <div className="grid grid-cols-3 gap-2">
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="school">Schools</SelectItem>
-              <SelectItem value="qb">QBs</SelectItem>
               <SelectItem value="bookseller">Book Sellers</SelectItem>
             </SelectContent>
           </Select>
 
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+              <SelectItem value="tourplan">Tour Plan</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select value={monthFilter} onValueChange={setMonthFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Months</SelectItem>
-              {getMonthOptions().map((month) => (
-                <SelectItem key={month} value={month}>
-                  {new Date(month + "-01").toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
+              {monthOptions.map(m => (
+                <SelectItem key={m} value={m}>
+                  {new Date(m + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
 
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSearchQuery("");
-              setTypeFilter("all");
-              setMonthFilter("all");
-            }}
-            className="col-span-2 md:col-span-2"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Reset Filters
-          </Button>
+        {/* Result count + reset */}
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {allVisits.length} visits
+          </p>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={resetFilters}>
+              <Filter className="h-3 w-3" />
+              Reset
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Results Count */}
-      <div className="mb-4">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredVisits.length} of {visits.length} visits
-        </p>
-      </div>
-
-      {/* Visit List */}
-      {filteredVisits.length === 0 ? (
-        <EmptyState
-          icon={Search}
-          title="No visits found"
-          description="Try adjusting your search or filter criteria"
-          action={{
-            label: "Reset Filters",
-            onClick: () => {
-              setSearchQuery("");
-              setTypeFilter("all");
-              setMonthFilter("all");
-            },
-          }}
-        />
+      {/* ── Visit List ── */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <Search className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-semibold">No visits found</p>
+          <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters</p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {filteredVisits.map((visit) => {
-            const TypeIcon = getTypeIcon(visit.type);
-
+          {filtered.map(visit => {
+            const TypeIcon = visit.type === "school" ? School : Users;
             return (
-              <Card key={visit.id} className="hover:shadow-md transition-all cursor-pointer">
+              <Card key={visit.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => openDetail(visit)}>
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      {/* Header */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <TypeIcon className="h-4 w-4 text-primary flex-shrink-0" />
-                        <h3 className="font-semibold text-base truncate">
-                          {visit.entityName}
-                        </h3>
-                      </div>
-
-                      {/* Badges */}
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        <Badge variant="secondary" className="text-xs">
-                          {getTypeBadge(visit.type)}
-                        </Badge>
-                        {visit.status === "completed" && (
-                          <Badge variant="default" className="text-xs bg-green-500">
-                            Completed
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Details */}
-                      <div className="space-y-2 text-xs text-muted-foreground">
-                        {/* Date & Time */}
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span>
-                            {new Date(visit.visitDate).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                          <span className="mx-1">•</span>
-                          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span>
-                            {visit.checkInTime}
-                            {visit.checkOutTime && ` - ${visit.checkOutTime}`}
-                          </span>
-                        </div>
-
-                        {/* Location */}
-                        <div className="flex items-start gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                          <span className="line-clamp-1">
-                            {visit.city}, {visit.address}
-                          </span>
-                        </div>
-
-                        {/* Contact Person */}
-                        <div className="flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span>{visit.contactPerson}</span>
-                        </div>
-
-                        {/* Purposes */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {visit.purposes.map((purpose, idx) => (
-                            <Badge key={idx} variant="outline" className="text-[10px]">
-                              {purpose}
-                            </Badge>
-                          ))}
-                        </div>
-
-                        {/* Notes */}
-                        {visit.notes && (
-                          <div className="mt-2 p-2 bg-muted rounded-md">
-                            <p className="text-xs italic">{visit.notes}</p>
-                          </div>
-                        )}
-                      </div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <TypeIcon className="h-4 w-4 text-primary shrink-0" />
+                      <p className="font-semibold text-sm truncate">{visit.entityName}</p>
                     </div>
-
-                    <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <SourceBadge source={visit.source} />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
+
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span>{visit.city}</span>
+                    <span className="mx-1.5">•</span>
+                    <Calendar className="h-3 w-3 shrink-0" />
+                    <span>{formatDate(visit.date)}</span>
+                    {visit.time !== "—" && (
+                      <>
+                        <span className="mx-1.5">•</span>
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span>{visit.time}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {visit.purposes.map((p, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px]">{p}</Badge>
+                    ))}
+                  </div>
+
+                  {visit.notes && visit.notes !== "—" && !visit.notes.startsWith("Tour plan visit") && (
+                    <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-2.5 py-1.5 italic">
+                      {visit.notes}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
           })}
         </div>
       )}
+
+      {/* ── Mobile Sheet ── */}
+      <MobileSheet
+        open={isMobileSheetOpen}
+        onClose={closeDetail}
+        title={selectedVisit?.entityName ?? "Visit Details"}
+        description={selectedVisit ? `${selectedVisit.type === "school" ? "School" : "Bookseller"} visit` : undefined}
+        footer={
+          <Button className="w-full" onClick={closeDetail}>Close</Button>
+        }
+      >
+        {selectedVisit && <VisitDetailContent visit={selectedVisit} />}
+      </MobileSheet>
+
+      {/* ── Desktop Dialog ── */}
+      <Dialog open={isDesktopDialogOpen} onOpenChange={open => !open && closeDetail()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedVisit?.entityName ?? "Visit Details"}</DialogTitle>
+          </DialogHeader>
+          {selectedVisit && <VisitDetailContent visit={selectedVisit} />}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

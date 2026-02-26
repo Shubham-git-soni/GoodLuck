@@ -12,7 +12,7 @@ import { toast } from "sonner"; // Uncomment when Sonner is installed
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [salesmanId, setSalesmanId] = useState("");
+  const [salesmanEmail, setSalesmanEmail] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -70,12 +70,13 @@ export default function LoginPage() {
               <CardContent>
                 <form onSubmit={handleSalesmanLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="salesmanId">Salesman ID</Label>
+                    <Label htmlFor="salesmanEmail">Email</Label>
                     <Input
-                      id="salesmanId"
-                      placeholder="SM001"
-                      value={salesmanId}
-                      onChange={(e) => setSalesmanId(e.target.value)}
+                      id="salesmanEmail"
+                      type="email"
+                      placeholder="goodluck@gmail.com"
+                      value={salesmanEmail}
+                      onChange={(e) => setSalesmanEmail(e.target.value)}
                       required
                     />
                   </div>
@@ -101,8 +102,8 @@ export default function LoginPage() {
                 </div>
                 <div className="mt-4 p-3 bg-muted rounded-lg">
                   <p className="text-xs text-muted-foreground mb-2">Demo Credentials:</p>
-                  <p className="text-xs font-mono">ID: SM001</p>
-                  <p className="text-xs font-mono">Password: demo123</p>
+                  <p className="text-xs font-mono">Email: goodluck@gmail.com</p>
+                  <p className="text-xs font-mono">Password: 123</p>
                 </div>
               </CardContent>
             </Card>
@@ -124,7 +125,7 @@ export default function LoginPage() {
                     <Input
                       id="adminEmail"
                       type="email"
-                      placeholder="admin@company.com"
+                      placeholder="goodluck@gmail.com"
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       required
@@ -152,8 +153,8 @@ export default function LoginPage() {
                 </div>
                 <div className="mt-4 p-3 bg-muted rounded-lg">
                   <p className="text-xs text-muted-foreground mb-2">Demo Credentials:</p>
-                  <p className="text-xs font-mono">Email: admin@company.com</p>
-                  <p className="text-xs font-mono">Password: admin123</p>
+                  <p className="text-xs font-mono">Email: goodluck@gmail.com</p>
+                  <p className="text-xs font-mono">Password: 123</p>
                 </div>
               </CardContent>
             </Card>

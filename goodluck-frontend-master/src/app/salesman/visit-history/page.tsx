@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, MapPin, School, Users, Search, Filter, Clock, CheckCircle2, X } from "lucide-react";
+import { Calendar, MapPin, School, Users, Search, Filter, Clock, CheckCircle2, X, ChevronRight, User, FileText } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { getApprovedScheduledVisits } from "@/lib/mock-data/tour-plans";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -163,6 +165,91 @@ function SourceBadge({ source }: { source: string }) {
   );
 }
 
+// ─── Visit Detail Content ──────────────────────────────────────────────────────
+
+function VisitDetailContent({ visit }: { visit: VisitRecord }) {
+  const TypeIcon = visit.type === "school" ? School : Users;
+  return (
+    <div className="space-y-4">
+      {/* Type + Name */}
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <TypeIcon className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-sm">{visit.entityName}</p>
+          <p className="text-xs text-muted-foreground capitalize">{visit.type}</p>
+        </div>
+      </div>
+
+      {/* Info rows */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-[11px] text-muted-foreground">City</p>
+            <p className="text-sm font-medium">{visit.city}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-[11px] text-muted-foreground">Date</p>
+            <p className="text-sm font-medium">{formatDate(visit.date)}</p>
+          </div>
+        </div>
+        {visit.time !== "—" && (
+          <div className="flex items-center gap-3">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground">Time</p>
+              <p className="text-sm font-medium">{visit.time}</p>
+            </div>
+          </div>
+        )}
+        {visit.contactPerson !== "—" && (
+          <div className="flex items-center gap-3">
+            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground">Contact Person</p>
+              <p className="text-sm font-medium">{visit.contactPerson}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Purposes */}
+      <div>
+        <p className="text-[11px] text-muted-foreground mb-2">Purpose of Visit</p>
+        <div className="flex flex-wrap gap-1.5">
+          {visit.purposes.map((p, i) => (
+            <Badge key={i} variant="outline" className="text-xs">{p}</Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Source */}
+      <div className="flex items-center gap-2">
+        <p className="text-[11px] text-muted-foreground">Source:</p>
+        <SourceBadge source={visit.source} />
+      </div>
+
+      {/* Notes */}
+      {visit.notes && visit.notes !== "—" && !visit.notes.startsWith("Tour plan visit") && (
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <p className="text-[11px] text-muted-foreground">Notes</p>
+          </div>
+          <div className="text-sm text-muted-foreground bg-muted/50 rounded-xl px-3 py-2.5 italic">
+            {visit.notes}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function VisitHistoryPage() {
@@ -172,6 +259,23 @@ export default function VisitHistoryPage() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedVisit, setSelectedVisit] = useState<VisitRecord | null>(null);
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [isDesktopDialogOpen, setIsDesktopDialogOpen] = useState(false);
+
+  function openDetail(visit: VisitRecord) {
+    setSelectedVisit(visit);
+    if (window.innerWidth < 768) {
+      setIsMobileSheetOpen(true);
+    } else {
+      setIsDesktopDialogOpen(true);
+    }
+  }
+
+  function closeDetail() {
+    setIsMobileSheetOpen(false);
+    setIsDesktopDialogOpen(false);
+  }
 
   useEffect(() => {
     // Merge: static + localStorage (from Add Visit form) + approved tour plan visits
@@ -345,14 +449,17 @@ export default function VisitHistoryPage() {
           {filtered.map(visit => {
             const TypeIcon = visit.type === "school" ? School : Users;
             return (
-              <Card key={visit.id}>
+              <Card key={visit.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => openDetail(visit)}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <TypeIcon className="h-4 w-4 text-primary shrink-0" />
                       <p className="font-semibold text-sm truncate">{visit.entityName}</p>
                     </div>
-                    <SourceBadge source={visit.source} />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <SourceBadge source={visit.source} />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
@@ -387,6 +494,29 @@ export default function VisitHistoryPage() {
           })}
         </div>
       )}
+
+      {/* ── Mobile Sheet ── */}
+      <MobileSheet
+        open={isMobileSheetOpen}
+        onClose={closeDetail}
+        title={selectedVisit?.entityName ?? "Visit Details"}
+        description={selectedVisit ? `${selectedVisit.type === "school" ? "School" : "Bookseller"} visit` : undefined}
+        footer={
+          <Button className="w-full" onClick={closeDetail}>Close</Button>
+        }
+      >
+        {selectedVisit && <VisitDetailContent visit={selectedVisit} />}
+      </MobileSheet>
+
+      {/* ── Desktop Dialog ── */}
+      <Dialog open={isDesktopDialogOpen} onOpenChange={open => !open && closeDetail()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedVisit?.entityName ?? "Visit Details"}</DialogTitle>
+          </DialogHeader>
+          {selectedVisit && <VisitDetailContent visit={selectedVisit} />}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

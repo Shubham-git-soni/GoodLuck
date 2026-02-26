@@ -564,6 +564,17 @@ function BookSellerVisitForm() {
       toast.error("Please select a book seller and at least one purpose");
       return;
     }
+    if (formData.purposes.includes("Payment Collection")) {
+      if (!formData.paymentFor) {
+        toast.error("Please select GL or VP for payment collection");
+        return;
+      }
+      const amt = formData.paymentFor === "GL" ? formData.paymentReceivedGL : formData.paymentReceivedVP;
+      if (!amt || amt <= 0) {
+        toast.error("Please enter a payment amount greater than 0");
+        return;
+      }
+    }
     setIsSubmitting(true);
     setTimeout(() => {
       const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -1057,10 +1068,39 @@ function BookSellerVisitForm() {
         </CardContent>
       </Card>
 
+      {/* Payment validation hint */}
+      {formData.purposes.includes("Payment Collection") && (() => {
+        const missingCompany = !formData.paymentFor;
+        const missingAmount = formData.paymentFor === "GL"
+          ? !formData.paymentReceivedGL || formData.paymentReceivedGL <= 0
+          : formData.paymentFor === "VP"
+          ? !formData.paymentReceivedVP || formData.paymentReceivedVP <= 0
+          : true;
+        if (missingCompany || missingAmount) {
+          return (
+            <p className="text-xs text-destructive text-center -mt-2">
+              {missingCompany
+                ? "Please select GL or VP for payment"
+                : "Please enter a payment amount greater than 0"}
+            </p>
+          );
+        }
+        return null;
+      })()}
+
       <Button
         className="w-full"
         onClick={handleSubmit}
-        disabled={isSubmitting || !formData.bookSellerId || formData.purposes.length === 0}
+        disabled={
+          isSubmitting ||
+          !formData.bookSellerId ||
+          formData.purposes.length === 0 ||
+          (formData.purposes.includes("Payment Collection") && (
+            !formData.paymentFor ||
+            (formData.paymentFor === "GL" && (!formData.paymentReceivedGL || formData.paymentReceivedGL <= 0)) ||
+            (formData.paymentFor === "VP" && (!formData.paymentReceivedVP || formData.paymentReceivedVP <= 0))
+          ))
+        }
       >
         {isSubmitting ? "Submitting…" : <><Save className="h-4 w-4 mr-2" />Submit Visit</>}
       </Button>

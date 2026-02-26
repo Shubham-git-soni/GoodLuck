@@ -11,11 +11,120 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 
 import bookSellersData from "@/lib/mock-data/book-sellers.json";
+import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
+
+// ─── Numpad ───────────────────────────────────────────────────────────────────
+function AmountNumpad({ amount, onDigit, onBackspace, onClear }: {
+  amount: string;
+  onDigit: (d: string) => void;
+  onBackspace: () => void;
+  onClear: () => void;
+}) {
+  const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-center gap-1 py-5 bg-muted/30 rounded-2xl">
+        <span className="text-3xl font-light text-muted-foreground">₹</span>
+        <span className={`text-4xl font-bold tracking-tight ${amount ? "text-foreground" : "text-muted-foreground"}`}>
+          {amount ? Number(amount).toLocaleString("en-IN") : "0"}
+        </span>
+        {amount && (
+          <button type="button" onClick={onClear} className="ml-2 text-xs text-muted-foreground underline self-end pb-1">clear</button>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {keys.map((k, i) =>
+          k === "" ? <div key={i} /> :
+          k === "⌫" ? (
+            <button key={i} type="button" onClick={onBackspace}
+              className="h-14 rounded-2xl bg-muted flex items-center justify-center text-xl font-medium active:scale-95 transition-transform">⌫</button>
+          ) : (
+            <button key={i} type="button" onClick={() => onDigit(k)}
+              className="h-14 rounded-2xl bg-background border border-border text-xl font-semibold active:bg-muted active:scale-95 transition-all shadow-sm">{k}</button>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Payment Section (GL / VP selector + numpad) ──────────────────────────────
+function PaymentSection({ formData, setFormData }: { formData: any; setFormData: (d: any) => void }) {
+  const paymentFor: string = formData.paymentFor || "";
+  const existing = paymentFor === "GL" ? formData.paymentReceivedGL : paymentFor === "VP" ? formData.paymentReceivedVP : 0;
+  const [raw, setRaw] = useState(existing > 0 ? String(existing) : "");
+
+  const handlePaymentFor = (val: string) => {
+    setFormData({ ...formData, paymentFor: val, paymentReceivedGL: 0, paymentReceivedVP: 0 });
+    setRaw("");
+  };
+
+  const commit = (r: string) => {
+    const num = r === "" ? 0 : parseInt(r, 10);
+    if (paymentFor === "GL") setFormData((prev: any) => ({ ...prev, paymentReceivedGL: num }));
+    else if (paymentFor === "VP") setFormData((prev: any) => ({ ...prev, paymentReceivedVP: num }));
+  };
+
+  const handleDigit = (d: string) => {
+    const next = raw === "0" ? d : raw + d;
+    if (next.length > 9) return;
+    setRaw(next); commit(next);
+  };
+  const handleBackspace = () => { const next = raw.slice(0, -1); setRaw(next); commit(next); };
+  const handleClear = () => { setRaw(""); commit(""); };
+
+  return (
+    <div className="space-y-4">
+      {/* GL / VP selector */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Payment Received For</Label>
+        <div className="grid grid-cols-2 gap-3 mt-1">
+          {[
+            { key: "GL", label: "Goodluck",   color: "blue" },
+            { key: "VP", label: "Vidhyapith", color: "violet" },
+          ].map(({ key, label, color }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handlePaymentFor(key)}
+              className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 transition-all ${
+                paymentFor === key
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-background hover:border-muted-foreground/30"
+              }`}
+            >
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                color === "blue" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"
+              }`}>{key}</span>
+              <span className="text-sm font-medium">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Numpad */}
+      {paymentFor ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground text-center uppercase tracking-wide">
+            Enter amount for{" "}
+            <span className={paymentFor === "GL" ? "text-blue-600" : "text-violet-600"}>
+              {paymentFor === "GL" ? "Goodluck" : "Vidhyapith"}
+            </span>
+          </p>
+          <AmountNumpad amount={raw} onDigit={handleDigit} onBackspace={handleBackspace} onClear={handleClear} />
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground text-center py-1">
+          Select the company for which payment was received.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function AddBookSellerVisitForm() {
   const router = useRouter();
@@ -27,6 +136,7 @@ function AddBookSellerVisitForm() {
   const [formData, setFormData] = useState({
     bookSellerId: "",
     purposes: [] as string[],
+    paymentFor: "",
     paymentReceivedGL: 0,
     paymentReceivedVP: 0,
     remark: "",
@@ -62,21 +172,6 @@ function AddBookSellerVisitForm() {
     }
   }, [searchParams]);
 
-  const handlePurposeToggle = (purpose: string) => {
-    const purposes = formData.purposes;
-    if (purposes.includes(purpose)) {
-      setFormData({
-        ...formData,
-        purposes: purposes.filter((p) => p !== purpose),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        purposes: [...purposes, purpose],
-      });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -105,14 +200,10 @@ function AddBookSellerVisitForm() {
     ? bookSellersData.filter((s) => s.assignedTo === "SM001" && s.city === selectedCity)
     : [];
 
-  // Visit purposes relevant to booksellers
-  const bookSellerPurposes = [
-    "Relationship Building",
-    "Payment Collection",
-    "Documentation",
-    "Inquiry",
-    "Sales Return Follow-Up",
-  ];
+  const purposeOptions = dropdownOptions.bookSellerVisitPurposes.map((p) => ({
+    value: p,
+    label: p,
+  }));
 
   return (
     <PageContainer>
@@ -255,75 +346,55 @@ function AddBookSellerVisitForm() {
 
         {/* Purpose of Visit */}
         <Card>
-          <CardHeader>
-            <CardTitle>Purpose of Visit (Multi-select) *</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Purpose of Visit *</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {bookSellerPurposes.map((purpose) => (
-                <Card
-                  key={purpose}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+          <CardContent className="space-y-1 p-2">
+            {purposeOptions.map((opt) => {
+              const isSelected = formData.purposes.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    const next = isSelected
+                      ? formData.purposes.filter((p) => p !== opt.value)
+                      : [...formData.purposes, opt.value];
+                    setFormData({ ...formData, purposes: next });
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-all ${
+                    isSelected
+                      ? "bg-primary/8 text-primary font-medium"
+                      : "text-foreground hover:bg-muted/60"
+                  }`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        id={purpose}
-                        checked={formData.purposes.includes(purpose)}
-                        onCheckedChange={() => handlePurposeToggle(purpose)}
-                      />
-                      <label htmlFor={purpose} className="font-medium cursor-pointer flex-1">
-                        {purpose}
-                      </label>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${
+                    isSelected ? "bg-primary border-primary" : "border-input bg-background"
+                  }`}>
+                    {isSelected && (
+                      <svg className="h-3 w-3 text-primary-foreground stroke-[3]" viewBox="0 0 12 12" fill="none">
+                        <polyline points="1.5,6 4.5,9 10.5,3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="flex-1">{opt.label}</span>
+                </button>
+              );
+            })}
+            {formData.purposes.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-2">Select at least one purpose to continue</p>
+            )}
           </CardContent>
         </Card>
 
         {/* Payment Collection */}
         {formData.purposes.includes("Payment Collection") && (
           <Card>
-            <CardHeader>
-              <CardTitle>Payment Details</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Payment Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paymentReceivedGL">Payment Received GL (₹)</Label>
-                  <Input
-                    id="paymentReceivedGL"
-                    type="number"
-                    min="0"
-                    placeholder="Enter GL payment amount"
-                    value={formData.paymentReceivedGL || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        paymentReceivedGL: parseInt(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paymentReceivedVP">Payment Received VP (₹)</Label>
-                  <Input
-                    id="paymentReceivedVP"
-                    type="number"
-                    min="0"
-                    placeholder="Enter VP payment amount"
-                    value={formData.paymentReceivedVP || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        paymentReceivedVP: parseInt(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-              </div>
+            <CardContent>
+              <PaymentSection formData={formData} setFormData={setFormData} />
             </CardContent>
           </Card>
         )}
@@ -378,11 +449,45 @@ function AddBookSellerVisitForm() {
         </Card>
 
         {/* Submit Button */}
+        {/* Payment validation hint */}
+        {formData.purposes.includes("Payment Collection") && (
+          (() => {
+            const missingCompany = !formData.paymentFor;
+            const missingAmount = formData.paymentFor === "GL"
+              ? !formData.paymentReceivedGL || formData.paymentReceivedGL <= 0
+              : formData.paymentFor === "VP"
+              ? !formData.paymentReceivedVP || formData.paymentReceivedVP <= 0
+              : true;
+            if (missingCompany || missingAmount) {
+              return (
+                <p className="text-xs text-destructive text-center -mt-3">
+                  {missingCompany
+                    ? "Please select GL or VP for payment"
+                    : "Please enter a payment amount greater than 0"}
+                </p>
+              );
+            }
+            return null;
+          })()
+        )}
+
         <div className="flex justify-end gap-3 pb-6">
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting || !formData.bookSellerId || formData.purposes.length === 0}>
+          <Button
+            type="submit"
+            disabled={
+              isSubmitting ||
+              !formData.bookSellerId ||
+              formData.purposes.length === 0 ||
+              (formData.purposes.includes("Payment Collection") && (
+                !formData.paymentFor ||
+                (formData.paymentFor === "GL" && (!formData.paymentReceivedGL || formData.paymentReceivedGL <= 0)) ||
+                (formData.paymentFor === "VP" && (!formData.paymentReceivedVP || formData.paymentReceivedVP <= 0))
+              ))
+            }
+          >
             {isSubmitting ? "Submitting..." : "Submit Visit"}
           </Button>
         </div>

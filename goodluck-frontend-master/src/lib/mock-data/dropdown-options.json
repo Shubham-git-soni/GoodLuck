@@ -35,6 +35,16 @@
     "Post Sale Engagement",
     "Payment Collection"
   ],
+  "bookSellerVisitPurposes": [
+    "Relationship Building",
+    "Payment Collection",
+    "Documentation",
+    "Inquiry",
+    "Follow Up",
+    "Sales Return Follow-Up",
+    "Order Discussion",
+    "Complaint Resolution"
+  ],
   "needMappingTypes": [
     "No change", "Implementing NCERT", "Changing specific subjects"
   ],

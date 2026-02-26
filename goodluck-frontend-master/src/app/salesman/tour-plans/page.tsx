@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { mockTourPlans, type TourPlan, type TourPlanStatus } from "@/lib/mock-data/tour-plans";
+import { mockTourPlans, type TourPlan, type TourPlanStatus, type TourPlanVisit } from "@/lib/mock-data/tour-plans";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 

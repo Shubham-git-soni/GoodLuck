@@ -96,8 +96,8 @@ export default function SchoolProfilePage() {
           <h1 className="text-2xl md:text-3xl font-bold mb-2">{school.name}</h1>
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{school.board}</Badge>
-            {school.isPattakat && (
-              <Badge variant="destructive">Pattakat</Badge>
+            {school.isBlocked && (
+              <Badge variant="destructive">Blocked</Badge>
             )}
             <Badge variant="outline">{school.visitCount} visits</Badge>
           </div>

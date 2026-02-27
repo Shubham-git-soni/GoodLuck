@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Check, ChevronDown, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,23 +70,7 @@ export function MultiSelect({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const searchRef = React.useRef<HTMLInputElement>(null);
 
-  // Close on outside click
-  React.useEffect(() => {
-    function handleOutside(e: MouseEvent | TouchEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
-      }
-    }
-    if (open) {
-      document.addEventListener("mousedown", handleOutside);
-      document.addEventListener("touchstart", handleOutside, { passive: true });
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleOutside);
-      document.removeEventListener("touchstart", handleOutside);
-    };
-  }, [open]);
+
 
   // Focus search on open — desktop only
   React.useEffect(() => {
@@ -128,82 +113,80 @@ export function MultiSelect({
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
-      {/* ── Trigger ── */}
-      <div
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-        aria-expanded={open}
-        onClick={() => !disabled && setOpen((o) => !o)}
-        onKeyDown={(e) => {
-          if (!disabled && (e.key === "Enter" || e.key === " ")) {
-            e.preventDefault();
-            setOpen((o) => !o);
-          }
-        }}
-        className={cn(
-          "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm transition-all duration-150 cursor-pointer select-none",
-          "hover:border-ring/50",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring",
-          open && "border-ring ring-2 ring-ring rounded-b-none border-b-0",
-          disabled && "cursor-not-allowed opacity-50 pointer-events-none"
-        )}
-      >
-        <div className="flex flex-1 flex-wrap items-center gap-1 min-w-0">
-          {selectedOptions.length === 0 ? (
-            <span className="text-muted-foreground truncate">{placeholder}</span>
-          ) : selectedOptions.length <= 3 ? (
-            selectedOptions.map((opt) => (
-              <SelectionBadge
-                key={opt.value}
-                label={opt.label}
-                onRemove={(e) => { e.stopPropagation(); toggle(opt.value); }}
-              />
-            ))
-          ) : (
-            <>
-              {selectedOptions.slice(0, 2).map((opt) => (
-                <SelectionBadge
-                  key={opt.value}
-                  label={opt.label}
-                  onRemove={(e) => { e.stopPropagation(); toggle(opt.value); }}
-                />
-              ))}
-              <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                +{selectedOptions.length - 2} more
-              </span>
-            </>
-          )}
-        </div>
-        <div className="flex shrink-0 items-center gap-1 ml-1">
-          {selectedOptions.length > 0 && !disabled && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={removeAll}
-              onKeyDown={(e) => e.key === "Enter" && removeAll(e as any)}
-              className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="Clear all"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-          <ChevronDown
+      <Popover open={open} onOpenChange={(val) => { setOpen(val); if (!val) setSearch(""); }}>
+        <PopoverTrigger asChild>
+          {/* ── Trigger ── */}
+          <div
+            role="button"
+            tabIndex={disabled ? -1 : 0}
+            onClick={(e) => {
+              if (disabled) e.preventDefault();
+            }}
             className={cn(
-              "h-4 w-4 opacity-40 transition-transform duration-200",
-              open && "rotate-180"
+              "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm transition-all duration-150 cursor-pointer select-none",
+              "hover:border-ring/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring",
+              open && "border-ring ring-2 ring-ring rounded-b-none border-b-0",
+              disabled && "cursor-not-allowed opacity-50 pointer-events-none"
             )}
-          />
-        </div>
-      </div>
+          >
+            <div className="flex flex-1 flex-wrap items-center gap-1 min-w-0">
+              {selectedOptions.length === 0 ? (
+                <span className="text-muted-foreground truncate">{placeholder}</span>
+              ) : selectedOptions.length <= 3 ? (
+                selectedOptions.map((opt) => (
+                  <SelectionBadge
+                    key={opt.value}
+                    label={opt.label}
+                    onRemove={(e) => { e.stopPropagation(); toggle(opt.value); }}
+                  />
+                ))
+              ) : (
+                <>
+                  {selectedOptions.slice(0, 2).map((opt) => (
+                    <SelectionBadge
+                      key={opt.value}
+                      label={opt.label}
+                      onRemove={(e) => { e.stopPropagation(); toggle(opt.value); }}
+                    />
+                  ))}
+                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                    +{selectedOptions.length - 2} more
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-1 ml-1">
+              {selectedOptions.length > 0 && !disabled && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={removeAll}
+                  onKeyDown={(e) => e.key === "Enter" && removeAll(e as any)}
+                  className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  aria-label="Clear all"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </span>
+              )}
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 opacity-40 transition-transform duration-200",
+                  open && "rotate-180"
+                )}
+              />
+            </div>
+          </div>
+        </PopoverTrigger>
 
-      {/* ── Dropdown — inline absolute, same width as trigger ── */}
-      {open && (
-        <div
+        {/* ── Dropdown ── */}
+        <PopoverContent
+          align="start"
+          sideOffset={0}
           className={cn(
-            "absolute left-0 right-0 top-full z-[9999]",
+            "w-[var(--radix-popover-trigger-width)] p-0 z-[9999]",
             "border border-border border-t-0 rounded-b-xl bg-popover shadow-lg",
-            "flex flex-col overflow-hidden",
-            // Mobile: centered modal overlay instead
+            "flex-col overflow-hidden",
             "hidden md:flex",
           )}
         >
@@ -294,102 +277,102 @@ export function MultiSelect({
               Done{selectedOptions.length > 0 ? ` (${selectedOptions.length})` : ""}
             </button>
           </div>
-        </div>
-      )}
+        </PopoverContent>
 
-      {/* ── Mobile: centered modal with backdrop ── */}
-      {open && (
-        <div className="md:hidden">
-          <div
-            className="fixed inset-0 z-[60] bg-black/40"
-            onClick={() => { setOpen(false); setSearch(""); }}
-          />
-          <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[61] rounded-2xl border border-border bg-popover shadow-2xl flex flex-col overflow-hidden max-h-[70dvh]">
-            {/* Mobile header */}
-            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/50">
-              <p className="text-sm font-semibold">
-                {selectedOptions.length > 0 ? `${selectedOptions.length} selected` : "Select option(s)"}
-              </p>
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setSearch(""); }}
-                className="h-7 w-7 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
-            {/* Search */}
-            <div className="px-3 pt-2.5 pb-1">
-              <div className="flex items-center gap-2 rounded-xl bg-muted/60 border border-border/60 px-3 py-2">
-                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={searchPlaceholder}
-                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
-                  readOnly
-                />
-                {search && (
-                  <button type="button" onClick={() => setSearch("")}>
-                    <X className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                )}
+        {/* ── Mobile: centered modal with backdrop ── */}
+        {open && (
+          <div className="md:hidden">
+            <div
+              className="fixed inset-0 z-[60] bg-black/40"
+              onClick={() => { setOpen(false); setSearch(""); }}
+            />
+            <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[61] rounded-2xl border border-border bg-popover shadow-2xl flex flex-col overflow-hidden max-h-[70dvh]">
+              {/* Mobile header */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/50">
+                <p className="text-sm font-semibold">
+                  {selectedOptions.length > 0 ? `${selectedOptions.length} selected` : "Select option(s)"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setSearch(""); }}
+                  className="h-7 w-7 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80"
+                >
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
               </div>
-            </div>
-            {/* Select all / Clear */}
-            <div className="flex items-center justify-between px-3 py-1.5">
-              <span className="text-[11px] text-muted-foreground">{filtered.length} options</span>
-              <div className="flex items-center gap-2">
-                {!allFilteredSelected && (
-                  <button type="button" onClick={handleSelectAll} className="text-[11px] font-medium text-primary">Select all</button>
-                )}
-                {selectedOptions.length > 0 && (
-                  <>
-                    {!allFilteredSelected && <span className="text-[11px] text-muted-foreground/50">·</span>}
-                    <button type="button" onClick={() => onChange([])} className="text-[11px] font-medium text-destructive">Clear all</button>
-                  </>
-                )}
+              {/* Search */}
+              <div className="px-3 pt-2.5 pb-1">
+                <div className="flex items-center gap-2 rounded-xl bg-muted/60 border border-border/60 px-3 py-2">
+                  <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
+                    readOnly
+                  />
+                  {search && (
+                    <button type="button" onClick={() => setSearch("")}>
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-            {/* Options */}
-            <div className="overflow-y-auto flex-1 p-1.5" onTouchMove={(e) => e.stopPropagation()}>
-              {filtered.map((opt) => {
-                const isSelected = value.includes(opt.value);
-                const isDisabled = opt.disabled || (hasMax && !isSelected);
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => toggle(opt.value)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-sm transition-colors disabled:opacity-40",
-                      isSelected ? "bg-primary/8 text-primary font-medium" : "text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-all", isSelected ? "bg-primary border-primary" : "border-input bg-background")}>
-                      {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground stroke-[3]" />}
-                    </span>
-                    <span className="truncate">{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {/* Done */}
-            <div className="border-t border-border/40 px-3 py-3">
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setSearch(""); }}
-                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
-              >
-                Done{selectedOptions.length > 0 ? ` (${selectedOptions.length})` : ""}
-              </button>
+              {/* Select all / Clear */}
+              <div className="flex items-center justify-between px-3 py-1.5">
+                <span className="text-[11px] text-muted-foreground">{filtered.length} options</span>
+                <div className="flex items-center gap-2">
+                  {!allFilteredSelected && (
+                    <button type="button" onClick={handleSelectAll} className="text-[11px] font-medium text-primary">Select all</button>
+                  )}
+                  {selectedOptions.length > 0 && (
+                    <>
+                      {!allFilteredSelected && <span className="text-[11px] text-muted-foreground/50">·</span>}
+                      <button type="button" onClick={() => onChange([])} className="text-[11px] font-medium text-destructive">Clear all</button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Options */}
+              <div className="overflow-y-auto flex-1 p-1.5" onTouchMove={(e) => e.stopPropagation()}>
+                {filtered.map((opt) => {
+                  const isSelected = value.includes(opt.value);
+                  const isDisabled = opt.disabled || (hasMax && !isSelected);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => toggle(opt.value)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-sm transition-colors disabled:opacity-40",
+                        isSelected ? "bg-primary/8 text-primary font-medium" : "text-foreground hover:bg-muted/60"
+                      )}
+                    >
+                      <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-all", isSelected ? "bg-primary border-primary" : "border-input bg-background")}>
+                        {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground stroke-[3]" />}
+                      </span>
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Done */}
+              <div className="border-t border-border/40 px-3 py-3">
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setSearch(""); }}
+                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
+                >
+                  Done{selectedOptions.length > 0 ? ` (${selectedOptions.length})` : ""}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Popover>
     </div>
   );
 }

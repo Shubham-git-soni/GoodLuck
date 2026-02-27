@@ -120,7 +120,7 @@ export default function AdminDashboard() {
     pendingTADA: 0,
     totalSpecimenBudget: 0,
     specimenUsed: 0,
-    pattakatSchools: 0,
+    blockedSchools: 0,
     pendingFeedback: 0,
   });
 
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
         pendingTADA: tadaClaimsData.filter((t) => t.status === "Pending").length,
         totalSpecimenBudget: salesmenData.reduce((sum, s) => sum + s.specimenBudget, 0),
         specimenUsed: salesmenData.reduce((sum, s) => sum + s.specimenUsed, 0),
-        pattakatSchools: schoolsData.filter((s) => s.isPattakat).length,
+        blockedSchools: schoolsData.filter((s) => s.isBlocked).length,
         pendingFeedback: feedbackData.filter((f) => f.status === "Pending").length,
       });
 
@@ -375,7 +375,7 @@ export default function AdminDashboard() {
           <div className="mt-4 flex items-center gap-4 text-xs text-white/70">
             <span>{stats.totalSchools} schools</span>
             <span>·</span>
-            <span>{stats.pattakatSchools} Pattakat</span>
+            <span>{stats.blockedSchools} Blocked</span>
             <span>·</span>
             <span>{stats.pendingFeedback} feedback pending</span>
           </div>
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground mt-0.5">Total Schools</p>
             <div className="mt-2 pt-2 border-t border-border/50">
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-amber-600">{stats.pattakatSchools}</span> Pattakat
+                <span className="font-semibold text-amber-600">{stats.blockedSchools}</span> Blocked
               </p>
             </div>
           </CardContent>
@@ -526,7 +526,7 @@ export default function AdminDashboard() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Salesman Performance
+              SalesMan Visit
             </CardTitle>
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger className="w-full sm:w-[150px]">

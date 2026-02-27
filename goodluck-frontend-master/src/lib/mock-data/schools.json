@@ -8,34 +8,90 @@
     "board": "CBSE",
     "strength": 2500,
     "address": "Mathura Road, New Delhi - 110025",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 2,
     "lastVisitDate": "2025-11-15",
     "assignedTo": "SM001",
     "businessHistory": [
-      { "year": 2023, "revenue": 450000 },
-      { "year": 2024, "revenue": 520000 },
-      { "year": 2025, "revenue": 480000 }
+      {
+        "year": 2023,
+        "revenue": 0
+      },
+      {
+        "year": 2024,
+        "revenue": 520000
+      },
+      {
+        "year": 2025,
+        "revenue": 480000
+      }
     ],
     "prescribedBooks": [
-      { "subject": "Mathematics", "class": "10", "book": "Mathematics Textbook Class X", "status": "Prescribed" },
-      { "subject": "Science", "class": "10", "book": "Science for Class X", "status": "Prescribed" },
-      { "subject": "English", "class": "9", "book": "English Literature Class IX", "status": "Under Review" }
+      {
+        "subject": "Mathematics",
+        "class": "10",
+        "book": "Mathematics Textbook Class X",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "Science",
+        "class": "10",
+        "book": "Science for Class X",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "English",
+        "class": "9",
+        "book": "English Literature Class IX",
+        "status": "Under Review"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 550000,
-      "subjects": ["Mathematics", "Science", "English", "Social Studies"],
+      "subjects": [
+        "Mathematics",
+        "Science",
+        "English",
+        "Social Studies"
+      ],
       "expectedConversion": 75
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 15 },
-      { "year": 2024, "percentage": 18 },
-      { "year": 2025, "percentage": 20 }
+      {
+        "year": 2023,
+        "percentage": 15
+      },
+      {
+        "year": 2024,
+        "percentage": 18
+      },
+      {
+        "year": 2025,
+        "percentage": 20
+      }
     ],
     "contacts": [
-      { "id": "C001", "name": "Dr. Rajesh Sharma", "role": "Principal", "phone": "+91 11 2634 5678", "email": "principal@dps.edu" },
-      { "id": "C002", "name": "Mrs. Anita Verma", "role": "Vice Principal", "phone": "+91 11 2634 5679", "email": "vp@dps.edu" },
-      { "id": "C003", "name": "Mr. Suresh Kumar", "role": "Librarian", "phone": "+91 11 2634 5680", "email": "library@dps.edu" }
+      {
+        "id": "C001",
+        "name": "Dr. Rajesh Sharma",
+        "role": "Principal",
+        "phone": "+91 11 2634 5678",
+        "email": "principal@dps.edu"
+      },
+      {
+        "id": "C002",
+        "name": "Mrs. Anita Verma",
+        "role": "Vice Principal",
+        "phone": "+91 11 2634 5679",
+        "email": "vp@dps.edu"
+      },
+      {
+        "id": "C003",
+        "name": "Mr. Suresh Kumar",
+        "role": "Librarian",
+        "phone": "+91 11 2634 5680",
+        "email": "library@dps.edu"
+      }
     ]
   },
   {
@@ -47,32 +103,76 @@
     "board": "CBSE",
     "strength": 1800,
     "address": "Goregaon West, Mumbai - 400062",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 3,
     "lastVisitDate": "2025-11-18",
     "assignedTo": "SM005",
     "businessHistory": [
-      { "year": 2023, "revenue": 380000 },
-      { "year": 2024, "revenue": 420000 },
-      { "year": 2025, "revenue": 460000 }
+      {
+        "year": 2023,
+        "revenue": 0
+      },
+      {
+        "year": 2024,
+        "revenue": 0
+      },
+      {
+        "year": 2025,
+        "revenue": 460000
+      }
     ],
     "prescribedBooks": [
-      { "subject": "Mathematics", "class": "8", "book": "Mathematics for Class VIII", "status": "Prescribed" },
-      { "subject": "Hindi", "class": "8", "book": "Hindi Vyakaran", "status": "Prescribed" }
+      {
+        "subject": "Mathematics",
+        "class": "8",
+        "book": "Mathematics for Class VIII",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "Hindi",
+        "class": "8",
+        "book": "Hindi Vyakaran",
+        "status": "Prescribed"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 500000,
-      "subjects": ["Mathematics", "Science", "Hindi"],
+      "subjects": [
+        "Mathematics",
+        "Science",
+        "Hindi"
+      ],
       "expectedConversion": 80
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 12 },
-      { "year": 2024, "percentage": 15 },
-      { "year": 2025, "percentage": 15 }
+      {
+        "year": 2023,
+        "percentage": 12
+      },
+      {
+        "year": 2024,
+        "percentage": 15
+      },
+      {
+        "year": 2025,
+        "percentage": 15
+      }
     ],
     "contacts": [
-      { "id": "C004", "name": "Mrs. Pooja Mehta", "role": "Principal", "phone": "+91 22 2876 5432", "email": "principal@ryan.edu" },
-      { "id": "C005", "name": "Mr. Anil Joshi", "role": "Academic Coordinator", "phone": "+91 22 2876 5433", "email": "academic@ryan.edu" }
+      {
+        "id": "C004",
+        "name": "Mrs. Pooja Mehta",
+        "role": "Principal",
+        "phone": "+91 22 2876 5432",
+        "email": "principal@ryan.edu"
+      },
+      {
+        "id": "C005",
+        "name": "Mr. Anil Joshi",
+        "role": "Academic Coordinator",
+        "phone": "+91 22 2876 5433",
+        "email": "academic@ryan.edu"
+      }
     ]
   },
   {
@@ -84,14 +184,23 @@
     "board": "ICSE",
     "strength": 1500,
     "address": "Navrangpura, Ahmedabad - 380009",
-    "isPattakat": true,
+    "isBlocked": true,
     "visitCount": 0,
     "lastVisitDate": null,
     "assignedTo": "SM002",
     "businessHistory": [
-      { "year": 2023, "revenue": 0 },
-      { "year": 2024, "revenue": 0 },
-      { "year": 2025, "revenue": 0 }
+      {
+        "year": 2023,
+        "revenue": 0
+      },
+      {
+        "year": 2024,
+        "revenue": 0
+      },
+      {
+        "year": 2025,
+        "revenue": 100000
+      }
     ],
     "prescribedBooks": [],
     "salesPlan": {
@@ -101,7 +210,13 @@
     },
     "discountHistory": [],
     "contacts": [
-      { "id": "C006", "name": "Fr. Thomas D'Souza", "role": "Principal", "phone": "+91 79 2646 7890", "email": "principal@stxaviers.edu" }
+      {
+        "id": "C006",
+        "name": "Fr. Thomas D'Souza",
+        "role": "Principal",
+        "phone": "+91 79 2646 7890",
+        "email": "principal@stxaviers.edu"
+      }
     ]
   },
   {
@@ -113,33 +228,83 @@
     "board": "CBSE",
     "strength": 2200,
     "address": "C-Scheme, Jaipur - 302001",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 2,
     "lastVisitDate": "2025-11-10",
     "assignedTo": "SM003",
     "businessHistory": [
-      { "year": 2023, "revenue": 410000 },
-      { "year": 2024, "revenue": 470000 },
-      { "year": 2025, "revenue": 520000 }
+      {
+        "year": 2023,
+        "revenue": 0
+      },
+      {
+        "year": 2024,
+        "revenue": 470000
+      },
+      {
+        "year": 2025,
+        "revenue": 520000
+      }
     ],
     "prescribedBooks": [
-      { "subject": "Mathematics", "class": "12", "book": "Mathematics Part I & II", "status": "Prescribed" },
-      { "subject": "Physics", "class": "12", "book": "Physics Class XII", "status": "Prescribed" },
-      { "subject": "Chemistry", "class": "12", "book": "Chemistry Class XII", "status": "Prescribed" }
+      {
+        "subject": "Mathematics",
+        "class": "12",
+        "book": "Mathematics Part I & II",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "Physics",
+        "class": "12",
+        "book": "Physics Class XII",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "Chemistry",
+        "class": "12",
+        "book": "Chemistry Class XII",
+        "status": "Prescribed"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 580000,
-      "subjects": ["Mathematics", "Physics", "Chemistry", "Biology"],
+      "subjects": [
+        "Mathematics",
+        "Physics",
+        "Chemistry",
+        "Biology"
+      ],
       "expectedConversion": 85
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 10 },
-      { "year": 2024, "percentage": 12 },
-      { "year": 2025, "percentage": 14 }
+      {
+        "year": 2023,
+        "percentage": 10
+      },
+      {
+        "year": 2024,
+        "percentage": 12
+      },
+      {
+        "year": 2025,
+        "percentage": 14
+      }
     ],
     "contacts": [
-      { "id": "C007", "name": "Dr. Ramesh Chand", "role": "Principal", "phone": "+91 141 2367 890", "email": "principal@dav.edu" },
-      { "id": "C008", "name": "Mrs. Kavita Sharma", "role": "HOD Science", "phone": "+91 141 2367 891", "email": "hod.science@dav.edu" }
+      {
+        "id": "C007",
+        "name": "Dr. Ramesh Chand",
+        "role": "Principal",
+        "phone": "+91 141 2367 890",
+        "email": "principal@dav.edu"
+      },
+      {
+        "id": "C008",
+        "name": "Mrs. Kavita Sharma",
+        "role": "HOD Science",
+        "phone": "+91 141 2367 891",
+        "email": "hod.science@dav.edu"
+      }
     ]
   },
   {
@@ -151,32 +316,76 @@
     "board": "IB",
     "strength": 1200,
     "address": "Gachibowli, Hyderabad - 500032",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 1,
     "lastVisitDate": "2025-11-05",
     "assignedTo": "SM004",
     "businessHistory": [
-      { "year": 2023, "revenue": 320000 },
-      { "year": 2024, "revenue": 350000 },
-      { "year": 2025, "revenue": 290000 }
+      {
+        "year": 2023,
+        "revenue": 320000
+      },
+      {
+        "year": 2024,
+        "revenue": 350000
+      },
+      {
+        "year": 2025,
+        "revenue": 0
+      }
     ],
     "prescribedBooks": [
-      { "subject": "Mathematics", "class": "11", "book": "IB Mathematics SL", "status": "Prescribed" },
-      { "subject": "English", "class": "11", "book": "IB English Literature", "status": "Under Review" }
+      {
+        "subject": "Mathematics",
+        "class": "11",
+        "book": "IB Mathematics SL",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "English",
+        "class": "11",
+        "book": "IB English Literature",
+        "status": "Under Review"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 400000,
-      "subjects": ["Mathematics", "English", "Science"],
+      "subjects": [
+        "Mathematics",
+        "English",
+        "Science"
+      ],
       "expectedConversion": 60
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 8 },
-      { "year": 2024, "percentage": 10 },
-      { "year": 2025, "percentage": 12 }
+      {
+        "year": 2023,
+        "percentage": 8
+      },
+      {
+        "year": 2024,
+        "percentage": 10
+      },
+      {
+        "year": 2025,
+        "percentage": 12
+      }
     ],
     "contacts": [
-      { "id": "C009", "name": "Ms. Sarah Williams", "role": "Principal", "phone": "+91 40 2300 4567", "email": "principal@oakridge.edu" },
-      { "id": "C010", "name": "Mr. Karthik Reddy", "role": "Academic Coordinator", "phone": "+91 40 2300 4568", "email": "academic@oakridge.edu" }
+      {
+        "id": "C009",
+        "name": "Ms. Sarah Williams",
+        "role": "Principal",
+        "phone": "+91 40 2300 4567",
+        "email": "principal@oakridge.edu"
+      },
+      {
+        "id": "C010",
+        "name": "Mr. Karthik Reddy",
+        "role": "Academic Coordinator",
+        "phone": "+91 40 2300 4568",
+        "email": "academic@oakridge.edu"
+      }
     ]
   },
   {
@@ -188,31 +397,69 @@
     "board": "CBSE",
     "strength": 3000,
     "address": "Malleswaram, Bangalore - 560003",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 2,
     "lastVisitDate": "2025-11-12",
     "assignedTo": "SM001",
     "businessHistory": [
-      { "year": 2023, "revenue": 280000 },
-      { "year": 2024, "revenue": 310000 },
-      { "year": 2025, "revenue": 340000 }
+      {
+        "year": 2023,
+        "revenue": 280000
+      },
+      {
+        "year": 2024,
+        "revenue": 310000
+      },
+      {
+        "year": 2025,
+        "revenue": 340000
+      }
     ],
     "prescribedBooks": [
-      { "subject": "Science", "class": "10", "book": "NCERT Science Class X", "status": "Prescribed" },
-      { "subject": "Mathematics", "class": "10", "book": "NCERT Mathematics Class X", "status": "Prescribed" }
+      {
+        "subject": "Science",
+        "class": "10",
+        "book": "NCERT Science Class X",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "Mathematics",
+        "class": "10",
+        "book": "NCERT Mathematics Class X",
+        "status": "Prescribed"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 380000,
-      "subjects": ["Mathematics", "Science", "Social Studies"],
+      "subjects": [
+        "Mathematics",
+        "Science",
+        "Social Studies"
+      ],
       "expectedConversion": 90
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 5 },
-      { "year": 2024, "percentage": 5 },
-      { "year": 2025, "percentage": 5 }
+      {
+        "year": 2023,
+        "percentage": 5
+      },
+      {
+        "year": 2024,
+        "percentage": 5
+      },
+      {
+        "year": 2025,
+        "percentage": 5
+      }
     ],
     "contacts": [
-      { "id": "C011", "name": "Mr. R.K. Singh", "role": "Principal", "phone": "+91 80 2334 5678", "email": "principal@kv.edu" }
+      {
+        "id": "C011",
+        "name": "Mr. R.K. Singh",
+        "role": "Principal",
+        "phone": "+91 80 2334 5678",
+        "email": "principal@kv.edu"
+      }
     ]
   },
   {
@@ -224,32 +471,77 @@
     "board": "ICSE",
     "strength": 1600,
     "address": "Koregaon Park, Pune - 411001",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 3,
     "lastVisitDate": "2025-11-20",
     "assignedTo": "SM005",
     "businessHistory": [
-      { "year": 2023, "revenue": 390000 },
-      { "year": 2024, "revenue": 430000 },
-      { "year": 2025, "revenue": 470000 }
+      {
+        "year": 2023,
+        "revenue": 390000
+      },
+      {
+        "year": 2024,
+        "revenue": 430000
+      },
+      {
+        "year": 2025,
+        "revenue": 470000
+      }
     ],
     "prescribedBooks": [
-      { "subject": "English", "class": "9", "book": "ICSE English Literature", "status": "Prescribed" },
-      { "subject": "Mathematics", "class": "9", "book": "ICSE Mathematics Class IX", "status": "Prescribed" }
+      {
+        "subject": "English",
+        "class": "9",
+        "book": "ICSE English Literature",
+        "status": "Prescribed"
+      },
+      {
+        "subject": "Mathematics",
+        "class": "9",
+        "book": "ICSE Mathematics Class IX",
+        "status": "Prescribed"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 520000,
-      "subjects": ["English", "Mathematics", "Science", "History"],
+      "subjects": [
+        "English",
+        "Mathematics",
+        "Science",
+        "History"
+      ],
       "expectedConversion": 78
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 14 },
-      { "year": 2024, "percentage": 16 },
-      { "year": 2025, "percentage": 18 }
+      {
+        "year": 2023,
+        "percentage": 14
+      },
+      {
+        "year": 2024,
+        "percentage": 16
+      },
+      {
+        "year": 2025,
+        "percentage": 18
+      }
     ],
     "contacts": [
-      { "id": "C012", "name": "Mrs. Linda Fernandes", "role": "Principal", "phone": "+91 20 2613 4567", "email": "principal@cathedral.edu" },
-      { "id": "C013", "name": "Mr. Vinay Kulkarni", "role": "Librarian", "phone": "+91 20 2613 4568", "email": "library@cathedral.edu" }
+      {
+        "id": "C012",
+        "name": "Mrs. Linda Fernandes",
+        "role": "Principal",
+        "phone": "+91 20 2613 4567",
+        "email": "principal@cathedral.edu"
+      },
+      {
+        "id": "C013",
+        "name": "Mr. Vinay Kulkarni",
+        "role": "Librarian",
+        "phone": "+91 20 2613 4568",
+        "email": "library@cathedral.edu"
+      }
     ]
   },
   {
@@ -261,30 +553,63 @@
     "board": "CBSE",
     "strength": 1900,
     "address": "Barakhamba Road, New Delhi - 110001",
-    "isPattakat": false,
+    "isBlocked": false,
     "visitCount": 1,
     "lastVisitDate": "2025-10-28",
     "assignedTo": "SM001",
     "businessHistory": [
-      { "year": 2023, "revenue": 360000 },
-      { "year": 2024, "revenue": 390000 },
-      { "year": 2025, "revenue": 320000 }
+      {
+        "year": 2023,
+        "revenue": 360000
+      },
+      {
+        "year": 2024,
+        "revenue": 390000
+      },
+      {
+        "year": 2025,
+        "revenue": 320000
+      }
     ],
     "prescribedBooks": [
-      { "subject": "Social Studies", "class": "8", "book": "Our Past III", "status": "Prescribed" }
+      {
+        "subject": "Social Studies",
+        "class": "8",
+        "book": "Our Past III",
+        "status": "Prescribed"
+      }
     ],
     "salesPlan": {
       "targetRevenue": 450000,
-      "subjects": ["Social Studies", "English", "Hindi"],
+      "subjects": [
+        "Social Studies",
+        "English",
+        "Hindi"
+      ],
       "expectedConversion": 70
     },
     "discountHistory": [
-      { "year": 2023, "percentage": 12 },
-      { "year": 2024, "percentage": 13 },
-      { "year": 2025, "percentage": 15 }
+      {
+        "year": 2023,
+        "percentage": 12
+      },
+      {
+        "year": 2024,
+        "percentage": 13
+      },
+      {
+        "year": 2025,
+        "percentage": 15
+      }
     ],
     "contacts": [
-      { "id": "C014", "name": "Dr. Vijay Datta", "role": "Principal", "phone": "+91 11 2331 7890", "email": "principal@modern.edu" }
+      {
+        "id": "C014",
+        "name": "Dr. Vijay Datta",
+        "role": "Principal",
+        "phone": "+91 11 2331 7890",
+        "email": "principal@modern.edu"
+      }
     ]
   }
 ]

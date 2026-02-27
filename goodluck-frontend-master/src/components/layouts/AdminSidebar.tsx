@@ -48,23 +48,16 @@ const navGroups = [
     items: [
       { href: "/admin/reports/attendance", label: "Attendance Report", icon: BarChart3 },
       { href: "/admin/reports/visits", label: "Visit Analytics", icon: BarChart3 },
+      { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
       // { href: "/admin/reports/compliance", label: "Policy Compliance", icon: Award },
       // { href: "/admin/reports/loyalty", label: "Loyalty Reports", icon: TrendingUp },
       // { href: "/admin/reports/gap-analysis", label: "Gap Analysis", icon: BarChart3 },
     ],
   },
-
-  {
-    label: "Year Comparison",
-    items: [
-      { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
-    ]
-  },
   {
     label: "Masters",
     items: [
-      { href: "/admin/team", label: "Sales Person", icon: Users },
-      { href: "/admin/managers", label: "Managers", icon: UserCog },
+      { href: "/admin/users", label: "User Master", icon: UserCog },
       { href: "/admin/masters/locations", label: "Location Master", icon: Globe },
       { href: "/admin/lists/schools", label: "Schools", icon: School },
       { href: "/admin/lists/booksellers", label: "Book Sellers", icon: Store },

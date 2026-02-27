@@ -37,7 +37,7 @@ interface School {
     board: string;
     strength: number;
     address: string;
-    isPattakat: boolean;
+    isBlocked: boolean;
     visitCount: number;
     lastVisitDate: string | null;
     assignedTo: string;
@@ -122,7 +122,7 @@ export default function SchoolDetailPage() {
                 </div>
                 <div className="ml-auto flex gap-2 flex-wrap justify-end">
                     <Badge variant="secondary">{school.board}</Badge>
-                    {school.isPattakat && <Badge variant="destructive">Pattakat</Badge>}
+                    {school.isBlocked && <Badge variant="destructive">Blocked</Badge>}
                     <Badge variant={school.visitCount >= 2 ? "default" : "outline"}>{school.visitCount} visits</Badge>
                 </div>
             </div>

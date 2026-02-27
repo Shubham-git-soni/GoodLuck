@@ -88,8 +88,8 @@ export default function SchoolListPage() {
         filtered = filtered.filter((school) => school.visitCount === 1);
       } else if (visitFilter === "2+") {
         filtered = filtered.filter((school) => school.visitCount >= 2);
-      } else if (visitFilter === "pattakat") {
-        filtered = filtered.filter((school) => school.isPattakat);
+      } else if (visitFilter === "blocked") {
+        filtered = filtered.filter((school) => school.isBlocked);
       }
     }
 
@@ -436,7 +436,7 @@ export default function SchoolListPage() {
             <SelectItem value="0">Not Visited</SelectItem>
             <SelectItem value="1">Visited Once</SelectItem>
             <SelectItem value="2+">Visited 2+ times</SelectItem>
-            <SelectItem value="pattakat">Pattakat</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={() => { setSearchQuery(""); setBoardFilter("all"); setCityFilter("all"); setVisitFilter("all"); }}>
@@ -476,7 +476,7 @@ export default function SchoolListPage() {
               <SelectItem value="0">Not Visited</SelectItem>
               <SelectItem value="1">Visited Once</SelectItem>
               <SelectItem value="2+">2+ Visits</SelectItem>
-              <SelectItem value="pattakat">Pattakat</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
             </SelectContent>
           </Select>
 
@@ -540,9 +540,9 @@ export default function SchoolListPage() {
                             <Badge variant="secondary" className="text-xs">
                               {school.board}
                             </Badge>
-                            {school.isPattakat && (
+                            {school.isBlocked && (
                               <Badge variant="destructive" className="text-xs">
-                                Pattakat
+                                Blocked
                               </Badge>
                             )}
                             <Badge

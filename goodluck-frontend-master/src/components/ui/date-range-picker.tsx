@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { CalendarIcon, X, ArrowRight } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,172 +31,133 @@ export function DateRangePicker({
   onClear,
   className,
 }: DateRangePickerProps) {
-  const [fromOpen, setFromOpen] = React.useState(false);
-  const [toOpen, setToOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
 
   const fromDate = from ? new Date(from) : undefined;
-  const toDate   = to   ? new Date(to)   : undefined;
+  const toDate = to ? new Date(to) : undefined;
   const hasValue = !!(from || to);
 
-  const handleClear = () => {
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    from: fromDate,
+    to: toDate,
+  });
+
+  // Keep local state synced with props if controlled externally
+  React.useEffect(() => {
+    const f = from ? new Date(from) : undefined;
+    const t = to ? new Date(to) : undefined;
+    // Prevent infinite loop by checking if values are actually different
+    if (date?.from?.getTime() !== f?.getTime() || date?.to?.getTime() !== t?.getTime()) {
+      setDate({ from: f, to: t });
+    }
+  }, [from, to]);
+
+  const handleClear = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDate(undefined);
     onFromChange("");
     onToChange("");
     onClear?.();
+    setOpen(false);
+  };
+
+  const handleApply = () => {
+    if (date?.from) {
+      onFromChange(format(date.from, "yyyy-MM-dd"));
+    } else {
+      onFromChange("");
+    }
+
+    if (date?.to) {
+      onToChange(format(date.to, "yyyy-MM-dd"));
+    } else {
+      onToChange("");
+    }
+    setOpen(false);
   };
 
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
-
-      {/* ── Start Date ── */}
-      <Popover open={fromOpen} onOpenChange={setFromOpen}>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "flex-1 h-9 justify-start text-left font-normal text-xs gap-1.5 min-w-0",
-              !from && "text-muted-foreground"
+              "w-auto min-w-[200px] h-8 justify-start text-left font-normal text-xs gap-1.5 px-3 bg-background",
+              !hasValue && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate">
-              {fromDate ? format(fromDate, "dd MMM yyyy") : "Start date"}
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate flex-1">
+              {date?.from ? (
+                date.to ? (
+                  <>
+                    {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+                  </>
+                ) : (
+                  format(date.from, "LLL dd, y")
+                )
+              ) : (
+                <span>Pick a date range...</span>
+              )}
             </span>
+            {hasValue && (
+              <div
+                role="button"
+                className="shrink-0 rounded-sm opacity-50 hover:opacity-100 hover:bg-muted p-0.5 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClear();
+                }}
+              >
+                <X className="h-3 w-3" />
+              </div>
+            )}
           </Button>
         </PopoverTrigger>
-
-        <PopoverContent
-          className="w-auto p-0 rounded-2xl shadow-xl border overflow-hidden"
-          align="start"
-          sideOffset={8}
-        >
-          {/* Header */}
+        <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border overflow-hidden" align="end" sideOffset={8}>
           <div className="px-4 pt-4 pb-3 border-b bg-muted/30">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
-              Start Date
-            </p>
             <p className="text-sm font-semibold text-foreground">
-              {fromDate ? format(fromDate, "EEE, dd MMM yyyy") : "Select start date"}
+              {date?.from ? (
+                date.to ? (
+                  `${format(date.from, "MMM dd, yyyy")} - ${format(date.to, "MMM dd, yyyy")}`
+                ) : (
+                  `${format(date.from, "MMM dd, yyyy")} - Select end date`
+                )
+              ) : (
+                "Select a date range"
+              )}
             </p>
           </div>
-
           <Calendar
-            mode="single"
-            selected={fromDate}
-            onSelect={(d) => {
-              onFromChange(d ? format(d, "yyyy-MM-dd") : "");
-              if (d && toDate && d > toDate) onToChange("");
-              setFromOpen(false);
-              setTimeout(() => setToOpen(true), 120);
-            }}
-            defaultMonth={fromDate ?? new Date()}
-            captionLayout="dropdown"
-            fromYear={CURRENT_YEAR - 5}
-            toYear={CURRENT_YEAR + 2}
-            disabled={toDate ? { after: toDate } : undefined}
+            initialFocus
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={setDate}
+            numberOfMonths={2}
             className="p-3"
           />
-
-          <div className="flex gap-2 px-4 pb-4">
+          <div className="flex gap-2 px-4 pb-4 border-t border-border/50 pt-3 bg-muted/10">
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 text-xs h-8"
-              onClick={() => { onFromChange(""); setFromOpen(false); }}
+              className="flex-1 text-xs h-8 rounded-xl"
+              onClick={handleClear}
             >
               Clear
             </Button>
             <Button
               size="sm"
-              className="flex-1 text-xs h-8"
-              disabled={!from}
-              onClick={() => setFromOpen(false)}
+              className="flex-1 text-xs h-8 rounded-xl"
+              onClick={handleApply}
+              disabled={!date?.from}
             >
-              Done
+              Apply Range
             </Button>
           </div>
         </PopoverContent>
       </Popover>
-
-      {/* ── Arrow ── */}
-      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-
-      {/* ── End Date ── */}
-      <Popover open={toOpen} onOpenChange={setToOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "flex-1 h-9 justify-start text-left font-normal text-xs gap-1.5 min-w-0",
-              !to && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate">
-              {toDate ? format(toDate, "dd MMM yyyy") : "End date"}
-            </span>
-          </Button>
-        </PopoverTrigger>
-
-        <PopoverContent
-          className="w-auto p-0 rounded-2xl shadow-xl border overflow-hidden"
-          align="start"
-          sideOffset={8}
-        >
-          {/* Header */}
-          <div className="px-4 pt-4 pb-3 border-b bg-muted/30">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
-              End Date
-            </p>
-            <p className="text-sm font-semibold text-foreground">
-              {toDate ? format(toDate, "EEE, dd MMM yyyy") : "Select end date"}
-            </p>
-          </div>
-
-          <Calendar
-            mode="single"
-            selected={toDate}
-            onSelect={(d) => {
-              onToChange(d ? format(d, "yyyy-MM-dd") : "");
-              setToOpen(false);
-            }}
-            defaultMonth={toDate ?? fromDate ?? new Date()}
-            captionLayout="dropdown"
-            fromYear={CURRENT_YEAR - 5}
-            toYear={CURRENT_YEAR + 2}
-            disabled={fromDate ? { before: fromDate } : undefined}
-            className="p-3"
-          />
-
-          <div className="flex gap-2 px-4 pb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs h-8"
-              onClick={() => { onToChange(""); setToOpen(false); }}
-            >
-              Clear
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 text-xs h-8"
-              disabled={!to}
-              onClick={() => setToOpen(false)}
-            >
-              Done
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* ── Clear both ── */}
-      {hasValue && (
-        <button
-          onClick={handleClear}
-          className="h-9 w-9 shrink-0 flex items-center justify-center rounded-md border border-input bg-background hover:bg-muted transition-colors"
-        >
-          <X className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
-      )}
     </div>
   );
 }

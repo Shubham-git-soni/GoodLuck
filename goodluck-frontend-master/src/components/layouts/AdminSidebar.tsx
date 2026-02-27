@@ -36,16 +36,16 @@ const navGroups = [
   {
     label: "Overview",
     items: [
-      { href: "/admin/dashboard",      label: "Dashboard",     icon: LayoutDashboard },
-      { href: "/admin/approvals",      label: "Approvals",     icon: ClipboardList,  badge: "approvals" },
-      { href: "/admin/notifications",  label: "Notifications", icon: Bell,           badge: "notifications" },
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/approvals", label: "Approvals", icon: ClipboardList, badge: "approvals" },
+      { href: "/admin/notifications", label: "Notifications", icon: Bell, badge: "notifications" },
     ],
   },
   {
     label: "Reports",
     items: [
       { href: "/admin/reports/attendance", label: "Attendance Report", icon: BarChart3 },
-<<<<<<< HEAD
+
       { href: "/admin/reports/visits", label: "Visit Analytics", icon: BarChart3 },
       { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
       // { href: "/admin/reports/compliance", label: "Policy Compliance", icon: Award },
@@ -62,51 +62,31 @@ const navGroups = [
       { href: "/admin/lists/booksellers", label: "Book Sellers", icon: Store },
       { href: "/admin/books", label: "Books", icon: BookOpen },
       { href: "/admin/settings/dropdowns", label: "Dropdown", icon: Settings },
-=======
-      { href: "/admin/reports/visits",     label: "Visit Analytics",   icon: BarChart3 },
-    ],
-  },
-  {
-    label: "Year Comparison",
-    items: [
-      { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
-    ],
-  },
-  {
-    label: "Masters",
-    items: [
-      { href: "/admin/team",                label: "Sales Person",    icon: Users },
-      { href: "/admin/managers",            label: "Managers",        icon: UserCog },
-      { href: "/admin/masters/locations",   label: "Location Master", icon: Globe },
-      { href: "/admin/lists/schools",       label: "Schools",         icon: School },
-      { href: "/admin/lists/booksellers",   label: "Book Sellers",    icon: Store },
-      { href: "/admin/books",               label: "Books",           icon: BookOpen },
-      { href: "/admin/settings/dropdowns",  label: "Dropdown",        icon: Settings },
->>>>>>> origin/dev_shubham
+
     ],
   },
   {
     label: "Management",
     items: [
-      { href: "/admin/pm-schedule",  label: "PM Schedule",      icon: CalendarCheck },
-      { href: "/admin/pm-calendar",  label: "PM Calendar",      icon: Calendar },
-      { href: "/admin/tour-plans",   label: "Tour Plans",       icon: Calendar },
-      { href: "/admin/tada",         label: "TA/DA Approval",   icon: DollarSign },
-      { href: "/admin/feedback",     label: "Feedback Manager", icon: MessageSquare },
+      { href: "/admin/pm-schedule", label: "PM Schedule", icon: CalendarCheck },
+      { href: "/admin/pm-calendar", label: "PM Calendar", icon: Calendar },
+      { href: "/admin/tour-plans", label: "Tour Plans", icon: Calendar },
+      { href: "/admin/tada", label: "TA/DA Approval", icon: DollarSign },
+      { href: "/admin/feedback", label: "Feedback Manager", icon: MessageSquare },
     ],
   },
   {
     label: "Expense Management",
     items: [
-      { href: "/admin/expenses",         label: "All Expense Reports", icon: Receipt },
-      { href: "/admin/expenses/policy",  label: "Expense Policies",    icon: ClipboardList },
-      { href: "/admin/expenses/reports", label: "Expense Analytics",   icon: TrendingUp },
+      { href: "/admin/expenses", label: "All Expense Reports", icon: Receipt },
+      { href: "/admin/expenses/policy", label: "Expense Policies", icon: ClipboardList },
+      { href: "/admin/expenses/reports", label: "Expense Analytics", icon: TrendingUp },
     ],
   },
   {
     label: "Analytics",
     items: [
-      { href: "/admin/analytics/schools",          label: "School Analytics", icon: School },
+      { href: "/admin/analytics/schools", label: "School Analytics", icon: School },
       { href: "/admin/analytics/prescribed-books", label: "Prescribed Books", icon: FileText },
     ],
   },

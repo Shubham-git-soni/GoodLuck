@@ -36,11 +36,11 @@ export const mockTourPlans: TourPlan[] = [
     reviewerNote: "Approved. Ensure all visits are completed on time.",
     visits: [
       { type: "school",     entityName: "Delhi Public School",       city: "Delhi",     date: "2025-12-01", objectives: ["Relationship Building", "Need Mapping"] },
-      { type: "school",     entityName: "St. Xavier's High School",  city: "Mumbai",    date: "2025-12-02", objectives: ["Follow Up"] },
+      { type: "school",     entityName: "St. Xavier's High School",  city: "Ahmedabad", date: "2025-12-02", objectives: ["Follow Up"] },
       { type: "bookseller", entityName: "Sharma Book Depot",         city: "Delhi",     date: "2025-12-03", objectives: ["Payment Collection"] },
-      { type: "school",     entityName: "Modern School",             city: "Bangalore", date: "2025-12-05", objectives: ["Product Demos", "Given Specimen"] },
+      { type: "school",     entityName: "Modern School",             city: "Delhi",     date: "2025-12-05", objectives: ["Product Demos", "Given Specimen"] },
       { type: "bookseller", entityName: "Modern Book House",         city: "Mumbai",    date: "2025-12-07", objectives: ["Relationship Building"] },
-      { type: "school",     entityName: "Ryan International School", city: "Pune",      date: "2025-12-10", objectives: ["Order Finalization"] },
+      { type: "school",     entityName: "Ryan International School", city: "Mumbai",    date: "2025-12-10", objectives: ["Order Finalization"] },
     ],
   },
   {
@@ -72,9 +72,9 @@ export const mockTourPlans: TourPlan[] = [
       { type: "school",     entityName: "Delhi Public School",          city: "Delhi",     date: "2025-12-15", objectives: ["Need Mapping"] },
       { type: "school",     entityName: "Modern School",                city: "Bangalore", date: "2025-12-16", objectives: ["Product Demos"] },
       { type: "bookseller", entityName: "Student Corner",               city: "Pune",      date: "2025-12-17", objectives: ["Payment Collection"] },
-      { type: "school",     entityName: "St. Xavier's High School",     city: "Mumbai",    date: "2025-12-19", objectives: ["Given Specimen"] },
+      { type: "school",     entityName: "St. Xavier's High School",     city: "Ahmedabad", date: "2025-12-19", objectives: ["Given Specimen"] },
       { type: "bookseller", entityName: "Education Books & Stationery", city: "Chennai",   date: "2025-12-20", objectives: ["Relationship Building"] },
-      { type: "school",     entityName: "Ryan International School",    city: "Pune",      date: "2025-12-22", objectives: ["Final Pitch"] },
+      { type: "school",     entityName: "Ryan International School",    city: "Mumbai",    date: "2025-12-22", objectives: ["Final Pitch"] },
       { type: "school",     entityName: "DAV Public School",            city: "Chennai",   date: "2025-12-25", objectives: ["Order Finalization"] },
     ],
   },
@@ -94,7 +94,7 @@ export const mockTourPlans: TourPlan[] = [
       { type: "bookseller", entityName: "Modern Book House",  city: "Mumbai",    date: "2026-01-15", objectives: ["Order Finalization"] },
     ],
   },
-  // Approved plan with today's visits (2026-02-25) — using SM001 assigned schools
+  // Approved plan with today's visits (2026-02-26) — using SM001 assigned schools
   {
     id: "TP-2026-002",
     startDate: "2026-02-23",
@@ -106,12 +106,12 @@ export const mockTourPlans: TourPlan[] = [
     reviewedOn: "2026-02-20",
     reviewerNote: "Approved. Good planning for the month-end visits.",
     visits: [
-      { type: "school",     entityName: "Delhi Public School",  city: "Delhi",     date: "2026-02-23", objectives: ["Relationship Building"] },
-      { type: "bookseller", entityName: "Sharma Book Depot",    city: "Delhi",     date: "2026-02-24", objectives: ["Payment Collection"] },
-      { type: "school",     entityName: "Modern School",        city: "Delhi",     date: "2026-02-25", objectives: ["Need Mapping", "Given Specimen"] },
-      { type: "bookseller", entityName: "Academic Books Pvt Ltd", city: "Delhi",   date: "2026-02-25", objectives: ["Order Finalization"] },
-      { type: "school",     entityName: "Kendriya Vidyalaya",   city: "Bangalore", date: "2026-02-27", objectives: ["Follow Up"] },
-      { type: "school",     entityName: "Delhi Public School",  city: "Delhi",     date: "2026-03-05", objectives: ["Product Demos"] },
+      { type: "school",     entityName: "Delhi Public School",    city: "Delhi",     date: "2026-02-23", objectives: ["Relationship Building"] },
+      { type: "bookseller", entityName: "Sharma Book Depot",      city: "Delhi",     date: "2026-02-24", objectives: ["Payment Collection"] },
+      { type: "school",     entityName: "Modern School",          city: "Delhi",     date: "2026-02-26", objectives: ["Need Mapping", "Given Specimen"] },
+      { type: "bookseller", entityName: "Academic Books Pvt Ltd", city: "Delhi",     date: "2026-02-26", objectives: ["Order Finalization"] },
+      { type: "school",     entityName: "Kendriya Vidyalaya",     city: "Bangalore", date: "2026-02-27", objectives: ["Follow Up"] },
+      { type: "school",     entityName: "Delhi Public School",    city: "Delhi",     date: "2026-03-05", objectives: ["Product Demos"] },
     ],
   },
 ];

@@ -11,139 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
-import { getApprovedScheduledVisits } from "@/lib/mock-data/tour-plans";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface VisitRecord {
-  id: string;
-  type: "school" | "bookseller";
-  entityName: string;
-  city: string;
-  date: string;
-  time: string;
-  purposes: string[];
-  contactPerson: string;
-  notes: string;
-  source: "manual" | string; // "manual" or tour plan ID like "TP-2025-001"
-}
-
-// ─── Static completed visits (from My Visits mock) ────────────────────────────
-
-const staticVisits: VisitRecord[] = [
-  {
-    id: "V001",
-    type: "school",
-    entityName: "Delhi Public School",
-    city: "Delhi",
-    date: "2025-11-15",
-    time: "10:00 AM",
-    purposes: ["Need Mapping", "Specimen Distribution"],
-    contactPerson: "Dr. Rajesh Sharma",
-    notes: "Principal very cooperative, follow up next month",
-    source: "manual",
-  },
-  {
-    id: "V002",
-    type: "school",
-    entityName: "Ryan International School",
-    city: "Mumbai",
-    date: "2025-11-18",
-    time: "11:30 AM",
-    purposes: ["Post-Sales Engagement", "Relationship Building"],
-    contactPerson: "Mrs. Pooja Mehta",
-    notes: "Needs pricing discussion on next visit",
-    source: "manual",
-  },
-  {
-    id: "V003",
-    type: "school",
-    entityName: "DAV Public School",
-    city: "Delhi",
-    date: "2025-11-10",
-    time: "09:30 AM",
-    purposes: ["Specimen Distribution", "Need Mapping"],
-    contactPerson: "Dr. Ramesh Chand",
-    notes: "Large potential, needs follow up in January",
-    source: "manual",
-  },
-  {
-    id: "V004",
-    type: "school",
-    entityName: "Oakridge International School",
-    city: "Bangalore",
-    date: "2025-11-05",
-    time: "02:00 PM",
-    purposes: ["Relationship Building", "Specimen Distribution"],
-    contactPerson: "Ms. Sarah Williams",
-    notes: "Positive visit, schedule need mapping next",
-    source: "manual",
-  },
-  {
-    id: "V005",
-    type: "school",
-    entityName: "Cathedral School",
-    city: "Mumbai",
-    date: "2025-11-20",
-    time: "03:30 PM",
-    purposes: ["Need Mapping", "Post-Sales Engagement"],
-    contactPerson: "Mrs. Linda Fernandes",
-    notes: "Strong follow up needed for conversion",
-    source: "manual",
-  },
-  {
-    id: "V006",
-    type: "bookseller",
-    entityName: "Academic Books Pvt Ltd",
-    city: "Delhi",
-    date: "2025-11-19",
-    time: "03:00 PM",
-    purposes: ["Payment Collection", "Relationship Building"],
-    contactPerson: "Mr. Suresh Kapoor",
-    notes: "Owner agreed to clear 50% outstanding by mid-December",
-    source: "manual",
-  },
-  {
-    id: "V007",
-    type: "bookseller",
-    entityName: "Education Corner",
-    city: "Mumbai",
-    date: "2025-11-20",
-    time: "11:00 AM",
-    purposes: ["Payment Collection", "Documentation"],
-    contactPerson: "Mr. Ramesh Gupta",
-    notes: "Agreement renewed for next year, payment plan finalized",
-    source: "manual",
-  },
-  {
-    id: "V008",
-    type: "bookseller",
-    entityName: "Scholar's Choice",
-    city: "Ahmedabad",
-    date: "2025-11-17",
-    time: "02:30 PM",
-    purposes: ["Follow Up"],
-    contactPerson: "Ms. Meena Shah",
-    notes: "Discussed upcoming season requirements",
-    source: "manual",
-  },
-];
-
-// Convert approved tour plan visits → completed VisitRecord entries
-function getTourPlanCompletedVisits(): VisitRecord[] {
-  return getApprovedScheduledVisits().map((v, i) => ({
-    id: `TP-${v.planId}-${i}`,
-    type: v.type,
-    entityName: v.entityName,
-    city: v.city,
-    date: v.date,
-    time: "—",
-    purposes: v.objectives,
-    contactPerson: "—",
-    notes: `Tour plan visit — ${v.planId}`,
-    source: v.planId,
-  }));
-}
+// Dummy API (replace with real API calls when backend is ready)
+import { getVisitHistory } from "@/lib/dummy-api";
+import type { VisitRecord } from "@/lib/dummy-api";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -278,42 +148,10 @@ export default function VisitHistoryPage() {
   }
 
   useEffect(() => {
-    // Merge: static + localStorage (from Add Visit form) + approved tour plan visits
-    const savedSchool: VisitRecord[] = JSON.parse(localStorage.getItem("myVisits_school") || "[]")
-      .map((v: Record<string, unknown>, i: number) => ({
-        id: `LS-S-${i}`,
-        type: "school" as const,
-        entityName: String(v.schoolName || v.entityName || ""),
-        city: String(v.schoolCity || v.city || ""),
-        date: String(v.date || ""),
-        time: String(v.time || "—"),
-        purposes: Array.isArray(v.purposes) ? v.purposes : [String(v.purpose || "")],
-        contactPerson: String(v.contactPerson || "—"),
-        notes: String(v.yourComment || v.notes || ""),
-        source: "manual" as const,
-      }));
-
-    const savedBS: VisitRecord[] = JSON.parse(localStorage.getItem("myVisits_bookseller") || "[]")
-      .map((v: Record<string, unknown>, i: number) => ({
-        id: `LS-B-${i}`,
-        type: "bookseller" as const,
-        entityName: String(v.name || v.entityName || ""),
-        city: String(v.city || ""),
-        date: String(v.date || ""),
-        time: String(v.time || "—"),
-        purposes: Array.isArray(v.purposes) ? v.purposes : [String(v.purpose || "")],
-        contactPerson: String(v.contactPerson || "—"),
-        notes: String(v.remarks || v.notes || ""),
-        source: "manual" as const,
-      }));
-
-    const tourPlanVisits = getTourPlanCompletedVisits();
-
-    const merged = [...savedSchool, ...savedBS, ...staticVisits, ...tourPlanVisits]
-      .sort((a, b) => b.date.localeCompare(a.date)); // newest first
-
-    setAllVisits(merged);
-    setIsLoading(false);
+    getVisitHistory().then((data) => {
+      setAllVisits(data);
+      setIsLoading(false);
+    });
   }, []);
 
   const monthOptions = useMemo(() => {

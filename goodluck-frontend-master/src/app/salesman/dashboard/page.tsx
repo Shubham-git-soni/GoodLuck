@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Target, BookOpen, CheckCircle2, Calendar, AlertCircle, Users, Wallet, DollarSign } from "lucide-react";
+import { Target, BookOpen, CheckCircle2, Calendar, AlertCircle, Users, Wallet, DollarSign, MapPin, Clock, ChevronRight, ArrowRight } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import ProgressCard from "@/components/dashboard/ProgressCard";
@@ -57,6 +57,8 @@ export default function SalesmanDashboard() {
     total: 120,
   });
 
+  const [nextScheduledVisits, setNextScheduledVisits] = useState<any[]>([]);
+
   // Chart data states
   const [monthlyPerformance, setMonthlyPerformance] = useState<any[]>([]);
   const [visitDistribution, setVisitDistribution] = useState<any[]>([]);
@@ -88,6 +90,30 @@ export default function SalesmanDashboard() {
           (v) => v.status === "Scheduled" && v.salesmanId === salesman.id
         ).length,
       });
+
+      // Next scheduled visits — derived from nextVisit field on completed visits
+      const upcomingVisits = visitsData
+        .filter((v) => v.salesmanId === salesman.id && v.nextVisit?.date)
+        .map((v) => ({
+          id: v.id,
+          schoolName: v.schoolName,
+          date: v.nextVisit.date,
+          purpose: v.nextVisit.purpose,
+          type: v.type,
+        }))
+        .filter((v) => v.date >= new Date().toISOString().split("T")[0])
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 5);
+
+      // If no real upcoming data, add sensible mock entries
+      const fallbackVisits = [
+        { id: "NV1", schoolName: "Delhi Public School", date: "2025-12-20", purpose: "Follow-Up", type: "school" },
+        { id: "NV2", schoolName: "Ryan International School", date: "2025-12-22", purpose: "Specimen Distribution", type: "school" },
+        { id: "NV3", schoolName: "Modern Book Depot", date: "2025-12-24", purpose: "Order Collection", type: "bookseller" },
+        { id: "NV4", schoolName: "St. Mary's School", date: "2025-12-26", purpose: "Need Mapping", type: "school" },
+        { id: "NV5", schoolName: "City Booksellers", date: "2025-12-28", purpose: "Relationship Building", type: "bookseller" },
+      ];
+      setNextScheduledVisits(upcomingVisits.length > 0 ? upcomingVisits : fallbackVisits);
 
       // Calculate school stats
       const assignedSchools = schoolsData.filter((s) => s.assignedTo === salesman.id);
@@ -387,7 +413,7 @@ export default function SalesmanDashboard() {
         </Card>
       </div>
 
-      {/* Charts Row 2 - Visit Distribution */}
+      {/* Visit Distribution + Today's Summary — same row */}
       <div className="grid gap-4 md:grid-cols-2 mb-6">
         {/* Visit Distribution - Donut */}
         <Card>
@@ -431,10 +457,6 @@ export default function SalesmanDashboard() {
           </CardContent>
         </Card>
 
-      </div>
-
-      {/* Today's Summary & Alerts */}
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
         {/* Today's Summary */}
         <Card>
           <CardHeader>
@@ -470,55 +492,121 @@ export default function SalesmanDashboard() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Alerts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Alerts</CardTitle>
-            <Link href="/salesman/notifications">
-              <Button variant="ghost" size="sm">View All</Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {alerts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No new alerts
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <AlertCircle
-                      className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                        alert.priority === "high"
-                          ? "text-destructive"
-                          : alert.priority === "medium"
-                          ? "text-primary"
-                          : "text-muted-foreground"
-                      }`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{alert.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {alert.message}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={alert.priority === "high" ? "destructive" : "secondary"}
-                      className="text-xs"
-                    >
-                      {alert.priority}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Recent Alerts — full width */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            Recent Alerts
+          </CardTitle>
+          <Link href="/salesman/notifications">
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-primary">
+              View All <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {alerts.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No new alerts
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {alerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="flex items-start gap-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    alert.priority === "high" ? "bg-destructive/10" :
+                    alert.priority === "medium" ? "bg-primary/10" : "bg-muted"
+                  }`}>
+                    <AlertCircle className={`h-4 w-4 ${
+                      alert.priority === "high" ? "text-destructive" :
+                      alert.priority === "medium" ? "text-primary" : "text-muted-foreground"
+                    }`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{alert.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {alert.message}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={alert.priority === "high" ? "destructive" : "secondary"}
+                    className="text-xs shrink-0"
+                  >
+                    {alert.priority}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Next Scheduled Visits ── */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              Next Scheduled Visits
+            </CardTitle>
+            <Link href="/salesman/tour-plans">
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-primary">
+                View All <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {nextScheduledVisits.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No upcoming visits scheduled</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {nextScheduledVisits.map((visit, index) => {
+                const visitDate = new Date(visit.date);
+                const day = visitDate.toLocaleDateString("en-IN", { day: "2-digit" });
+                const month = visitDate.toLocaleDateString("en-IN", { month: "short" });
+                const weekday = visitDate.toLocaleDateString("en-IN", { weekday: "short" });
+                const isSchool = visit.type === "school";
+                return (
+                  <div
+                    key={visit.id}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors"
+                  >
+                    {/* Date badge */}
+                    <div className={`flex flex-col items-center justify-center h-12 w-12 rounded-xl shrink-0 ${isSchool ? "bg-primary/10" : "bg-amber-100"}`}>
+                      <span className={`text-[10px] font-bold uppercase ${isSchool ? "text-primary" : "text-amber-600"}`}>{month}</span>
+                      <span className={`text-lg font-black leading-tight ${isSchool ? "text-primary" : "text-amber-600"}`}>{day}</span>
+                      <span className={`text-[9px] font-medium ${isSchool ? "text-primary/60" : "text-amber-500"}`}>{weekday}</span>
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{visit.schoolName}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isSchool ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-700"}`}>
+                          {isSchool ? "School" : "Bookseller"}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground truncate">{visit.purpose}</span>
+                      </div>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Monthly Sales Performance Chart - Bar Chart */}
       <Card className="mb-6">

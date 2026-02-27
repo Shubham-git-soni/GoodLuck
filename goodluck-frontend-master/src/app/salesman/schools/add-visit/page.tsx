@@ -130,7 +130,7 @@ function SchoolVisitForm() {
   const [tourPlanInfo, setTourPlanInfo] = useState<{ planId: string; name: string } | null>(null);
 
   const [formData, setFormData] = useState({
-    city: "", schoolId: "", supplyThrough: "",
+    city: "", schoolId: "", prefillSchoolName: "", supplyThrough: "",
     selectedContacts: [] as string[],
     newContacts: [] as { name: string; role: string }[],
     purposes: [] as string[], needMappingType: "",
@@ -152,22 +152,35 @@ function SchoolVisitForm() {
     const fromTourPlan = searchParams.get("fromTourPlan");
 
     if (fromTourPlan && name && city) {
-      // Match school by name from mock data
+      // Match school by name — exact first, then partial fallback
+      const nameLower = name.toLowerCase();
       const matched = (schoolsDataRaw as any[]).find(
-        (s: any) => s.name.toLowerCase() === name.toLowerCase()
+        (s: any) => s.name.toLowerCase() === nameLower
+      ) || (schoolsDataRaw as any[]).find(
+        (s: any) =>
+          s.name.toLowerCase().includes(nameLower) ||
+          nameLower.includes(s.name.toLowerCase())
       );
       const parsedPurposes = objectives
         ? objectives.split(",").map((o) => o.trim()).filter(Boolean)
         : [];
       setFormData((prev) => ({
         ...prev,
-        city: city,
+        // Use the matched school's own city so the dropdown list loads correctly
+        city: matched ? matched.city : city,
         schoolId: matched ? matched.id : (schoolId || ""),
+        // When no JSON match found, store the name so StepSchoolSelection can show it
+        prefillSchoolName: matched ? "" : name,
         purposes: parsedPurposes,
       }));
       setTourPlanInfo({ planId: fromTourPlan === "1" ? (searchParams.get("planId") || "") : fromTourPlan, name });
     } else if (schoolId) {
-      setFormData((prev) => ({ ...prev, schoolId }));
+      const school = (schoolsDataRaw as any[]).find((s: any) => s.id === schoolId);
+      setFormData((prev) => ({
+        ...prev,
+        schoolId,
+        city: school ? school.city : prev.city,
+      }));
     }
   }, [searchParams]);
 

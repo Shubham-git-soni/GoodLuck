@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Clock, MapPin, Play, Square, AlertTriangle, Calendar, Timer, Download, X, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react";
+import { Clock, MapPin, Play, Square, AlertTriangle, Calendar, Timer, Download, X } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -324,97 +324,101 @@ export default function AttendancePage() {
           ) : (
             <>
               {/* ── Desktop Table ── */}
-              <div className="hidden md:block overflow-hidden rounded-b-xl">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="pl-6 font-semibold text-xs uppercase tracking-wide text-muted-foreground">#</TableHead>
-                      <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Date</TableHead>
-                      <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Day</TableHead>
-                      <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Start Time</TableHead>
-                      <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">End Time</TableHead>
-                      <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Hours Worked</TableHead>
-                      <TableHead className="pr-6 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((record, index) => (
-                      <TableRow
-                        key={index}
-                        className={`hover:bg-muted/20 transition-colors ${index % 2 === 0 ? "" : "bg-muted/10"}`}
-                      >
-                        <TableCell className="pl-6 text-muted-foreground text-sm">{index + 1}</TableCell>
-                        <TableCell className="font-medium text-sm">{formatDisplayDate(record.date)}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{record.day}</TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
-                            {record.start}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 dark:text-rose-400">
-                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
-                            {record.end}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1 text-sm font-semibold">
-                            <Timer className="h-3.5 w-3.5 text-muted-foreground" />
-                            {record.duration}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-6">
-                          <Badge
-                            variant={record.status === "Full Day" ? "default" : "secondary"}
-                            className="text-xs"
-                          >
-                            {record.status}
-                          </Badge>
-                        </TableCell>
+              <div className="hidden md:flex md:flex-col rounded-b-xl overflow-hidden">
+                <div className="overflow-y-auto max-h-[420px]">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10">
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="pl-6 font-semibold text-xs uppercase tracking-wide text-muted-foreground">#</TableHead>
+                        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Date</TableHead>
+                        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Day</TableHead>
+                        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Start Time</TableHead>
+                        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">End Time</TableHead>
+                        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Hours Worked</TableHead>
+                        <TableHead className="pr-6 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((record, index) => (
+                        <TableRow
+                          key={index}
+                          className={`hover:bg-muted/20 transition-colors ${index % 2 === 0 ? "" : "bg-muted/10"}`}
+                        >
+                          <TableCell className="pl-6 text-muted-foreground text-sm">{index + 1}</TableCell>
+                          <TableCell className="font-medium text-sm">{formatDisplayDate(record.date)}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{record.day}</TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
+                              {record.start}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 dark:text-rose-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                              {record.end}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1 text-sm font-semibold">
+                              <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                              {record.duration}
+                            </span>
+                          </TableCell>
+                          <TableCell className="pr-6">
+                            <Badge
+                              variant={record.status === "Full Day" ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {record.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-                {/* Table footer summary */}
-                <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/20 text-xs text-muted-foreground">
+                {/* Table footer summary — always visible */}
+                <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/20 text-xs text-muted-foreground shrink-0">
                   <span>Showing {filtered.length} record{filtered.length !== 1 ? "s" : ""}</span>
                   <span className="font-semibold">Total: {minsToHours(summary.totalMins)}</span>
                 </div>
               </div>
 
               {/* ── Mobile Cards ── */}
-              <div className="md:hidden divide-y divide-border">
-                {filtered.map((record, index) => (
-                  <div key={index} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="font-semibold text-sm">{formatDisplayDate(record.date)}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{record.day}</p>
+              <div className="md:hidden flex flex-col">
+                <div className="overflow-y-auto max-h-[420px] divide-y divide-border">
+                  {filtered.map((record, index) => (
+                    <div key={index} className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-semibold text-sm">{formatDisplayDate(record.date)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{record.day}</p>
+                        </div>
+                        <Badge variant={record.status === "Full Day" ? "default" : "secondary"} className="text-xs shrink-0">
+                          {record.status}
+                        </Badge>
                       </div>
-                      <Badge variant={record.status === "Full Day" ? "default" : "secondary"} className="text-xs shrink-0">
-                        {record.status}
-                      </Badge>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-green-50 dark:bg-green-950/30 rounded-lg px-3 py-2">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Start</p>
+                          <p className="text-sm font-bold text-green-700 dark:text-green-400">{record.start}</p>
+                        </div>
+                        <div className="bg-rose-50 dark:bg-rose-950/30 rounded-lg px-3 py-2">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">End</p>
+                          <p className="text-sm font-bold text-rose-600 dark:text-rose-400">{record.end}</p>
+                        </div>
+                        <div className="bg-muted/60 rounded-lg px-3 py-2">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Hours</p>
+                          <p className="text-sm font-bold">{record.duration}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-green-50 dark:bg-green-950/30 rounded-lg px-3 py-2">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Start</p>
-                        <p className="text-sm font-bold text-green-700 dark:text-green-400">{record.start}</p>
-                      </div>
-                      <div className="bg-rose-50 dark:bg-rose-950/30 rounded-lg px-3 py-2">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">End</p>
-                        <p className="text-sm font-bold text-rose-600 dark:text-rose-400">{record.end}</p>
-                      </div>
-                      <div className="bg-muted/60 rounded-lg px-3 py-2">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Hours</p>
-                        <p className="text-sm font-bold">{record.duration}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {/* Mobile footer */}
-                <div className="flex items-center justify-between px-4 py-3 bg-muted/20 text-xs text-muted-foreground">
+                  ))}
+                </div>
+                {/* Mobile footer — always visible */}
+                <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20 text-xs text-muted-foreground shrink-0">
                   <span>{filtered.length} record{filtered.length !== 1 ? "s" : ""}</span>
                   <span className="font-semibold">Total: {minsToHours(summary.totalMins)}</span>
                 </div>

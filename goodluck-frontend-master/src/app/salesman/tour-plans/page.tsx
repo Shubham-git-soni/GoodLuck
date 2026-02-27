@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Calendar, MapPin, School, Users, CheckCircle2,
-  Clock, XCircle, ChevronRight, Plus, Filter,
+  Clock, XCircle, ChevronRight, Plus, Filter, X,
 } from "lucide-react";
 import { format } from "date-fns";
 import PageContainer from "@/components/layouts/PageContainer";
@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { mockTourPlans, type TourPlan, type TourPlanStatus, type TourPlanVisit } from "@/lib/mock-data/tour-plans";
+import { type TourPlan, type TourPlanStatus, type TourPlanVisit } from "@/lib/mock-data/tour-plans";
+// Dummy API (replace with real API calls when backend is ready)
+import { getTourPlans } from "@/lib/dummy-api";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -141,7 +143,7 @@ function TourPlanCard({ plan, onClick }: { plan: TourPlan; onClick: () => void }
   );
 }
 
-// ─── Detail Sheet ─────────────────────────────────────────────────────────────
+// ─── Detail Side Panel (same style as admin approvals) ────────────────────────
 
 function TourPlanDetail({ plan, onClose }: { plan: TourPlan; onClose: () => void }) {
   const cfg = STATUS_CONFIG[plan.status];
@@ -156,46 +158,55 @@ function TourPlanDetail({ plan, onClose }: { plan: TourPlan; onClose: () => void
   const sortedDates = Object.keys(byDate).sort();
 
   return (
-    <>
-      <div className="fixed inset-0 z-[100] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-[101] bg-background rounded-t-3xl shadow-2xl flex flex-col md:hidden"
-        style={{ maxHeight: "92dvh" }}>
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-        </div>
+    <div className="fixed inset-0 z-[150]" aria-modal="true">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+      {/* Side Panel — slides in from right on all screen sizes */}
+      <div className="absolute top-0 right-0 h-full w-full sm:w-[420px] bg-background border-l shadow-2xl flex flex-col animate-in slide-in-from-right duration-250">
         {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-2 pb-4 border-b shrink-0">
-          <div>
+        <div className="flex items-start gap-3 px-5 py-4 border-b bg-muted/30 shrink-0">
+          <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{plan.id}</p>
-            <p className="font-bold text-base">{fmtDate(plan.startDate)} → {fmtDate(plan.endDate)}</p>
+            <h3 className="text-base font-bold leading-snug">
+              {fmtDate(plan.startDate)} → {fmtDate(plan.endDate)}
+            </h3>
             <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold mt-2 ${cfg.badgeClass}`}>
               <StatusIcon className="h-3 w-3" />{cfg.label}
             </span>
           </div>
-          <button type="button" onClick={onClose}
-            className="h-8 w-8 rounded-full bg-muted flex items-center justify-center mt-1 shrink-0">
-            <span className="text-base text-muted-foreground font-medium">✕</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 w-8 rounded-xl bg-muted hover:bg-border flex items-center justify-center shrink-0 transition-colors mt-0.5"
+          >
+            <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {/* Reviewer note */}
           {plan.reviewerNote && (
             <div className={`rounded-2xl px-4 py-3 text-sm ${cfg.bgClass} ${cfg.textClass}`}>
               <p className="font-semibold text-xs uppercase tracking-wider mb-1 opacity-70">Reviewer Note</p>
               <p>{plan.reviewerNote}</p>
             </div>
           )}
+
+          {/* Visits grouped by date */}
           {sortedDates.map(date => (
             <div key={date}>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                {format(new Date(date), "EEE, dd MMM yyyy")}
+                {format(new Date(date), "EEEE, dd MMM yyyy")}
               </p>
-              <div className="space-y-2 pl-1">
+              <div className="space-y-2">
                 {byDate[date].map((v, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-xl border border-border/60 p-3">
-                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                       {v.type === "school"
                         ? <School className="h-4 w-4 text-primary" />
                         : <Users className="h-4 w-4 text-primary" />}
@@ -216,72 +227,22 @@ function TourPlanDetail({ plan, onClose }: { plan: TourPlan; onClose: () => void
               </div>
             </div>
           ))}
-        </div>
-        <div className="px-5 py-4 border-t shrink-0">
-          <Button variant="outline" className="w-full h-11 rounded-2xl" onClick={onClose}>Close</Button>
-        </div>
-      </div>
 
-      {/* Desktop: centered dialog */}
-      <div className="fixed inset-0 z-[100] hidden md:flex items-center justify-center p-6">
-        <div className="bg-background rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[88dvh]">
-          <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b shrink-0">
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{plan.id}</p>
-              <p className="font-bold text-lg">{fmtDate(plan.startDate)} → {fmtDate(plan.endDate)}</p>
-              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold mt-2 ${cfg.badgeClass}`}>
-                <StatusIcon className="h-3 w-3" />{cfg.label}
-              </span>
-            </div>
-            <button type="button" onClick={onClose}
-              className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-              <span className="text-base text-muted-foreground font-medium">✕</span>
-            </button>
-          </div>
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-            {plan.reviewerNote && (
-              <div className={`rounded-2xl px-4 py-3 text-sm ${cfg.bgClass} ${cfg.textClass}`}>
-                <p className="font-semibold text-xs uppercase tracking-wider mb-1 opacity-70">Reviewer Note</p>
-                <p>{plan.reviewerNote}</p>
-              </div>
-            )}
-            {sortedDates.map(date => (
-              <div key={date}>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
-                  {format(new Date(date), "EEEE, dd MMM yyyy")}
-                </p>
-                <div className="grid grid-cols-2 gap-2 pl-1">
-                  {byDate[date].map((v, i) => (
-                    <div key={i} className="flex items-start gap-3 rounded-xl border border-border/60 p-3">
-                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        {v.type === "school"
-                          ? <School className="h-4 w-4 text-primary" />
-                          : <Users className="h-4 w-4 text-primary" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{v.entityName}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <MapPin className="h-3 w-3 shrink-0" />{v.city}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {v.objectives.map(o => (
-                            <span key={o} className="inline-flex rounded-md bg-primary/8 text-primary px-2 py-0.5 text-[10px] font-medium">{o}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="px-6 py-4 border-t shrink-0 flex justify-end">
-            <Button variant="outline" className="rounded-xl" onClick={onClose}>Close</Button>
-          </div>
+          {/* Meta footer info */}
+          <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+            Submitted {fmtDate(plan.submittedOn)}
+            {plan.reviewedOn && ` · Reviewed ${fmtDate(plan.reviewedOn)}`}
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t bg-background shrink-0">
+          <Button variant="outline" className="w-full h-11 rounded-2xl" onClick={onClose}>
+            Close
+          </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -293,17 +254,37 @@ export default function TourPlansPage() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("all");
   const [selectedPlan, setSelectedPlan] = useState<TourPlan | null>(null);
+  const [allPlans, setAllPlans] = useState<TourPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const pending  = mockTourPlans.filter(p => p.status === "pending").length;
-  const approved = mockTourPlans.filter(p => p.status === "approved").length;
-  const rejected = mockTourPlans.filter(p => p.status === "rejected").length;
+  function loadPlans() {
+    getTourPlans().then((data) => {
+      setAllPlans(data);
+      setIsLoading(false);
+    });
+  }
+
+  useEffect(() => {
+    loadPlans();
+    // Re-fetch whenever the tab regains focus so admin approval changes reflect immediately
+    const onFocus = () => getTourPlans().then(setAllPlans);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") getTourPlans().then(setAllPlans);
+    });
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  const pending  = allPlans.filter(p => p.status === "pending").length;
+  const approved = allPlans.filter(p => p.status === "approved").length;
+  const rejected = allPlans.filter(p => p.status === "rejected").length;
 
   const filtered = activeFilter === "all"
-    ? mockTourPlans
-    : mockTourPlans.filter(p => p.status === activeFilter);
+    ? allPlans
+    : allPlans.filter(p => p.status === activeFilter);
 
   const FILTERS: { id: FilterStatus; label: string }[] = [
-    { id: "all",      label: `All (${mockTourPlans.length})` },
+    { id: "all",      label: `All (${allPlans.length})` },
     { id: "pending",  label: `Pending (${pending})` },
     { id: "approved", label: `Approved (${approved})` },
     { id: "rejected", label: `Rejected (${rejected})` },
@@ -370,7 +351,15 @@ export default function TourPlansPage() {
       </div>
 
       {/* Plan list */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4"><div className="h-20 bg-muted rounded-xl" /></CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Filter className="h-10 w-10 text-muted-foreground mb-3" />

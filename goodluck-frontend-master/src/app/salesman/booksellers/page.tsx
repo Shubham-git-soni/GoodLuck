@@ -20,7 +20,8 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { BookSeller } from "@/types";
 import { toast } from "sonner";
 
-import bookSellersData from "@/lib/mock-data/book-sellers.json";
+// Dummy API (replace with real API calls when backend is ready)
+import { getBookSellers, addBookSeller } from "@/lib/dummy-api";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 
 export default function BookSellerListPage() {
@@ -36,12 +37,11 @@ export default function BookSellerListPage() {
   });
 
   useEffect(() => {
-    setTimeout(() => {
-      const assigned = bookSellersData.filter((b) => b.assignedTo === "SM001");
-      setBookSellers(assigned as BookSeller[]);
-      setFilteredSellers(assigned as BookSeller[]);
+    getBookSellers({ salesmanId: "SM001" }).then((data) => {
+      setBookSellers(data);
+      setFilteredSellers(data);
       setIsLoading(false);
-    }, 800);
+    });
   }, []);
 
   useEffect(() => {
@@ -60,11 +60,23 @@ export default function BookSellerListPage() {
 
   const resetForm = () => setNewSeller({ shopName: "", ownerName: "", city: "", address: "", contactNumber: "", email: "", gstNumber: "", creditLimit: "" });
 
-  const handleAddSeller = () => {
+  const handleAddSeller = async () => {
     if (!newSeller.shopName || !newSeller.ownerName || !newSeller.city) {
       toast.error("Please fill all required fields");
       return;
     }
+    const added = await addBookSeller({
+      shopName: newSeller.shopName,
+      ownerName: newSeller.ownerName,
+      city: newSeller.city,
+      address: newSeller.address,
+      phone: newSeller.contactNumber,
+      email: newSeller.email,
+      gstNumber: newSeller.gstNumber,
+      creditLimit: newSeller.creditLimit ? Number(newSeller.creditLimit) : undefined,
+      assignedTo: "SM001",
+    });
+    setBookSellers((prev) => [added, ...prev]);
     toast.success("Book seller added successfully! Pending admin approval.");
     setIsMobileSheetOpen(false);
     setIsDesktopDialogOpen(false);

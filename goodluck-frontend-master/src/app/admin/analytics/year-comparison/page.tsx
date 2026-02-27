@@ -5,12 +5,11 @@ import { TrendingUp, TrendingDown, Minus, Award, School, Download, Save, BookOpe
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
 import { toast } from "sonner";
 
@@ -182,6 +181,79 @@ export default function YearComparisonPage() {
     return <div className="flex items-center text-slate-500"><Minus className="h-4 w-4 mr-1" />Stable</div>;
   };
 
+  const YEAR_COLUMNS: GridColumn<YearData>[] = [
+    {
+      key: "name", header: "School Name", pinned: "left", minWidth: 200, render: (_, row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-sm">{row.name}</span>
+          <span className="text-xs text-muted-foreground">{row.board}</span>
+        </div>
+      )
+    },
+    { key: "city", header: "City", width: 120 },
+    {
+      key: "activeYears", header: "Retained", width: 100, align: "center", render: (val: number) => (
+        <Badge variant={val === 3 ? "default" : val === 2 ? "secondary" : "outline"} className="text-[10px]">
+          {val} Yrs
+        </Badge>
+      )
+    },
+
+    // 2022-2023 Data
+    { key: "books2023", header: "22-23 Books", width: 130, render: (val: string) => <div className="truncate text-slate-500 text-xs" title={val}>{val}</div> },
+    { key: "sales2023", header: "22-23 Sales", width: 100, align: "right", render: (val: number) => <span className="text-xs text-slate-500">{val > 0 ? `₹${val.toLocaleString()}` : '-'}</span> },
+
+    // 2023-2024 Data
+    { key: "books2024", header: "23-24 Books", width: 130, render: (val: string) => <div className="truncate text-blue-800 text-xs" title={val}>{val}</div> },
+    { key: "sales2024", header: "23-24 Sales", width: 100, align: "right", render: (val: number) => <span className="text-xs font-medium text-blue-800">{val > 0 ? `₹${val.toLocaleString()}` : '-'}</span> },
+
+    // 2024-2025 Data
+    { key: "books2025", header: "24-25 Books", width: 130, render: (val: string) => <div className="truncate text-emerald-800 text-xs" title={val}>{val}</div> },
+    { key: "sales2025", header: "24-25 Sales", width: 100, align: "right", render: (val: number) => <span className="text-xs font-bold text-emerald-800">{val > 0 ? `₹${val.toLocaleString()}` : '-'}</span> },
+
+    // Analysis
+    { key: "trend", header: "Trend", width: 110, render: (_, row) => getTrendIcon(row.trend, row.growth) },
+    {
+      key: "salesTarget", header: "Sales Target", width: 120, render: (val: number, row) => (
+        <Input
+          type="number"
+          className="h-8 w-24 text-xs"
+          value={val}
+          onChange={(e) => handleRowChange(row.id, "salesTarget", Number(e.target.value))}
+        />
+      )
+    },
+    {
+      key: "growthApproach", header: "Growth Strategy", width: 140, render: (val: string, row) => (
+        <Select value={val} onValueChange={(v) => handleRowChange(row.id, "growthApproach", v)}>
+          <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Acquisition">Acquisition</SelectItem>
+            <SelectItem value="Cross-sell">Cross-sell</SelectItem>
+            <SelectItem value="Upsell">Upsell</SelectItem>
+            <SelectItem value="Retention">Retention</SelectItem>
+          </SelectContent>
+        </Select>
+      )
+    },
+    {
+      key: "brandLoyalty", header: "Loyalty", width: 120, render: (val: string, row) => (
+        <Select value={val} onValueChange={(v) => handleRowChange(row.id, "brandLoyalty", v)}>
+          <SelectTrigger className="h-8 w-[90px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="High">High</SelectItem>
+            <SelectItem value="Medium">Medium</SelectItem>
+            <SelectItem value="Low">Low</SelectItem>
+          </SelectContent>
+        </Select>
+      )
+    },
+  ];
+
+  const rowActions: RowAction<YearData>[] = [
+    { label: "Save", icon: <Save className="h-3.5 w-3.5" />, onClick: (row) => handleSave(row.name) }
+  ];
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -281,148 +353,20 @@ export default function YearComparisonPage() {
         </div>
       </div>
 
-      {/* Complex Data Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>School Performance & Projection ({filteredSchools.length})</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                {/* Header Row 1: Grouping Years */}
-                <TableRow className="bg-slate-50 hover:bg-slate-50 text-xs">
-                  <TableHead rowSpan={2} className="w-[50px]">S.No</TableHead>
-                  <TableHead rowSpan={2} className="min-w-[150px]">School Name</TableHead>
-                  <TableHead rowSpan={2}>City</TableHead>
-                  <TableHead rowSpan={2}>Retained</TableHead>
-
-                  {/* Grouped Headers */}
-                  <TableHead colSpan={2} className="text-center border-l border-r border-slate-200 bg-slate-100/50 text-slate-700 font-bold">2022-2023</TableHead>
-                  <TableHead colSpan={2} className="text-center border-r border-slate-200 bg-blue-50/50 text-blue-900 font-bold">2023-2024</TableHead>
-                  <TableHead colSpan={2} className="text-center border-r border-slate-200 bg-emerald-50/50 text-emerald-900 font-bold">2024-2025</TableHead>
-
-                  <TableHead rowSpan={2} className="border-l">Trend</TableHead>
-                  <TableHead rowSpan={2} className="min-w-[100px]">Sales Target</TableHead>
-                  <TableHead rowSpan={2} className="min-w-[130px]">Growth Strategy</TableHead>
-                  <TableHead rowSpan={2} className="min-w-[110px]">Loyalty</TableHead>
-                  <TableHead rowSpan={2}>Save</TableHead>
-                </TableRow>
-
-                {/* Header Row 2: Sub-columns */}
-                <TableRow>
-                  {/* 2022-23 Sub-columns */}
-                  <TableHead className="border-l border-slate-200 bg-slate-100/30 text-[10px] uppercase">Books</TableHead>
-                  <TableHead className="bg-slate-100/30 text-[10px] uppercase border-r">Sales</TableHead>
-
-                  {/* 2023-24 Sub-columns */}
-                  <TableHead className="bg-blue-50/30 text-[10px] uppercase text-blue-900">Books</TableHead>
-                  <TableHead className="bg-blue-50/30 text-[10px] uppercase text-blue-900 border-r">Sales</TableHead>
-
-                  {/* 2024-25 Sub-columns */}
-                  <TableHead className="bg-emerald-50/30 text-[10px] uppercase text-emerald-900">Books</TableHead>
-                  <TableHead className="bg-emerald-50/30 text-[10px] uppercase text-emerald-900 border-r">Sales</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {filteredSchools.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
-                      No schools found matching your criteria
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredSchools.map((school, index) => (
-                    <TableRow key={school.id} className="group hover:bg-slate-50/50">
-                      <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-
-                      {/* Fixed Info */}
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-sm">{school.name}</span>
-                          <span className="text-xs text-muted-foreground">{school.board}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-slate-600">{school.city}</TableCell>
-                      <TableCell>
-                        <Badge variant={school.activeYears === 3 ? "default" : school.activeYears === 2 ? "secondary" : "outline"} className="text-[10px]">
-                          {school.activeYears} Yrs
-                        </Badge>
-                      </TableCell>
-
-                      {/* 2022-2023 Data */}
-                      <TableCell className="border-l text-xs max-w-[120px]">
-                        <div className="truncate text-slate-500" title={school.books2023}>{school.books2023}</div>
-                      </TableCell>
-                      <TableCell className="text-xs text-slate-500 border-r">{school.sales2023 > 0 ? `₹${school.sales2023.toLocaleString()}` : '-'}</TableCell>
-
-                      {/* 2023-2024 Data */}
-                      <TableCell className="text-xs max-w-[120px] bg-blue-50/10">
-                        <div className="truncate text-blue-800" title={school.books2024}>{school.books2024}</div>
-                      </TableCell>
-                      <TableCell className="text-xs font-medium text-blue-800 bg-blue-50/10 border-r">{school.sales2024 > 0 ? `₹${school.sales2024.toLocaleString()}` : '-'}</TableCell>
-
-                      {/* 2024-2025 Data */}
-                      <TableCell className="text-xs max-w-[120px] bg-emerald-50/10">
-                        <div className="truncate text-emerald-800" title={school.books2025}>{school.books2025}</div>
-                      </TableCell>
-                      <TableCell className="text-xs font-bold text-emerald-800 bg-emerald-50/10 border-r">{school.sales2025 > 0 ? `₹${school.sales2025.toLocaleString()}` : '-'}</TableCell>
-
-                      {/* Trend */}
-                      <TableCell className="border-l">
-                        {getTrendIcon(school.trend, school.growth)}
-                      </TableCell>
-
-                      {/* Inputs */}
-                      <TableCell>
-                        <Input
-                          type="number"
-                          className="h-8 w-24 text-xs"
-                          value={school.salesTarget}
-                          onChange={(e) => handleRowChange(school.id, "salesTarget", Number(e.target.value))}
-                        />
-                      </TableCell>
-
-                      <TableCell>
-                        <Select value={school.growthApproach} onValueChange={(val) => handleRowChange(school.id, "growthApproach", val)}>
-                          <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Acquisition">Acquisition</SelectItem>
-                            <SelectItem value="Cross-sell">Cross-sell</SelectItem>
-                            <SelectItem value="Upsell">Upsell</SelectItem>
-                            <SelectItem value="Retention">Retention</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-
-                      <TableCell>
-                        <Select value={school.brandLoyalty} onValueChange={(val) => handleRowChange(school.id, "brandLoyalty", val)}>
-                          <SelectTrigger className="h-8 w-[90px] text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="High">High</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="Low">Low</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-
-                      <TableCell>
-                        <Button size="icon" variant="ghost" onClick={() => handleSave(school.name)} className="h-8 w-8 text-blue-600 hover:bg-blue-50">
-                          <Save className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Data Grid Component */}
+      <DataGrid
+        data={filteredSchools}
+        columns={YEAR_COLUMNS}
+        rowKey="id"
+        defaultPageSize={15}
+        title={`School Performance & Projection (${filteredSchools.length})`}
+        selectable
+        enableRowPinning
+        striped
+        inlineFilters
+        rowActions={rowActions}
+        className="border shadow-sm rounded-xl overflow-hidden"
+      />
     </PageContainer>
   );
 }

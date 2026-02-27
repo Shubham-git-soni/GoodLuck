@@ -89,10 +89,10 @@ export default function SalesmanDashboard() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Salesman Not Found</h2>
           <p className="text-muted-foreground mb-4">The requested salesman does not exist.</p>
-          <Link href="/admin/team">
+          <Link href="/admin/users">
             <Button>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Team
+              Back to User Master
             </Button>
           </Link>
         </div>
@@ -136,10 +136,10 @@ export default function SalesmanDashboard() {
     <PageContainer>
       {/* Header */}
       <div className="mb-6">
-        <Link href="/admin/team">
+        <Link href="/admin/users">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Team
+            Back to User Master
           </Button>
         </Link>
         <PageHeader

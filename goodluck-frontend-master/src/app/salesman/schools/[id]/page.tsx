@@ -13,8 +13,8 @@ import { ProfileSkeleton } from "@/components/ui/skeleton-loaders";
 import { School } from "@/types";
 import Link from "next/link";
 
-// Import mock data
-import schoolsData from "@/lib/mock-data/schools.json";
+// Dummy API (replace with real API calls when backend is ready)
+import { getSchoolById } from "@/lib/dummy-api";
 import visitsData from "@/lib/mock-data/visits.json";
 
 export default function SchoolProfilePage() {
@@ -25,19 +25,16 @@ export default function SchoolProfilePage() {
   const [visits, setVisits] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => {
-      const schoolData = schoolsData.find((s) => s.id === params.id);
+    getSchoolById(params.id as string).then((schoolData) => {
       if (schoolData) {
-        setSchool(schoolData as School);
-        // Get visit history for this school
+        setSchool(schoolData);
         const schoolVisits = visitsData.filter(
           (v) => v.type === "school" && v.schoolId === params.id
         );
         setVisits(schoolVisits);
       }
       setIsLoading(false);
-    }, 800);
+    });
   }, [params.id]);
 
   if (isLoading) {
@@ -96,8 +93,8 @@ export default function SchoolProfilePage() {
           <h1 className="text-2xl md:text-3xl font-bold mb-2">{school.name}</h1>
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{school.board}</Badge>
-            {school.isPattakat && (
-              <Badge variant="destructive">Pattakat</Badge>
+            {school.isBlocked && (
+              <Badge variant="destructive">Blocked</Badge>
             )}
             <Badge variant="outline">{school.visitCount} visits</Badge>
           </div>

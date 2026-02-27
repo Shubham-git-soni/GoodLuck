@@ -12,8 +12,8 @@ import { ProfileSkeleton } from "@/components/ui/skeleton-loaders";
 import { BookSeller } from "@/types";
 import Link from "next/link";
 
-// Import mock data
-import bookSellersData from "@/lib/mock-data/book-sellers.json";
+// Dummy API (replace with real API calls when backend is ready)
+import { getBookSellerById } from "@/lib/dummy-api";
 
 export default function BookSellerProfilePage() {
   const params = useParams();
@@ -22,13 +22,10 @@ export default function BookSellerProfilePage() {
   const [seller, setSeller] = useState<BookSeller | null>(null);
 
   useEffect(() => {
-    setTimeout(() => {
-      const sellerData = bookSellersData.find((s) => s.id === params.id);
-      if (sellerData) {
-        setSeller(sellerData as BookSeller);
-      }
+    getBookSellerById(params.id as string).then((sellerData) => {
+      if (sellerData) setSeller(sellerData);
       setIsLoading(false);
-    }, 800);
+    });
   }, [params.id]);
 
   if (isLoading) {

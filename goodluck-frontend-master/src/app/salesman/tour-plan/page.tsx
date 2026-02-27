@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Calendar, Trash2, Save, MapPin, School, Users, CalendarIcon } from "lucide-react";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
@@ -20,9 +20,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { toast } from "sonner";
 import { School as SchoolType } from "@/types";
-import schoolsData from "@/lib/mock-data/schools.json";
-import bookSellersData from "@/lib/mock-data/book-sellers.json";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
+// Dummy API (replace with real API calls when backend is ready)
+import { addTourPlan, getSchools, getBookSellers } from "@/lib/dummy-api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -165,9 +165,14 @@ export default function TourPlanPage() {
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
 
-  // Data
-  const schools = (schoolsData as SchoolType[]).filter(s => s.assignedTo === "SM001");
-  const booksellers = (bookSellersData as any[]).filter(b => b.assignedTo === "SM001");
+  // Data — loaded from dummy API
+  const [schools, setSchools] = useState<SchoolType[]>([]);
+  const [booksellers, setBooksellers] = useState<any[]>([]);
+
+  useEffect(() => {
+    getSchools({ salesmanId: "SM001" }).then(data => setSchools(data as SchoolType[]));
+    getBookSellers({ salesmanId: "SM001" }).then(data => setBooksellers(data));
+  }, []);
 
   const MAX_DAYS = 15;
 
@@ -249,7 +254,9 @@ export default function TourPlanPage() {
     toast.success("Removed from tour plan");
   };
 
-  const handleSubmitPlan = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitPlan = async () => {
     if (!startDate || !endDate) {
       toast.error("Please select date range");
       return;
@@ -258,8 +265,27 @@ export default function TourPlanPage() {
       toast.error("Please add at least one visit to the tour plan");
       return;
     }
-    toast.success("Tour plan submitted for approval!");
-    setTimeout(() => router.push("/salesman/tour-plans"), 1500);
+    setIsSubmitting(true);
+    try {
+      await addTourPlan({
+        startDate,
+        endDate,
+        visits: plannedVisits.map(v => ({
+          type: v.type,
+          entityId: v.entityId,
+          entityName: v.entityName,
+          city: v.city,
+          objectives: v.objectives,
+          date: v.date,
+        })),
+        salesmanId: "SM001",
+      });
+      toast.success("Tour plan submitted for approval!");
+      setTimeout(() => router.push("/salesman/tour-plans"), 1000);
+    } catch {
+      toast.error("Failed to submit tour plan. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   const visitsByDate = plannedVisits.reduce((acc, visit) => {
@@ -571,10 +597,10 @@ export default function TourPlanPage() {
           </div>
 
           <div className="flex justify-end gap-3 pb-6">
-            <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button onClick={handleSubmitPlan}>
+            <Button variant="outline" onClick={() => router.back()} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleSubmitPlan} disabled={isSubmitting}>
               <Save className="h-4 w-4 mr-2" />
-              Submit for Approval
+              {isSubmitting ? "Submitting..." : "Submit for Approval"}
             </Button>
           </div>
         </>

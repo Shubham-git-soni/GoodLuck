@@ -19,8 +19,8 @@ import EmptyState from "@/components/ui/empty-state";
 import { School } from "@/types";
 import { toast } from "sonner";
 
-// Import mock data
-import schoolsData from "@/lib/mock-data/schools.json";
+// Dummy API (replace with real API calls when backend is ready)
+import { getSchools, addSchool } from "@/lib/dummy-api";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 
 export default function SchoolListPage() {
@@ -47,14 +47,11 @@ export default function SchoolListPage() {
   });
 
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => {
-      // Filter schools for current salesman (SM001)
-      const assignedSchools = schoolsData.filter((s) => s.assignedTo === "SM001");
-      setSchools(assignedSchools as School[]);
-      setFilteredSchools(assignedSchools as School[]);
+    getSchools({ salesmanId: "SM001" }).then((data) => {
+      setSchools(data);
+      setFilteredSchools(data);
       setIsLoading(false);
-    }, 800);
+    });
   }, []);
 
   useEffect(() => {
@@ -88,8 +85,8 @@ export default function SchoolListPage() {
         filtered = filtered.filter((school) => school.visitCount === 1);
       } else if (visitFilter === "2+") {
         filtered = filtered.filter((school) => school.visitCount >= 2);
-      } else if (visitFilter === "pattakat") {
-        filtered = filtered.filter((school) => school.isPattakat);
+      } else if (visitFilter === "blocked") {
+        filtered = filtered.filter((school) => school.isBlocked);
       }
     }
 
@@ -101,12 +98,25 @@ export default function SchoolListPage() {
   const cities = ["all", ...Array.from(new Set(schools.map((s) => s.city)))];
 
   // Handle Add School Submit
-  const handleAddSchool = () => {
+  const handleAddSchool = async () => {
     if (!newSchool.name || !newSchool.city || !newSchool.board) {
       toast.error("Please fill all required fields");
       return;
     }
 
+    const added = await addSchool({
+      name: newSchool.name,
+      city: newSchool.city,
+      board: newSchool.board,
+      strength: newSchool.strength ? Number(newSchool.strength) : undefined,
+      address: newSchool.address,
+      assignedTo: "SM001",
+      contactPersonName: newSchool.contactPersonName,
+      contactPersonDesignation: newSchool.contactPersonDesignation,
+      contactPersonMobile: newSchool.contactPersonMobile,
+    });
+
+    setSchools((prev) => [added, ...prev]);
     toast.success("School added successfully! Pending admin approval.");
     setIsMobileSheetOpen(false);
     setIsDesktopDialogOpen(false);
@@ -436,7 +446,7 @@ export default function SchoolListPage() {
             <SelectItem value="0">Not Visited</SelectItem>
             <SelectItem value="1">Visited Once</SelectItem>
             <SelectItem value="2+">Visited 2+ times</SelectItem>
-            <SelectItem value="pattakat">Pattakat</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={() => { setSearchQuery(""); setBoardFilter("all"); setCityFilter("all"); setVisitFilter("all"); }}>
@@ -476,7 +486,7 @@ export default function SchoolListPage() {
               <SelectItem value="0">Not Visited</SelectItem>
               <SelectItem value="1">Visited Once</SelectItem>
               <SelectItem value="2+">2+ Visits</SelectItem>
-              <SelectItem value="pattakat">Pattakat</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
             </SelectContent>
           </Select>
 
@@ -540,9 +550,9 @@ export default function SchoolListPage() {
                             <Badge variant="secondary" className="text-xs">
                               {school.board}
                             </Badge>
-                            {school.isPattakat && (
+                            {school.isBlocked && (
                               <Badge variant="destructive" className="text-xs">
-                                Pattakat
+                                Blocked
                               </Badge>
                             )}
                             <Badge

@@ -20,7 +20,7 @@ export default function SchoolAnalyticsPage() {
   useEffect(() => {
     setTimeout(() => {
       const total = schoolsData.length;
-      const pattakat = schoolsData.filter((s) => s.isPattakat).length;
+      const blocked = schoolsData.filter((s) => s.isBlocked).length;
       const notVisited = schoolsData.filter((s) => s.visitCount === 0).length;
       const visitedOnce = schoolsData.filter((s) => s.visitCount === 1).length;
       const visitedTwicePlus = schoolsData.filter((s) => s.visitCount >= 2).length;
@@ -35,7 +35,7 @@ export default function SchoolAnalyticsPage() {
         return {
           salesman: sm.name,
           total: assigned.length,
-          pattakat: assigned.filter((s) => s.isPattakat).length,
+          blocked: assigned.filter((s) => s.isBlocked).length,
           notVisited: assigned.filter((s) => s.visitCount === 0).length,
           visitedTwicePlus: assigned.filter((s) => s.visitCount >= 2).length,
         };
@@ -43,7 +43,7 @@ export default function SchoolAnalyticsPage() {
 
       setAnalytics({
         total,
-        pattakat,
+        blocked,
         notVisited,
         visitedOnce,
         visitedTwicePlus,
@@ -77,9 +77,9 @@ export default function SchoolAnalyticsPage() {
           icon={School}
         />
         <StatsCard
-          title="Pattakat Schools"
-          value={analytics.pattakat}
-          description={`${((analytics.pattakat / analytics.total) * 100).toFixed(1)}% of total`}
+          title="Blocked Schools"
+          value={analytics.blocked}
+          description={`${((analytics.blocked / analytics.total) * 100).toFixed(1)}% of total`}
           icon={AlertCircle}
         />
         <StatsCard
@@ -168,8 +168,8 @@ export default function SchoolAnalyticsPage() {
                       <p className="text-lg font-bold">{sm.total}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Pattakat</p>
-                      <p className="text-lg font-bold text-destructive">{sm.pattakat}</p>
+                      <p className="text-xs text-muted-foreground">Blocked</p>
+                      <p className="text-lg font-bold text-destructive">{sm.blocked}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Not Visited</p>

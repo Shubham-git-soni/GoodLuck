@@ -13,7 +13,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { getTodaysVisits } from "@/lib/mock-data/tour-plans";
+// Dummy API (replace with real API calls when backend is ready)
+import { getTodaysVisitsAsync } from "@/lib/dummy-api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,18 +40,21 @@ export default function TodayVisitsPage() {
   const [locationPermission, setLocationPermission] = useState<"granted" | "denied" | "pending">("pending");
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  // Load today's visits from approved tour plans
+  // Load today's visits from dummy API (approved tour plans for today)
   useEffect(() => {
-    const todayVisits = getTodaysVisits().map((v, i) => ({
-      id: `TV-${i}`,
-      type: v.type,
-      entityName: v.entityName,
-      city: v.city,
-      objectives: v.objectives,
-      planId: v.planId,
-      status: "pending" as VisitStatus,
-    }));
-    setVisits(todayVisits);
+    getTodaysVisitsAsync().then((data) => {
+      setVisits(
+        data.map((v, i) => ({
+          id: `TV-${i}`,
+          type: v.type,
+          entityName: v.entityName,
+          city: v.city,
+          objectives: v.objectives,
+          planId: v.planId,
+          status: "pending" as VisitStatus,
+        }))
+      );
+    });
   }, []);
 
   // Request location on mount

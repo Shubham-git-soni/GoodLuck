@@ -13,9 +13,17 @@ interface StepProps {
   updateFormData: (data: any) => void;
 }
 
+// Synthetic ID used when a school name is pre-filled from tour plan but not found in JSON
+const PREFILL_ID = "__prefill__";
+
 export default function StepSchoolSelection({ formData, updateFormData }: StepProps) {
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<any>(null);
+
+  // Determine if we're in "prefill fallback" mode — name given but no JSON match
+  const isPrefillMode = !formData.schoolId && !!formData.prefillSchoolName;
+  // The value to pass to <Select> — use synthetic ID when in prefill mode
+  const selectValue = formData.schoolId || (isPrefillMode ? PREFILL_ID : "");
 
   // Get unique cities — SM001 assigned + include pre-filled city from tour plan
   const availableCities = Array.from(
@@ -27,14 +35,15 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
 
   useEffect(() => {
     if (formData.city) {
-      // Show all schools in the city assigned to SM001
-      // Also include the pre-filled school even if it belongs to another salesman
-      const citySchools = schoolsData.filter((s) => s.city === formData.city && s.assignedTo === "SM001");
-      // If pre-filled schoolId is in this city but not in SM001 list, include it anyway
+      // All schools in the selected city assigned to SM001
+      const citySchools = (schoolsData as any[]).filter(
+        (s) => s.city === formData.city && s.assignedTo === "SM001"
+      );
+      // Always include the pre-filled school (different assignee / city mismatch)
       if (formData.schoolId) {
-        const preFilledSchool = schoolsData.find((s) => s.id === formData.schoolId && s.city === formData.city);
-        if (preFilledSchool && !citySchools.find((s) => s.id === preFilledSchool.id)) {
-          citySchools.push(preFilledSchool);
+        const preFilledSchool = (schoolsData as any[]).find((s) => s.id === formData.schoolId);
+        if (preFilledSchool && !citySchools.find((s: any) => s.id === preFilledSchool.id)) {
+          citySchools.unshift(preFilledSchool);
         }
       }
       setSchools(citySchools);
@@ -45,11 +54,13 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
 
   useEffect(() => {
     if (formData.schoolId) {
-      const school = schoolsData.find((s) => s.id === formData.schoolId);
+      const school = (schoolsData as any[]).find((s) => s.id === formData.schoolId);
       setSelectedSchool(school || null);
       if (school && !formData.city) {
         updateFormData({ city: school.city });
       }
+    } else {
+      setSelectedSchool(null);
     }
   }, [formData.schoolId, formData.city, updateFormData]);
 
@@ -61,7 +72,7 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
         <Select
           value={formData.city}
           onValueChange={(value) => {
-            updateFormData({ city: value, schoolId: "" });
+            updateFormData({ city: value, schoolId: "", prefillSchoolName: "" });
             setSelectedSchool(null);
           }}
         >
@@ -82,10 +93,11 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
       <div className="space-y-2">
         <Label htmlFor="school">School *</Label>
         <Select
-          value={formData.schoolId}
+          value={selectValue}
           onValueChange={(value) => {
-            updateFormData({ schoolId: value });
-            const school = schoolsData.find((s) => s.id === value);
+            if (value === PREFILL_ID) return; // synthetic option — no-op
+            updateFormData({ schoolId: value, prefillSchoolName: "" });
+            const school = (schoolsData as any[]).find((s) => s.id === value);
             setSelectedSchool(school || null);
           }}
           disabled={!formData.city}
@@ -94,6 +106,12 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
             <SelectValue placeholder="Select school" />
           </SelectTrigger>
           <SelectContent>
+            {/* Synthetic option when school from tour plan isn't in JSON */}
+            {isPrefillMode && (
+              <SelectItem value={PREFILL_ID} className="text-muted-foreground italic">
+                {formData.prefillSchoolName}
+              </SelectItem>
+            )}
             {schools.map((school) => (
               <SelectItem key={school.id} value={school.id}>
                 {school.name}
@@ -103,6 +121,11 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
         </Select>
         {!formData.city && (
           <p className="text-xs text-muted-foreground">Please select a city first</p>
+        )}
+        {isPrefillMode && (
+          <p className="text-xs text-amber-600">
+            School from tour plan — not in database. You may select a different school above.
+          </p>
         )}
       </div>
 
@@ -123,7 +146,7 @@ export default function StepSchoolSelection({ formData, updateFormData }: StepPr
         </Select>
       </div>
 
-      {/* School Details (Auto-populated) */}
+      {/* School Details (Auto-populated from JSON) */}
       {selectedSchool && (
         <Card className="bg-muted/50">
           <CardContent className="pt-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Calendar, TrendingUp, Users, BarChart3, Filter, MapPin,
   Download, ArrowUpRight, ArrowDownRight, School, BookOpen,
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -57,6 +57,11 @@ function prevPeriod(arr: any[], range: string) {
   if (range === "month") return arr.filter(v => v.date.startsWith("2025-10"));
   return [];
 }
+
+const statusBadge = (v: any) => {
+  if (v.status === "Completed") return <Badge variant="default" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3" />Completed</Badge>;
+  return <Badge variant="outline" className="text-[10px] gap-1"><Clock3 className="h-3 w-3" />Scheduled</Badge>;
+};
 
 // ─── Component ────────────────────────────────────────────────────────────
 export default function VisitAnalyticsPage() {
@@ -138,14 +143,129 @@ export default function VisitAnalyticsPage() {
   const reset = () => { setDateRange("month"); setStateFilter("all"); setSalesmanFilter("all"); setTypeFilter("all"); };
   const exportCSV = () => toast.success("Exporting visit report...");
 
-  const statusBadge = (v: any) => {
-    if (v.status === "Completed") return <Badge variant="default" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3" />Completed</Badge>;
-    return <Badge variant="outline" className="text-[10px] gap-1"><Clock3 className="h-3 w-3" />Scheduled</Badge>;
-  };
-
   if (isLoading) return <PageContainer><DashboardSkeleton /></PageContainer>;
 
   const totalChg = pctChange(kpis.total, kpis.prevTot);
+
+  const SUMMARY_COLUMNS: GridColumn<any>[] = useMemo(() => [
+    { key: "sr", header: "Sr.", width: 60, pinned: "left", sortable: false, filterable: false, render: (_, __, i) => <span className="text-muted-foreground text-xs">{i + 1}</span> },
+    {
+      key: "name", header: "Salesperson", width: 220, pinned: "left", sortable: true, render: (_, row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-sm">{row.name}</span>
+          <span className="text-[10px] text-muted-foreground">{row.id} · {row.region}</span>
+        </div>
+      )
+    },
+    { key: "state", header: "State", width: 120, filterable: true, sortable: true },
+    { key: "school", header: "School", align: "center", width: 100, sortable: true, render: (v) => <span className="font-semibold text-primary">{v}</span> },
+    { key: "bs", header: "Bookseller", align: "center", width: 100, sortable: true, render: (v) => <span className="font-semibold text-teal-700">{v}</span> },
+    { key: "total", header: "Total", align: "center", width: 90, sortable: true, render: (v) => <span className="font-bold">{v}</span> },
+    { key: "specimens", header: "Specimens", align: "center", width: 100, sortable: true, render: (v) => <span className="text-amber-700">{v}</span> },
+    {
+      key: "share",
+      header: "Share",
+      width: 140,
+      sortable: false,
+      render: (_, row) => {
+        const pct = kpis.total > 0 ? Math.round((row.total / kpis.total) * 100) : 0;
+        return (
+          <div className="flex items-center gap-2 w-full">
+            <Progress value={pct} className="h-1.5 flex-1" />
+            <span className="text-xs text-muted-foreground w-8">{pct}%</span>
+          </div>
+        );
+      }
+    }
+  ], [kpis.total]);
+
+  const LOG_COLUMNS: GridColumn<any>[] = useMemo(() => [
+    {
+      key: "date", header: "Date", width: 120, pinned: "left", sortable: true, render: (v) => (
+        <span className="text-xs whitespace-nowrap font-medium">
+          {new Date(v as string).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+        </span>
+      )
+    },
+    { key: "salesmanName", header: "Salesperson", width: 180, sortable: true, filterable: true, render: (v) => <span className="text-sm font-medium">{v as string}</span> },
+    { key: "visited", header: "Visited", width: 200, sortable: false, filterable: true, render: (_, row) => <span className="text-sm">{row.schoolName || row.bookSellerName || "—"}</span> },
+    {
+      key: "type", header: "Type", width: 110, sortable: true, render: (v) => (
+        <Badge variant={v === "school" ? "default" : "secondary"} className="text-[10px]">
+          {v === "school" ? "School" : "Bookseller"}
+        </Badge>
+      )
+    },
+    {
+      key: "purposes", header: "Purpose", width: 180, sortable: false, render: (v) => (
+        <span className="truncate block text-xs text-muted-foreground w-full">{(v as string[])?.join(", ") || "—"}</span>
+      )
+    },
+    {
+      key: "specimens", header: "Specimens", align: "center", width: 110, sortable: false, render: (_, row) => (
+        (row.specimensGiven as any[])?.length > 0
+          ? <Badge variant="outline" className="text-[10px] text-amber-700">{row.specimensGiven.length} books</Badge>
+          : <span className="text-xs text-muted-foreground">—</span>
+      )
+    },
+    { key: "status", header: "Status", width: 110, sortable: true, render: (_, row) => statusBadge(row) },
+  ], []);
+
+  const expandedRowRender = useCallback((v: any) => (
+    <div className="p-4 bg-muted/10 border-t border-b border-border/50">
+      <div className="grid sm:grid-cols-3 gap-6 text-sm">
+        {/* Contacts */}
+        {(v.contacts as any[])?.length > 0 && (
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Contacts Met</p>
+            <div className="space-y-1.5">
+              {(v.contacts as any[]).map((c: any) => (
+                <div key={c.id} className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{c.name}</span>
+                  <Badge variant="secondary" className="text-[10px] bg-background">{c.role}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Specimens */}
+        {(v.specimensGiven as any[])?.length > 0 && (
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Specimens Given</p>
+            <div className="space-y-1.5">
+              {(v.specimensGiven as any[]).map((s: any, i: number) => (
+                <div key={i} className="text-sm">
+                  <span className="font-medium">{s.book}</span>
+                  <span className="text-muted-foreground ml-1">×{s.quantity} <span className="text-[10px]">(₹{s.cost})</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Feedback + Next Visit */}
+        <div className="space-y-4">
+          {v.feedback && (
+            <div>
+              <p className="font-semibold text-xs text-muted-foreground uppercase mb-1.5">Feedback</p>
+              <Badge variant="outline" className="text-[10px] mb-1.5 bg-background">{v.feedback.category}</Badge>
+              <p className="text-sm text-foreground/80 leading-relaxed">{v.feedback.comment}</p>
+            </div>
+          )}
+          {v.nextVisit && (
+            <div>
+              <p className="font-semibold text-xs text-muted-foreground uppercase mb-1.5">Next Check-in</p>
+              <p className="text-sm font-medium">
+                {new Date(v.nextVisit.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                <span className="text-muted-foreground font-normal ml-1.5">· {v.nextVisit.purpose}</span>
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ), []);
 
   return (
     <PageContainer>
@@ -357,182 +477,32 @@ export default function VisitAnalyticsPage() {
 
         {/* ─ Salesman Summary ─ */}
         <TabsContent value="summary">
-          <Card>
-            <CardContent className="p-0">
-              <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="w-10">Sr.</TableHead>
-                      <TableHead>Salesperson</TableHead>
-                      <TableHead>State</TableHead>
-                      <TableHead className="text-center text-primary">School</TableHead>
-                      <TableHead className="text-center text-teal-700">Bookseller</TableHead>
-                      <TableHead className="text-center">Total</TableHead>
-                      <TableHead className="text-center text-amber-700">Specimens</TableHead>
-                      <TableHead>Share</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bySalesman.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No visits found.</TableCell></TableRow>
-                    ) : bySalesman.map((sm, i) => {
-                      const pct = kpis.total > 0 ? Math.round((sm.total / kpis.total) * 100) : 0;
-                      return (
-                        <TableRow key={sm.id} className="hover:bg-slate-50/50">
-                          <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-sm">{sm.name}</span>
-                              <span className="text-[10px] text-muted-foreground">{sm.id} · {sm.region}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs">{sm.state}</TableCell>
-                          <TableCell className="text-center font-semibold text-primary">{sm.school}</TableCell>
-                          <TableCell className="text-center font-semibold text-teal-700">{sm.bs}</TableCell>
-                          <TableCell className="text-center font-bold">{sm.total}</TableCell>
-                          <TableCell className="text-center text-amber-700">{sm.specimens}</TableCell>
-                          <TableCell className="min-w-[100px]">
-                            <div className="flex items-center gap-2">
-                              <Progress value={pct} className="h-1.5 flex-1" />
-                              <span className="text-xs text-muted-foreground w-8">{pct}%</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <DataGrid
+            data={bySalesman}
+            columns={SUMMARY_COLUMNS}
+            rowKey="id"
+            defaultPageSize={10}
+            enableRowPinning
+            inlineFilters
+            striped
+            showStats={false}
+          />
         </TabsContent>
 
         {/* ─ Visit Log ─ */}
         <TabsContent value="log">
-          <Card>
-            <CardContent className="p-0">
-              <div className="max-h-[480px] overflow-y-auto overflow-x-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="w-8"></TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Salesperson</TableHead>
-                      <TableHead>Visited</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Purpose</TableHead>
-                      <TableHead className="text-center">Specimens</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No visits found.</TableCell></TableRow>
-                    ) : (filtered as any[]).map((v) => {
-                      const expanded = expandedId === v.id;
-                      return [
-                        <TableRow
-                          key={v.id}
-                          className="cursor-pointer hover:bg-slate-50/70"
-                          onClick={() => setExpandedId(expanded ? null : v.id)}
-                        >
-                          <TableCell>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                            </Button>
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap font-medium">
-                            {new Date(v.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm font-medium">{v.salesmanName}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">{v.schoolName || v.bookSellerName || "—"}</span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={v.type === "school" ? "default" : "secondary"} className="text-[10px]">
-                              {v.type === "school" ? "School" : "Bookseller"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[150px]">
-                            <span className="truncate block">{(v.purposes as string[])?.join(", ") || "—"}</span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {(v.specimensGiven as any[])?.length > 0
-                              ? <Badge variant="outline" className="text-[10px] text-amber-700">{v.specimensGiven.length} books</Badge>
-                              : <span className="text-xs text-muted-foreground">—</span>
-                            }
-                          </TableCell>
-                          <TableCell>{statusBadge(v)}</TableCell>
-                        </TableRow>,
-
-                        /* ── Expanded Detail Row ── */
-                        expanded && (
-                          <TableRow key={`${v.id}-detail`} className="bg-muted/20">
-                            <TableCell colSpan={8} className="p-4">
-                              <div className="grid sm:grid-cols-3 gap-4 text-sm">
-                                {/* Contacts */}
-                                {(v.contacts as any[])?.length > 0 && (
-                                  <div>
-                                    <p className="font-semibold text-xs text-muted-foreground uppercase mb-1.5">Contacts Met</p>
-                                    <div className="space-y-1">
-                                      {(v.contacts as any[]).map((c: any) => (
-                                        <div key={c.id} className="flex items-center gap-1.5">
-                                          <span className="font-medium">{c.name}</span>
-                                          <Badge variant="secondary" className="text-[9px]">{c.role}</Badge>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Specimens */}
-                                {(v.specimensGiven as any[])?.length > 0 && (
-                                  <div>
-                                    <p className="font-semibold text-xs text-muted-foreground uppercase mb-1.5">Specimens Given</p>
-                                    <div className="space-y-1">
-                                      {(v.specimensGiven as any[]).map((s: any, i: number) => (
-                                        <div key={i} className="text-xs">
-                                          <span className="font-medium">{s.book}</span>
-                                          <span className="text-muted-foreground ml-1">×{s.quantity} (₹{s.cost})</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Feedback + Next Visit */}
-                                <div className="space-y-3">
-                                  {v.feedback && (
-                                    <div>
-                                      <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Feedback</p>
-                                      <Badge variant="outline" className="text-[10px] mb-1">{v.feedback.category}</Badge>
-                                      <p className="text-xs text-muted-foreground">{v.feedback.comment}</p>
-                                    </div>
-                                  )}
-                                  {v.nextVisit && (
-                                    <div>
-                                      <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Next Visit</p>
-                                      <p className="text-xs">
-                                        {new Date(v.nextVisit.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                                        <span className="text-muted-foreground ml-1">· {v.nextVisit.purpose}</span>
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ),
-                      ];
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <DataGrid
+            data={filtered}
+            columns={LOG_COLUMNS}
+            rowKey="id"
+            defaultPageSize={10}
+            enableRowPinning
+            inlineFilters
+            striped
+            expandedRowRender={expandedRowRender}
+            dateFilterKey="date"
+            showStats={false}
+          />
         </TabsContent>
       </Tabs>
     </PageContainer>

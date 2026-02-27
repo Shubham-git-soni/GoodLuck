@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Filter, Plus, MapPin, Calendar, Users, ChevronRight, X, Trash2, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Filter, Plus, X, Trash2, UserPlus, Eye, Pencil, Phone, Mail, UserCircle } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -19,6 +19,8 @@ import { ListItemSkeleton } from "@/components/ui/skeleton-loaders";
 import EmptyState from "@/components/ui/empty-state";
 import { School } from "@/types";
 import { toast } from "sonner";
+import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 // Import mock data
 import schoolsData from "@/lib/mock-data/schools.json";
@@ -65,15 +67,13 @@ const defaultForm = (): NewSchoolForm => ({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SchoolListPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [schools, setSchools] = useState<School[]>([]);
-  const [filteredSchools, setFilteredSchools] = useState<School[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [boardFilter, setBoardFilter] = useState("all");
-  const [cityFilter, setCityFilter] = useState("all");
-  const [visitFilter, setVisitFilter] = useState("all");
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [isDesktopDialogOpen, setIsDesktopDialogOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
+  const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
 
   // Add School Form State
@@ -82,33 +82,14 @@ export default function SchoolListPage() {
   useEffect(() => {
     setTimeout(() => {
       setSchools(schoolsData as School[]);
-      setFilteredSchools(schoolsData as School[]);
       setIsLoading(false);
     }, 800);
   }, []);
 
-  useEffect(() => {
-    let filtered = schools;
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (school) =>
-          school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          school.city.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    if (boardFilter !== "all") filtered = filtered.filter((s) => s.board === boardFilter);
-    if (cityFilter !== "all") filtered = filtered.filter((s) => s.city === cityFilter);
-    if (visitFilter !== "all") {
-      if (visitFilter === "0") filtered = filtered.filter((s) => s.visitCount === 0);
-      else if (visitFilter === "1") filtered = filtered.filter((s) => s.visitCount === 1);
-      else if (visitFilter === "2+") filtered = filtered.filter((s) => s.visitCount >= 2);
-      else if (visitFilter === "pattakat") filtered = filtered.filter((s) => s.isPattakat);
-    }
-    setFilteredSchools(filtered);
-  }, [searchQuery, boardFilter, cityFilter, visitFilter, schools]);
-
-  const boards = ["all", ...Array.from(new Set(schools.map((s) => s.board)))];
-  const cities = ["all", ...Array.from(new Set(schools.map((s) => s.city)))];
+  const handleSchoolChange = (id: string, updates: Partial<School>) => {
+    setSchools((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+    toast.success("School updated successfully", { id: "update-school" });
+  };
 
   // ── Contact Persons Handlers ────────────────────────────────────────────
   const updateContact = (idx: number, field: keyof ContactPerson, value: string) => {
@@ -131,7 +112,12 @@ export default function SchoolListPage() {
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────
-  const handleAddSchool = () => {
+  const handleSubmitSchool = () => {
+    if (modalMode === "view") {
+      setIsMobileSheetOpen(false);
+      setIsDesktopDialogOpen(false);
+      return;
+    }
     if (!newSchool.name || !newSchool.city || !newSchool.board) {
       toast.error("Please fill all required fields in Basic Info");
       setActiveTab("basic");
@@ -143,23 +129,42 @@ export default function SchoolListPage() {
       setActiveTab("contacts");
       return;
     }
-    toast.success(`School "${newSchool.name}" added with ${newSchool.contacts.length} contact(s)!`);
+    if (modalMode === "add") {
+      toast.success(`School "${newSchool.name}" added with ${newSchool.contacts.length} contact(s)!`);
+    } else {
+      toast.success(`School "${newSchool.name}" updated successfully!`);
+    }
     setIsMobileSheetOpen(false);
     setIsDesktopDialogOpen(false);
     setNewSchool(defaultForm());
     setActiveTab("basic");
   };
 
-  const openDialog = () => {
-    setNewSchool(defaultForm());
+  const openModal = (mode: "add" | "edit" | "view", school?: School) => {
+    setModalMode(mode);
+    setActiveSchoolId(school?.id || null);
+    if (school) {
+      setNewSchool({
+        name: school.name,
+        city: school.city,
+        board: school.board,
+        strength: school.strength?.toString() || "",
+        email: school.contacts?.[0]?.email || "",
+        contactNo: school.contacts?.[0]?.phone || "",
+        address: school.address || "",
+        contacts: school.contacts?.length ? school.contacts.map(c => ({
+          id: c.id, name: c.name, designation: c.role || "", email: c.email || "", mobile: c.phone || ""
+        })) : [emptyContact()]
+      });
+    } else {
+      setNewSchool(defaultForm());
+    }
     setActiveTab("basic");
-    setIsDesktopDialogOpen(true);
-  };
-
-  const openSheet = () => {
-    setNewSchool(defaultForm());
-    setActiveTab("basic");
-    setIsMobileSheetOpen(true);
+    if (window.innerWidth < 768) {
+      setIsMobileSheetOpen(true);
+    } else {
+      setIsDesktopDialogOpen(true);
+    }
   };
 
   if (isLoading) {
@@ -173,6 +178,73 @@ export default function SchoolListPage() {
     );
   }
 
+  const SCHOOL_COLUMNS: GridColumn<School>[] = [
+    { key: "name", header: "School Name", pinned: "left", minWidth: 200, sortable: true, filterable: true, render: (_, row) => <span className="font-semibold text-sm text-primary">{row.name}</span> },
+    { key: "id", header: "School ID", width: 100, sortable: true, filterable: true, render: (val) => <span className="text-xs text-muted-foreground">{val}</span> },
+    { key: "board", header: "Board", width: 90, sortable: true, filterable: true, render: (val) => <Badge variant="secondary" className="text-[10px]">{val}</Badge> },
+    { key: "strength", header: "Strength", width: 100, sortable: true, align: "right", render: (val) => <span className="text-xs font-medium">{val?.toLocaleString() || "0"}</span> },
+    { key: "contact", header: "Contact", width: 110, render: (_, row) => <span className="text-xs text-muted-foreground">{row.contacts?.[0]?.phone || "N/A"}</span> },
+    { key: "email", header: "Email", width: 180, render: (_, row) => <div className="text-xs text-muted-foreground truncate" title={row.contacts?.[0]?.email}>{row.contacts?.[0]?.email || "N/A"}</div> },
+    { key: "visitCount", header: "Visits", width: 80, sortable: true, align: "center", render: (val) => <Badge variant={val >= 2 ? "default" : "outline"} className="text-[10px]">{val}</Badge> },
+    { key: "address", header: "Address", width: 220, render: (val) => <div className="text-xs text-muted-foreground truncate" title={val}>{val}</div> },
+    { key: "state", header: "State", width: 120, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val}</span> },
+    { key: "city", header: "City", width: 120, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val}</span> },
+    {
+      key: "station", header: "Station", width: 150, sortable: true, filterable: true, render: (val, row) => {
+        const allStations = Array.from(new Set(schools.map(s => s.station))).filter(Boolean);
+        return (
+          <Select value={val || ""} onValueChange={(newStation) => handleSchoolChange(row.id, { station: newStation })}>
+            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Station" /></SelectTrigger>
+            <SelectContent>
+              {allStations.map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        );
+      }
+    },
+    {
+      key: "salesTarget", header: "Sales Target", width: 140, align: "right", render: (_, row) => (
+        <div className="relative flex items-center">
+          <span className="absolute left-2 text-xs text-muted-foreground font-medium">₹</span>
+          <Input
+            type="number"
+            className="h-8 w-28 text-xs text-right pl-6 font-medium text-emerald-700 hide-arrows"
+            value={row.salesPlan?.targetRevenue || ""}
+            onChange={(e) => handleSchoolChange(row.id, { salesPlan: { ...row.salesPlan, targetRevenue: Number(e.target.value), subjects: row.salesPlan?.subjects || [], expectedConversion: row.salesPlan?.expectedConversion || 0 } })}
+          />
+        </div>
+      )
+    },
+    {
+      key: "tryToPrescribe", header: "Try to Prescribe", width: 300, render: (_, row) => {
+        const selectedSubjects = row.prescribedBooks?.map(b => b.subject) || [];
+        return (
+          <MultiSelect
+            options={dropdownOptions.subjects.map(sub => ({ label: sub, value: sub }))}
+            value={selectedSubjects}
+            onChange={(newSubjects) => {
+              const currentBooks = row.prescribedBooks || [];
+              const booksToKeep = currentBooks.filter(b => newSubjects.includes(b.subject));
+              const currentSubjects = currentBooks.map(b => b.subject);
+              const booksToAdd = newSubjects.filter(sub => !currentSubjects.includes(sub)).map(sub => ({
+                subject: sub, class: "Any", book: `${sub} Book`, status: "Under Review"
+              }));
+              handleSchoolChange(row.id, { prescribedBooks: [...booksToKeep, ...booksToAdd] });
+            }}
+            placeholder="Select books..."
+            className="[&_div[role=button]]:min-h-8 [&_div[role=button]]:py-1 [&_div[role=button]]:px-2 text-xs w-[260px]"
+          />
+        );
+      }
+    }
+  ];
+
+  const rowActions: RowAction<School>[] = [
+    { label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: (s) => openModal("view", s) },
+    { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (s) => openModal("edit", s) },
+    { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: () => toast.info("Delete confirmed..."), danger: true },
+  ];
+
   // ── Shared Basic Info Fields ─────────────────────────────────────────────
   const BasicInfoFields = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="grid gap-4">
@@ -182,6 +254,8 @@ export default function SchoolListPage() {
           value={newSchool.name}
           onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
           placeholder="Enter school name"
+          readOnly={modalMode === "view"}
+          className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
         />
       </div>
 
@@ -189,12 +263,12 @@ export default function SchoolListPage() {
         <div className="grid gap-2">
           <Label>City <span className="text-destructive">*</span></Label>
           {isMobile ? (
-            <NativeSelect value={newSchool.city} onValueChange={(v) => setNewSchool({ ...newSchool, city: v })} placeholder="Select city">
+            <NativeSelect disabled={modalMode === "view"} value={newSchool.city} onValueChange={(v) => setNewSchool({ ...newSchool, city: v })} placeholder="Select city">
               {dropdownOptions.cities.map((c) => <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>)}
             </NativeSelect>
           ) : (
-            <Select value={newSchool.city} onValueChange={(v) => setNewSchool({ ...newSchool, city: v })}>
-              <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+            <Select disabled={modalMode === "view"} value={newSchool.city} onValueChange={(v) => setNewSchool({ ...newSchool, city: v })}>
+              <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}><SelectValue placeholder="Select city" /></SelectTrigger>
               <SelectContent>{dropdownOptions.cities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           )}
@@ -202,12 +276,12 @@ export default function SchoolListPage() {
         <div className="grid gap-2">
           <Label>Board <span className="text-destructive">*</span></Label>
           {isMobile ? (
-            <NativeSelect value={newSchool.board} onValueChange={(v) => setNewSchool({ ...newSchool, board: v })} placeholder="Select board">
+            <NativeSelect disabled={modalMode === "view"} value={newSchool.board} onValueChange={(v) => setNewSchool({ ...newSchool, board: v })} placeholder="Select board">
               {dropdownOptions.boards.map((b) => <NativeSelectOption key={b} value={b}>{b}</NativeSelectOption>)}
             </NativeSelect>
           ) : (
-            <Select value={newSchool.board} onValueChange={(v) => setNewSchool({ ...newSchool, board: v })}>
-              <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
+            <Select disabled={modalMode === "view"} value={newSchool.board} onValueChange={(v) => setNewSchool({ ...newSchool, board: v })}>
+              <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}><SelectValue placeholder="Select board" /></SelectTrigger>
               <SelectContent>{dropdownOptions.boards.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
             </Select>
           )}
@@ -222,6 +296,8 @@ export default function SchoolListPage() {
             value={newSchool.strength}
             onChange={(e) => setNewSchool({ ...newSchool, strength: e.target.value })}
             placeholder="e.g. 800"
+            readOnly={modalMode === "view"}
+            className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
           />
         </div>
         <div className="grid gap-2">
@@ -233,6 +309,8 @@ export default function SchoolListPage() {
             value={newSchool.contactNo}
             onChange={(e) => setNewSchool({ ...newSchool, contactNo: e.target.value.replace(/\D/g, "") })}
             placeholder="10-digit number"
+            readOnly={modalMode === "view"}
+            className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
           />
         </div>
       </div>
@@ -244,6 +322,8 @@ export default function SchoolListPage() {
           value={newSchool.email}
           onChange={(e) => setNewSchool({ ...newSchool, email: e.target.value })}
           placeholder="school@example.com"
+          readOnly={modalMode === "view"}
+          className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
         />
       </div>
 
@@ -267,7 +347,7 @@ export default function SchoolListPage() {
           {/* Contact # heading + remove button */}
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-muted-foreground">Contact Person {idx + 1}</p>
-            {newSchool.contacts.length > 1 && (
+            {newSchool.contacts.length > 1 && modalMode !== "view" && (
               <Button
                 type="button"
                 variant="ghost"
@@ -287,18 +367,20 @@ export default function SchoolListPage() {
                 value={contact.name}
                 onChange={(e) => updateContact(idx, "name", e.target.value)}
                 placeholder="Contact person name"
+                readOnly={modalMode === "view"}
+                className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
               />
             </div>
 
             <div className="grid gap-2">
               <Label>Designation</Label>
               {isMobile ? (
-                <NativeSelect value={contact.designation} onValueChange={(v) => updateContact(idx, "designation", v)} placeholder="Select designation">
+                <NativeSelect disabled={modalMode === "view"} value={contact.designation} onValueChange={(v) => updateContact(idx, "designation", v)} placeholder="Select designation">
                   {dropdownOptions.contactRoles.map((r) => <NativeSelectOption key={r} value={r}>{r}</NativeSelectOption>)}
                 </NativeSelect>
               ) : (
-                <Select value={contact.designation} onValueChange={(v) => updateContact(idx, "designation", v)}>
-                  <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                <Select disabled={modalMode === "view"} value={contact.designation} onValueChange={(v) => updateContact(idx, "designation", v)}>
+                  <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}><SelectValue placeholder="Select designation" /></SelectTrigger>
                   <SelectContent>
                     {dropdownOptions.contactRoles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                   </SelectContent>
@@ -316,6 +398,8 @@ export default function SchoolListPage() {
                   value={contact.mobile}
                   onChange={(e) => updateContact(idx, "mobile", e.target.value.replace(/\D/g, ""))}
                   placeholder="10-digit number"
+                  readOnly={modalMode === "view"}
+                  className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -325,6 +409,8 @@ export default function SchoolListPage() {
                   value={contact.email}
                   onChange={(e) => updateContact(idx, "email", e.target.value)}
                   placeholder="Email address"
+                  readOnly={modalMode === "view"}
+                  className={modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}
                 />
               </div>
             </div>
@@ -332,15 +418,17 @@ export default function SchoolListPage() {
         </div>
       ))}
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full border-dashed text-muted-foreground hover:text-foreground"
-        onClick={addContact}
-      >
-        <UserPlus className="h-4 w-4 mr-2" />
-        Add Another Contact Person
-      </Button>
+      {modalMode !== "view" && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full border-dashed text-muted-foreground hover:text-foreground"
+          onClick={addContact}
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Add Another Contact Person
+        </Button>
+      )}
     </div>
   );
 
@@ -381,8 +469,12 @@ export default function SchoolListPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-2 pb-3 shrink-0">
               <div>
-                <h2 className="text-lg font-bold tracking-tight">Add New School</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Fill both tabs before submitting</p>
+                <h2 className="text-lg font-bold tracking-tight">
+                  {modalMode === "add" ? "Add New School" : modalMode === "edit" ? "Edit School" : "View School Details"}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {modalMode === "view" ? "School details and contact persons." : "Fill both tabs before submitting"}
+                </p>
               </div>
               <button onClick={() => setIsMobileSheetOpen(false)} className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
                 <X className="h-4 w-4" />
@@ -394,8 +486,8 @@ export default function SchoolListPage() {
             </div>
             {/* Footer */}
             <div className="px-5 pt-3 pb-6 border-t bg-background shrink-0">
-              <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleAddSchool}>
-                Submit for Approval
+              <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleSubmitSchool}>
+                {modalMode === "view" ? "Close" : modalMode === "edit" ? "Save Changes" : "Submit for Approval"}
               </Button>
             </div>
           </div>
@@ -404,19 +496,25 @@ export default function SchoolListPage() {
 
       {/* ── Desktop Dialog ── */}
       <Dialog open={isDesktopDialogOpen} onOpenChange={setIsDesktopDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New School</DialogTitle>
+        <DialogContent className="!w-[75vw] !max-w-[75vw] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-4 shrink-0 border-b">
+            <DialogTitle>
+              {modalMode === "add" ? "Add New School" : modalMode === "edit" ? "Edit School" : "View School Details"}
+            </DialogTitle>
             <DialogDescription>
-              Fill in the Basic Info and add Contact Persons. Multiple contacts are supported.
+              {modalMode === "view" ? "Review the complete school profile." : "Fill in the Basic Info and add Contact Persons. Multiple contacts are supported."}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
+          <div className="flex-1 overflow-y-auto px-6 py-5 bg-muted/10">
             <TabbedForm />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDesktopDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddSchool}>Submit for Approval</Button>
+          <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+            <Button variant="outline" onClick={() => setIsDesktopDialogOpen(false)}>Close</Button>
+            {modalMode !== "view" && (
+              <Button onClick={handleSubmitSchool}>
+                {modalMode === "edit" ? "Save Changes" : "Submit for Approval"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -427,7 +525,7 @@ export default function SchoolListPage() {
           title="All Schools"
           description={`${schools.length} total schools`}
           action={
-            <Button size="sm" onClick={openDialog}>
+            <Button size="sm" onClick={() => openModal("add")}>
               <Plus className="h-4 w-4 mr-2" />
               Add School
             </Button>
@@ -442,149 +540,59 @@ export default function SchoolListPage() {
             <h1 className="text-xl font-bold tracking-tight">All Schools</h1>
             <p className="text-xs text-muted-foreground mt-0.5">{schools.length} total schools</p>
           </div>
-          <Button size="sm" className="h-9 px-3" onClick={openSheet}>
+          <Button size="sm" className="h-9 px-3" onClick={() => openModal("add")}>
             <Plus className="h-4 w-4 mr-1.5" />Add
           </Button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search schools by name or city..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
 
-      {/* Desktop filters */}
-      <div className="hidden md:grid md:grid-cols-4 gap-3 mb-6">
-        <Select value={boardFilter} onValueChange={setBoardFilter}>
-          <SelectTrigger><SelectValue placeholder="All Boards" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Boards</SelectItem>
-            {boards.slice(1).map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={cityFilter} onValueChange={setCityFilter}>
-          <SelectTrigger><SelectValue placeholder="All Cities" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Cities</SelectItem>
-            {cities.slice(1).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={visitFilter} onValueChange={setVisitFilter}>
-          <SelectTrigger><SelectValue placeholder="Visit Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="0">Not Visited</SelectItem>
-            <SelectItem value="1">Visited Once</SelectItem>
-            <SelectItem value="2+">Visited 2+ times</SelectItem>
-            <SelectItem value="pattakat">Pattakat</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" onClick={() => { setSearchQuery(""); setBoardFilter("all"); setCityFilter("all"); setVisitFilter("all"); }}>
-          <Filter className="h-4 w-4 mr-2" />Reset
-        </Button>
-      </div>
-
-      {/* Mobile filters */}
-      <div className="md:hidden mb-4">
-        <div className="flex gap-2 items-center">
-          <Select value={boardFilter} onValueChange={setBoardFilter}>
-            <SelectTrigger className="h-9 text-xs flex-1 min-w-0"><SelectValue placeholder="Board" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Boards</SelectItem>
-              {boards.slice(1).map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="h-9 text-xs flex-1 min-w-0"><SelectValue placeholder="City" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {cities.slice(1).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={visitFilter} onValueChange={setVisitFilter}>
-            <SelectTrigger className="h-9 text-xs flex-1 min-w-0"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="0">Not Visited</SelectItem>
-              <SelectItem value="1">Visited Once</SelectItem>
-              <SelectItem value="2+">2+ Visits</SelectItem>
-              <SelectItem value="pattakat">Pattakat</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={() => { setSearchQuery(""); setBoardFilter("all"); setCityFilter("all"); setVisitFilter("all"); }}>
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-muted-foreground">
-            Showing {filteredSchools.length} of {schools.length} schools
-          </p>
-        </div>
-      </div>
-
-      {/* Results Count — desktop only */}
-      <div className="hidden md:block mb-4">
-        <p className="text-sm text-muted-foreground">Showing {filteredSchools.length} of {schools.length} schools</p>
-      </div>
 
       {/* School List */}
-      {filteredSchools.length === 0 ? (
-        <EmptyState
-          icon={Search}
-          title="No schools found"
-          description="Try adjusting your search or filter criteria"
-          action={{ label: "Reset Filters", onClick: () => { setSearchQuery(""); setBoardFilter("all"); setCityFilter("all"); setVisitFilter("all"); } }}
-        />
-      ) : (
-        <div className="space-y-3">
-          {filteredSchools.map((school) => (
-            <Link key={school.id} href={`/admin/lists/schools/${school.id}`}>
-              <Card className="hover:shadow-md transition-all cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-base mb-1 truncate">{school.name}</h3>
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            <Badge variant="secondary" className="text-xs">{school.board}</Badge>
-                            {school.isPattakat && <Badge variant="destructive" className="text-xs">Pattakat</Badge>}
-                            <Badge variant={school.visitCount >= 2 ? "default" : "outline"} className="text-xs">
-                              {school.visitCount} visits
-                            </Badge>
-                          </div>
-                          <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1.5">
-                              <MapPin className="h-3.5 w-3.5" /><span>{school.city}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Users className="h-3.5 w-3.5" /><span>{school.strength} students</span>
-                            </div>
-                            {school.lastVisitDate && (
-                              <div className="flex items-center gap-1.5">
-                                <Calendar className="h-3.5 w-3.5" />
-                                <span>Last visit: {new Date(school.lastVisitDate).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
-                      </div>
+      <DataGrid
+        data={schools}
+        columns={SCHOOL_COLUMNS}
+        rowKey="id"
+        defaultPageSize={15}
+        selectable
+        enableRowPinning
+        striped
+        inlineFilters
+        density="compact"
+        rowActions={rowActions}
+        canExpandRow={(row) => !!(row.contacts && row.contacts.length > 0)}
+        expandedRowRender={(row) => {
+          if (!row.contacts || row.contacts.length === 0) return null;
+          return (
+            <div className="bg-[#fafafa] dark:bg-muted/10 p-6 shadow-[inset_0_5px_8px_-4px_rgba(0,0,0,0.05)]">
+              <div className="mb-4 flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                <UserCircle className="h-4 w-4" />
+                {row.contacts.length} Contact Person{row.contacts.length !== 1 ? "s" : ""}
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {row.contacts.map((contact, idx) => (
+                  <div key={idx} className="flex flex-col gap-1 p-3 rounded-lg bg-background border border-border/50 shadow-sm min-w-[200px]">
+                    <div className="font-semibold text-sm">{contact.name}</div>
+                    {contact.role && <div className="text-xs text-muted-foreground">{contact.role}</div>}
+                    <div className="flex items-center gap-2 mt-2 text-xs">
+                      <Phone className="h-3 w-3 text-muted-foreground" />
+                      <span>{contact.phone || "N/A"}</span>
                     </div>
+                    {contact.email && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span className="truncate max-w-[150px]" title={contact.email}>{contact.email}</span>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+                ))}
+              </div>
+            </div>
+          );
+        }}
+        className="border shadow-sm rounded-xl overflow-hidden"
+        emptyMessage="No schools found matching your criteria"
+      />
     </PageContainer>
   );
 }

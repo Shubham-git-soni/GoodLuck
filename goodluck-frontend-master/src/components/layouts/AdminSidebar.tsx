@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -14,62 +14,55 @@ import {
   MessageSquare,
   Settings,
   FileText,
-  Award,
   TrendingUp,
-  Database,
-  Palette,
   UserCog,
   Store,
-  User,
-  Menu,
   CalendarCheck,
   Receipt,
   ClipboardList,
-
   Globe,
-
-  LogOut
+  Bell,
+  LogOut,
+  ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { getAdminUnreadCount } from "@/lib/dummy-api";
 
+// ─── Nav groups ───────────────────────────────────────────────────────────────
 const navGroups = [
   {
     label: "Overview",
     items: [
       { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/approvals", label: "Approvals", icon: ClipboardList, badge: "approvals" },
+      { href: "/admin/notifications", label: "Notifications", icon: Bell, badge: "notifications" },
     ],
-
   },
-
   {
     label: "Reports",
     items: [
       { href: "/admin/reports/attendance", label: "Attendance Report", icon: BarChart3 },
+
       { href: "/admin/reports/visits", label: "Visit Analytics", icon: BarChart3 },
+      { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
       // { href: "/admin/reports/compliance", label: "Policy Compliance", icon: Award },
       // { href: "/admin/reports/loyalty", label: "Loyalty Reports", icon: TrendingUp },
       // { href: "/admin/reports/gap-analysis", label: "Gap Analysis", icon: BarChart3 },
     ],
   },
-
-  {
-    label: "Year Comparison",
-    items: [
-      { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
-    ]
-  },
   {
     label: "Masters",
     items: [
-      { href: "/admin/team", label: "Sales Person", icon: Users },
-      { href: "/admin/managers", label: "Managers", icon: UserCog },
+      { href: "/admin/users", label: "User Master", icon: UserCog },
       { href: "/admin/masters/locations", label: "Location Master", icon: Globe },
       { href: "/admin/lists/schools", label: "Schools", icon: School },
       { href: "/admin/lists/booksellers", label: "Book Sellers", icon: Store },
       { href: "/admin/books", label: "Books", icon: BookOpen },
       { href: "/admin/settings/dropdowns", label: "Dropdown", icon: Settings },
+
     ],
   },
   {
@@ -100,12 +93,74 @@ const navGroups = [
   {
     label: "Resources",
     items: [
-      { href: "/admin/specimen", label: "Specimen Tracking", icon: BookOpen },],
+      { href: "/admin/specimen", label: "Specimen Tracking", icon: BookOpen },
+    ],
   },
-
-  // Settings group hidden (White Label removed, ERP Integration hidden)
-  // { href: "/admin/erp", label: "ERP Integration", icon: Database },
 ];
+
+// ─── Pending counts ────────────────────────────────────────────────────────────
+function usePendingCounts() {
+  const [notifCount, setNotifCount] = useState(0);
+  useEffect(() => { getAdminUnreadCount().then(setNotifCount); }, []);
+  return { notifCount };
+}
+
+// ─── Nav List (shared by drawer + desktop) ────────────────────────────────────
+function NavList({ onItemClick, notifCount }: { onItemClick?: () => void; notifCount: number }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="space-y-0.5">
+      {navGroups.map((group, gi) => (
+        <div key={group.label}>
+          <div className={cn("pb-2 px-2", gi === 0 ? "pt-0" : "pt-5")}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              {group.label}
+            </p>
+          </div>
+          {group.items.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const badgeCount = (item as any).badge === "notifications" ? notifCount : 0;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onItemClick}
+                className={cn(
+                  "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-all",
+                  isActive
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-foreground/65 hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                    isActive ? "bg-primary/15" : "bg-muted"
+                  )}>
+                    <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
+                  </div>
+                  <span>{item.label}</span>
+                  {badgeCount > 0 && (
+                    <span className={cn(
+                      "inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold",
+                      isActive ? "bg-primary/20 text-primary" : "bg-primary text-primary-foreground"
+                    )}>
+                      {badgeCount > 99 ? "99+" : badgeCount}
+                    </span>
+                  )}
+                </div>
+                {isActive && <ChevronRight className="h-3.5 w-3.5 text-primary/60 shrink-0" />}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Logout Confirmation Dialog ───────────────────────────────────────────────
 function LogoutDialog({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
@@ -122,20 +177,10 @@ function LogoutDialog({ open, onClose, onConfirm }: { open: boolean; onClose: ()
           <p className="text-sm text-muted-foreground">Are you sure you want to logout? You will need to sign in again to continue.</p>
         </div>
         <div className="px-6 pt-3 pb-6 flex flex-col gap-2.5">
-          <Button
-            size="lg"
-            variant="destructive"
-            onClick={() => { onConfirm(); onClose(); }}
-            className="w-full h-12 text-sm font-semibold rounded-2xl"
-          >
+          <Button size="lg" variant="destructive" onClick={() => { onConfirm(); onClose(); }} className="w-full h-12 text-sm font-semibold rounded-2xl">
             Yes, Logout
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={onClose}
-            className="w-full h-12 text-sm font-semibold rounded-2xl"
-          >
+          <Button size="lg" variant="outline" onClick={onClose} className="w-full h-12 text-sm font-semibold rounded-2xl">
             Cancel
           </Button>
         </div>
@@ -144,92 +189,73 @@ function LogoutDialog({ open, onClose, onConfirm }: { open: boolean; onClose: ()
   );
 }
 
-// Sidebar content component to be reused
-function SidebarContent({ onLinkClick, onLogout }: { onLinkClick?: () => void; onLogout: () => void }) {
-  const pathname = usePathname();
-
+// ─── Mobile Side Drawer ───────────────────────────────────────────────────────
+function SideDrawer({
+  open,
+  onClose,
+  onLogout,
+  notifCount,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onLogout: () => void;
+  notifCount: number;
+}) {
+  if (!open) return null;
   return (
-    <>
-      {/* Logo */}
-      < div className="flex h-16 items-center border-b px-6" >
-        <Link href="/admin/dashboard" className="flex items-center space-x-2" onClick={onLinkClick}>
-          <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">CRM</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-sm">Admin Portal</span>
-            <span className="text-xs text-muted-foreground">Management</span>
-          </div>
-        </Link>
-      </div >
-
-      {/* Navigation */}
-      < nav className="flex-1 overflow-y-auto p-4 space-y-6" >
-        {
-          navGroups.map((group) => (
-            <div key={group.label}>
-              <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {group.label}
-              </h3>
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onLinkClick}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:translate-x-1",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+    <div className="fixed inset-0 z-[200] lg:hidden flex">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-[280px] bg-background h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-300">
+        {/* Branding */}
+        <div className="flex items-center justify-between px-5 pt-12 pb-5 border-b border-border/60">
+          <Link href="/admin/dashboard" onClick={onClose} className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-black text-xs tracking-tight">CRM</span>
             </div>
-          ))
-        }
-      </nav >
-
-
-      {/* User Info + Logout */}
-      <div className="border-t p-4 space-y-1">
-
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-sm font-medium">GM</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">GM Sales</p>
-            <p className="text-xs text-muted-foreground truncate">admin@company.com</p>
-          </div>
+            <div>
+              <p className="font-bold text-sm leading-tight">Admin Portal</p>
+              <p className="text-[11px] text-muted-foreground">Management</p>
+            </div>
+          </Link>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <button
-          onClick={() => { onLinkClick?.(); onLogout(); }}
-          className="flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-all"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="font-semibold">Logout</span>
-        </button>
-      </div>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <NavList onItemClick={onClose} notifCount={notifCount} />
+        </nav>
 
-    </>
+        {/* Logout */}
+        <div className="px-3 pb-2 border-t border-border/60 pt-3">
+          <button
+            onClick={() => { onClose(); onLogout(); }}
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-destructive/10">
+              <LogOut className="h-4 w-4 text-destructive" />
+            </div>
+            <span className="font-semibold">Logout</span>
+          </button>
+        </div>
+        <div className="px-5 py-3">
+          <p className="text-[11px] text-muted-foreground text-center">Admin Portal · v1.0.0</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
+// ─── Main Export ──────────────────────────────────────────────────────────────
 export default function AdminSidebar() {
-  const [open, setOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const router = useRouter();
+  const { notifCount } = usePendingCounts();
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -247,39 +273,72 @@ export default function AdminSidebar() {
         onConfirm={handleLogout}
       />
 
-      {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-16 items-center border-b bg-background px-4 gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setOpen(true)}
-          className="lg:hidden"
-        >
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle menu</span>
-        </Button>
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onLogout={() => setShowLogoutDialog(true)}
+        notifCount={notifCount}
+      />
 
-        <Link href="/admin/dashboard" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">CRM</span>
+      {/* ── Mobile Top Bar ── */}
+      <header className="sticky top-0 z-50 w-full lg:hidden">
+        <div className="bg-background/90 backdrop-blur-xl border-b border-border/50">
+          <div className="flex h-14 items-center justify-between px-4">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Link href="/admin/dashboard" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+                <span className="text-primary-foreground font-black text-xs">CRM</span>
+              </div>
+              <span className="font-bold text-[15px] tracking-tight">Admin Portal</span>
+            </Link>
+            <Link
+              href="/admin/notifications"
+              className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center relative"
+            >
+              <Bell className="h-4 w-4" />
+              {notifCount > 0 && (
+                <span className="absolute top-2 right-2 h-[7px] w-[7px] rounded-full bg-destructive border border-background" />
+              )}
+            </Link>
           </div>
-          <span className="font-semibold text-sm">Admin Portal</span>
-        </Link>
-      </div>
+        </div>
+      </header>
 
-      {/* Mobile Sidebar (Sheet/Drawer) */}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 p-0">
-          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <div className="flex h-full flex-col">
-            <SidebarContent onLinkClick={() => setOpen(false)} onLogout={() => setShowLogoutDialog(true)} />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop Sidebar */}
+      {/* ── Desktop Sidebar ── */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r lg:bg-background">
-        <SidebarContent onLogout={() => setShowLogoutDialog(true)} />
+        {/* Logo */}
+        <div className="flex h-14 items-center border-b px-4 gap-3 shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-black text-xs">CRM</span>
+          </div>
+          <div>
+            <p className="font-bold text-sm leading-tight">Admin Portal</p>
+            <p className="text-[10px] text-muted-foreground">Management</p>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <NavList notifCount={notifCount} />
+        </nav>
+
+        {/* Logout */}
+        <div className="px-3 pb-4 border-t border-border/60 pt-3 shrink-0">
+          <button
+            onClick={() => setShowLogoutDialog(true)}
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-destructive/10">
+              <LogOut className="h-4 w-4 text-destructive" />
+            </div>
+            <span className="font-semibold">Logout</span>
+          </button>
+        </div>
       </aside>
     </>
   );

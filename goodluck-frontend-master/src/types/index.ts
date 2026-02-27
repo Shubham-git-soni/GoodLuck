@@ -9,7 +9,7 @@ export interface School {
   board: string;
   strength: number;
   address: string;
-  isPattakat: boolean;
+  isBlocked: boolean;
   visitCount: number;
   lastVisitDate: string | null;
   assignedTo: string;

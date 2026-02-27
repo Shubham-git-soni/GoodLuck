@@ -57,6 +57,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -137,6 +138,7 @@ export interface DataGridProps<T = any> {
     defaultPageSize?: number;
     selectable?: boolean;
     onSelectionChange?: (rows: T[]) => void;
+    canExpandRow?: (row: T) => boolean;
     expandedRowRender?: (row: T) => React.ReactNode;
     onCellEdit?: (row: T, key: string, newValue: any) => void;
     contextMenuItems?: ContextMenuItem[] | ((row: T) => ContextMenuItem[]);
@@ -160,6 +162,8 @@ export interface DataGridProps<T = any> {
     enableColumnPinning?: boolean;
     striped?: boolean;
     inlineFilters?: boolean; // Show filter inputs directly below column headers
+    dateFilterKey?: string; // If provided, adds a date range picker to filter this specific date field/key
+    density?: DensityType;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -472,6 +476,7 @@ function MobileCard<T>({
     selected,
     onSelect,
     selectable,
+    canExpandRow,
     expandedRowRender,
     onCellEdit,
     isPinned,
@@ -483,6 +488,7 @@ function MobileCard<T>({
     selected: boolean;
     onSelect: () => void;
     selectable: boolean;
+    canExpandRow?: (row: T) => boolean;
     expandedRowRender?: (row: T) => React.ReactNode;
     onCellEdit?: (row: T, key: string, val: any) => void;
     isPinned?: boolean;
@@ -527,7 +533,7 @@ function MobileCard<T>({
                             {isPinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
                         </button>
                     )}
-                    {expandedRowRender && (
+                    {expandedRowRender && (!canExpandRow || canExpandRow(row)) && (
                         <button
                             onClick={() => setExpanded(!expanded)}
                             className="h-6 w-6 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
@@ -682,6 +688,7 @@ export function DataGrid<T extends object>({
     defaultPageSize = 25,
     selectable = false,
     onSelectionChange,
+    canExpandRow,
     expandedRowRender,
     onCellEdit,
     contextMenuItems,
@@ -705,6 +712,8 @@ export function DataGrid<T extends object>({
     enableColumnPinning = false,
     striped = true,
     inlineFilters = true,
+    dateFilterKey,
+    density: initialDensity = "normal",
 }: DataGridProps<T>) {
     // ─── State ────────────────────────────────────────────────────────────────────
     const [columns, setColumns] = React.useState<GridColumn<T>[]>(initialColumns);
@@ -719,7 +728,7 @@ export function DataGrid<T extends object>({
     const [pinnedRows, setPinnedRows] = React.useState<Set<any>>(new Set());
     const [colMenuOpen, setColMenuOpen] = React.useState(false);
     const [presetMenuOpen, setPresetMenuOpen] = React.useState(false);
-    const [density, setDensity] = React.useState<DensityType>("normal");
+    const [density, setDensity] = React.useState<DensityType>(initialDensity);
     const [viewMode, setViewMode] = React.useState<"list" | "card" | "grid">("list");
     const [showKeyboardShortcuts, setShowKeyboardShortcuts] = React.useState(false);
     const [fullscreen, setFullscreen] = React.useState(false);
@@ -729,6 +738,7 @@ export function DataGrid<T extends object>({
     const [colWidths, setColWidths] = React.useState<Record<string, number>>({});
     const [presets, setPresets] = React.useState<Record<string, any>>({});
     const [activeQuickFilters, setActiveQuickFilters] = React.useState<Set<string>>(new Set());
+    const [dateRange, setDateRange] = React.useState<{ from: string; to: string }>({ from: "", to: "" });
 
     const importRef = React.useRef<HTMLInputElement>(null);
     const gridRef = React.useRef<HTMLDivElement>(null);
@@ -805,6 +815,23 @@ export function DataGrid<T extends object>({
             );
         }
 
+        // Date Range
+        if (dateFilterKey && (dateRange.from || dateRange.to)) {
+            arr = arr.filter((row) => {
+                const rowDateRaw = getNested(row, dateFilterKey);
+                if (!rowDateRaw) return false;
+
+                const rowDate = new Date(rowDateRaw);
+                if (isNaN(rowDate.getTime())) return true; // fallback if invalid date string
+
+                // Match `YYYY-MM-DD` exactly without timezone issues
+                const rStr = rowDate.toISOString().split("T")[0];
+                if (dateRange.from && rStr < dateRange.from) return false;
+                if (dateRange.to && rStr > dateRange.to) return false;
+                return true;
+            });
+        }
+
         // Column filters
         Object.entries(colFilters).forEach(([key, val]) => {
             if (!val.trim()) return;
@@ -827,7 +854,7 @@ export function DataGrid<T extends object>({
         }
 
         return arr;
-    }, [data, search, colFilters, sorts, columns, activeQuickFilters, quickFilters]);
+    }, [data, search, colFilters, sorts, columns, activeQuickFilters, quickFilters, dateRange, dateFilterKey]);
 
     const totalPages = Math.max(1, Math.ceil(processed.length / pageSize));
     const paginated = React.useMemo(() => {
@@ -1066,7 +1093,7 @@ export function DataGrid<T extends object>({
         setPage(1);
     }, []);
 
-    const rowPadding = density === "compact" ? "py-1.5" : density === "comfortable" ? "py-4" : "py-2.5";
+    const rowPadding = density === "compact" ? "py-1" : density === "comfortable" ? "py-3" : "py-1.5";
     const activeFilterCount =
         Object.values(colFilters).filter((v) => v.trim()).length + (search.trim() ? 1 : 0) + activeQuickFilters.size;
 
@@ -1106,6 +1133,18 @@ export function DataGrid<T extends object>({
                                 </h3>
                             )}
                             {description && <p className="text-xs text-muted-foreground mt-0.5 truncate" title={description}>{description}</p>}
+                        </div>
+                    )}
+
+                    {/* Date Picker */}
+                    {dateFilterKey && (
+                        <div className="flex-shrink-0">
+                            <DateRangePicker
+                                from={dateRange.from}
+                                to={dateRange.to}
+                                onFromChange={(from) => { setDateRange(prev => ({ ...prev, from })); setPage(1); }}
+                                onToChange={(to) => { setDateRange(prev => ({ ...prev, to })); setPage(1); }}
+                            />
                         </div>
                     )}
 
@@ -1157,9 +1196,8 @@ export function DataGrid<T extends object>({
                         {/* More Actions Menu */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="ghost" className="h-8 gap-1.5" title="More actions">
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="More actions">
                                     <MoreVertical className="h-3.5 w-3.5" />
-                                    <span className="hidden md:inline text-xs">More</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52">
@@ -1580,7 +1618,11 @@ export function DataGrid<T extends object>({
                                             </div>
                                         </th>
                                     ))}
-                                    {rowActions && <th className="px-3 w-10" />}
+                                    {rowActions && (
+                                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground sticky right-0 bg-muted/80 backdrop-blur-sm z-[25] border-l w-28">
+                                            Actions
+                                        </th>
+                                    )}
                                 </tr>
 
                                 {/* Inline Filter Row */}
@@ -1634,7 +1676,7 @@ export function DataGrid<T extends object>({
                                                 )}
                                             </th>
                                         ))}
-                                        {rowActions && <th className="px-1 py-1" />}
+                                        {rowActions && <th className="px-1 py-1 sticky right-0 bg-muted/30 backdrop-blur-sm z-[25] border-l" />}
                                     </tr>
                                 )}
                             </thead>
@@ -1718,16 +1760,18 @@ export function DataGrid<T extends object>({
                                                     )}
                                                     {expandedRowRender && (
                                                         <td className="px-1 text-center">
-                                                            <button
-                                                                onClick={() => toggleExpand(id)}
-                                                                className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-muted mx-auto transition-colors"
-                                                                aria-label={isExp ? "Collapse row" : "Expand row"}
-                                                                aria-expanded={isExp}
-                                                            >
-                                                                <ExpandIcon
-                                                                    className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isExp && "rotate-90")}
-                                                                />
-                                                            </button>
+                                                            {(!canExpandRow || canExpandRow(row)) && (
+                                                                <button
+                                                                    onClick={() => toggleExpand(id)}
+                                                                    className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-muted mx-auto transition-colors"
+                                                                    aria-label={isExp ? "Collapse row" : "Expand row"}
+                                                                    aria-expanded={isExp}
+                                                                >
+                                                                    <ExpandIcon
+                                                                        className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isExp && "rotate-90")}
+                                                                    />
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     )}
                                                     {enableRowPinning && (
@@ -1765,11 +1809,11 @@ export function DataGrid<T extends object>({
                                                                     col.align === "right" && "text-right",
                                                                     col.width && "overflow-hidden",
                                                                     col.pinned === "left" && "sticky left-0 bg-background group-hover:bg-muted/50 z-[5]",
+                                                                    col.pinned === "left" && isSel && "bg-primary/5 group-hover:bg-primary/8",
                                                                     col.pinned === "right" && "sticky right-0 bg-background group-hover:bg-muted/50 z-[5]",
+                                                                    col.pinned === "right" && isSel && "bg-primary/5 group-hover:bg-primary/8",
                                                                     isPinned && col.pinned === "left" && "bg-amber-50/50 dark:bg-amber-950/10",
-                                                                    isPinned && col.pinned === "right" && "bg-amber-50/50 dark:bg-amber-950/10",
-                                                                    stripedRows && ri % 2 !== 0 && col.pinned === "left" && "bg-muted/5 group-hover:bg-muted/50",
-                                                                    stripedRows && ri % 2 !== 0 && col.pinned === "right" && "bg-muted/5 group-hover:bg-muted/50"
+                                                                    isPinned && col.pinned === "right" && "bg-amber-50/50 dark:bg-amber-950/10"
                                                                 )}
                                                                 style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
                                                                 title={tooltip}
@@ -1789,40 +1833,33 @@ export function DataGrid<T extends object>({
                                                         );
                                                     })}
                                                     {rowActions && actions.length > 0 && (
-                                                        <td className="px-3 text-center">
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
+                                                        <td className={cn(
+                                                            "px-2 text-center sticky right-0 z-[5] border-l bg-background group-hover:bg-muted/30",
+                                                            isPinned && "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50"
+                                                        )}>
+                                                            <div className="flex items-center justify-center gap-0.5">
+                                                                {actions.map((action, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        onClick={() => action.onClick(row)}
+                                                                        title={action.label}
                                                                         className={cn(
-                                                                            "h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
-                                                                            hoveredRow === ri && "opacity-100"
+                                                                            "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
+                                                                            action.danger
+                                                                                ? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                                                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                                                         )}
+                                                                        aria-label={action.label}
                                                                     >
-                                                                        <MoreVertical className="h-4 w-4" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    {actions.map((action, i) => (
-                                                                        <React.Fragment key={i}>
-                                                                            <DropdownMenuItem
-                                                                                onClick={() => action.onClick(row)}
-                                                                                className={cn(action.danger && "text-destructive")}
-                                                                            >
-                                                                                {action.icon && <span className="mr-2">{action.icon}</span>}
-                                                                                {action.label}
-                                                                            </DropdownMenuItem>
-                                                                            {action.danger && i < actions.length - 1 && <DropdownMenuSeparator />}
-                                                                        </React.Fragment>
-                                                                    ))}
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
+                                                                        {action.icon ?? <MoreVertical className="h-3.5 w-3.5" />}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </td>
                                                     )}
                                                 </tr>
-                                                {isExp && expandedRowRender && (
-                                                    <tr className="bg-muted/20 animate-in slide-in-from-top duration-200">
+                                                {isExp && expandedRowRender && (!canExpandRow || canExpandRow(row)) && (
+                                                    <tr className="bg-muted/5 animate-in slide-in-from-top duration-200">
                                                         <td
                                                             colSpan={
                                                                 visibleCols.length +
@@ -1831,9 +1868,18 @@ export function DataGrid<T extends object>({
                                                                 (enableRowPinning ? 1 : 0) +
                                                                 (rowActions ? 1 : 0)
                                                             }
-                                                            className="px-6 py-4 border-b"
+                                                            className="p-0 border-b bg-background sticky left-0 z-10"
+                                                            style={{
+                                                                position: "sticky",
+                                                                left: 0,
+                                                                width: "fit-content",
+                                                                maxWidth: "100%",
+                                                                display: "table-cell",
+                                                            }}
                                                         >
-                                                            <div className="bg-card rounded-lg p-4 border">{expandedRowRender(row)}</div>
+                                                            <div className="w-[calc(100vw-360px)] md:w-[calc(100vw-360px)] lg:w-[calc(100vw-360px)]">
+                                                                {expandedRowRender?.(row)}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 )}
@@ -1919,6 +1965,7 @@ export function DataGrid<T extends object>({
                                 selected={selected.has(getNested(row, rowKey))}
                                 onSelect={() => toggleRow(getNested(row, rowKey))}
                                 selectable={selectable}
+                                canExpandRow={canExpandRow}
                                 expandedRowRender={expandedRowRender}
                                 onCellEdit={onCellEdit ? handleCellEdit : undefined}
                                 isPinned={enableRowPinning && pinnedRows.has(getNested(row, rowKey))}

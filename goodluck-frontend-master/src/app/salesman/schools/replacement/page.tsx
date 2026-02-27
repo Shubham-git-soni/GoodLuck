@@ -26,14 +26,14 @@ export default function SchoolReplacementPage() {
   const [reason, setReason] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Pattakat schools that can be replaced
-  const pattakatSchools = schoolsData.filter(
-    (s) => s.assignedTo === "SM001" && s.isPattakat
+  // Blocked schools that can be replaced
+  const blockedSchools = schoolsData.filter(
+    (s) => s.assignedTo === "SM001" && s.isBlocked
   );
 
   // Available schools from the replacement pool (not assigned to current salesman)
   const availableSchools = schoolsData.filter(
-    (s) => s.assignedTo !== "SM001" && !s.isPattakat
+    (s) => s.assignedTo !== "SM001" && !s.isBlocked
   );
 
   const filteredAvailable = availableSchools.filter((school) =>
@@ -63,7 +63,7 @@ export default function SchoolReplacementPage() {
 
         <PageHeader
           title="School Replacement"
-          description="Request to replace a Pattakat school"
+          description="Request to replace a Blocked school"
         />
       </div>
 
@@ -72,7 +72,7 @@ export default function SchoolReplacementPage() {
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              You can request replacement for Pattakat schools. Select a school below to initiate the replacement process.
+              You can request replacement for Blocked schools. Select a school below to initiate the replacement process.
             </AlertDescription>
           </Alert>
 
@@ -81,10 +81,10 @@ export default function SchoolReplacementPage() {
               <CardTitle>Select School to Replace</CardTitle>
             </CardHeader>
             <CardContent>
-              {pattakatSchools.length === 0 ? (
+              {blockedSchools.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground mb-4">
-                    You don't have any Pattakat schools to replace
+                    You don't have any Blocked schools to replace
                   </p>
                   <Button variant="outline" onClick={() => router.back()}>
                     Go Back
@@ -92,7 +92,7 @@ export default function SchoolReplacementPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pattakatSchools.map((school) => (
+                  {blockedSchools.map((school) => (
                     <Card
                       key={school.id}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -106,7 +106,7 @@ export default function SchoolReplacementPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold">{school.name}</h3>
-                              <Badge variant="destructive">Pattakat</Badge>
+                              <Badge variant="destructive">Blocked</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {school.city} • {school.board}
@@ -140,7 +140,7 @@ export default function SchoolReplacementPage() {
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold">{school.name}</h3>
-                      <Badge variant="destructive">Pattakat</Badge>
+                      <Badge variant="destructive">Blocked</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {school.city} • {school.board} • {school.strength} students

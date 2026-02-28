@@ -1,19 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, DollarSign, AlertTriangle, Eye, CheckCircle2, XCircle, CreditCard, Clock, CheckCircle } from "lucide-react";
+import { FileText, DollarSign, AlertTriangle, Eye, CheckCircle2, XCircle, CreditCard, Clock, CheckCircle, TrendingUp } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DataGrid, RowAction } from "@/components/ui/data-grid";
+import { DataGrid, RowAction, GridColumn } from "@/components/ui/data-grid";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AdminExpensesPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [statusTab, setStatusTab] = useState("all");
+
+  const pendingCount = reports.filter((r) => r.status === "pending").length;
+  const approvedCount = reports.filter((r) => r.status === "approved").length;
+  const totalPending = reports
+    .filter((r) => r.status === "pending" || r.status === "approved")
+    .reduce((sum, r) => sum + r.totalAmount, 0);
+  const violationCount = reports.filter((r) => r.policyViolations > 0).length;
 
   useEffect(() => {
     const reportsData = require("@/lib/mock-data/expense-reports.json");
@@ -41,33 +50,24 @@ export default function AdminExpensesPage() {
     return config[status] || config.pending;
   };
 
-  const handleApprove = (reportId: string, reportTitle: string) => {
-    toast.success("Report Approved", {
-      description: `"${reportTitle}" has been approved for payment`,
-    });
-    setTimeout(() => { if (changed) toast.success(`"${row.reportTitle}" approved`); }, 0);
+  const handleApprove = (row: any) => {
+    toast.success(`"${row.reportTitle}" has been approved for payment`);
   };
 
-  const handleReject = (reportId: string, reportTitle: string) => {
-    toast.error("Report Rejected", {
-      description: `"${reportTitle}" has been rejected`,
-    });
-    setTimeout(() => { if (changed) toast.error(`"${row.reportTitle}" rejected`); }, 0);
+  const handleReject = (row: any) => {
+    toast.error(`"${row.reportTitle}" has been rejected`);
   };
 
-  const handleMarkAsPaid = (reportId: string, reportTitle: string) => {
-    toast.success("Payment Processed", {
-      description: `"${reportTitle}" marked as paid`,
-    });
-    setTimeout(() => { if (changed) toast.success(`"${row.reportTitle}" marked as paid`); }, 0);
+  const handleMarkAsPaid = (row: any) => {
+    toast.success(`"${row.reportTitle}" marked as paid`);
   };
 
   // ── Status badge helper ───────────────────────────────────────────────────
   const statusConfig: Record<string, { className: string; label: string }> = {
-    pending:  { className: "bg-yellow-500 text-white",  label: "Pending"  },
-    approved: { className: "bg-blue-500 text-white",    label: "Approved" },
-    paid:     { className: "bg-green-600 text-white",   label: "Paid"     },
-    rejected: { className: "bg-red-500 text-white",     label: "Rejected" },
+    pending: { className: "bg-yellow-500 text-white", label: "Pending" },
+    approved: { className: "bg-blue-500 text-white", label: "Approved" },
+    paid: { className: "bg-green-600 text-white", label: "Paid" },
+    rejected: { className: "bg-red-500 text-white", label: "Rejected" },
   };
 
   // ── Columns ───────────────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ export default function AdminExpensesPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-5">
         <PageHeader
-          title="All Expense Reports"
+          title="Expenses Reports"
           description="Review and approve expense reports from all salesmen"
         />
         <Link href="/admin/expenses/reports">
@@ -317,156 +317,13 @@ export default function AdminExpensesPage() {
           <Badge variant={statusTab === "violations" ? "default" : "secondary"} className={`ml-1 text-[10px] h-4 px-1 ${statusTab === "violations" ? "bg-orange-600 hover:bg-orange-700" : ""}`}>{reports.filter(r => r.policyViolations > 0).length}</Badge>
         </button>
       </div>
-      {/* Reports DataGrid */}
       <DataGrid
         data={filteredReports}
         selectable
-        columns={[
-          {
-            key: "id",
-            header: "Report ID",
-            sortable: true,
-            filterable: true,
-            width: 120,
-            render: (value) => (
-              <span className="font-semibold text-primary">{value}</span>
-            ),
-          },
-          {
-            key: "salesmanName",
-            header: "Salesman",
-            sortable: true,
-            filterable: true,
-            width: 180,
-            render: (value, row) => (
-              <div>
-                <div className="font-medium">{value}</div>
-                <div className="text-xs text-muted-foreground">
-                  {row.salesmanId}
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: "reportTitle",
-            header: "Title",
-            sortable: true,
-            filterable: true,
-            width: 200,
-            render: (value, row) => (
-              <div>
-                <div className="font-medium">{value}</div>
-                <div className="text-xs text-muted-foreground">
-                  {row.startDate} to {row.endDate}
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: "dateSubmitted",
-            header: "Submitted",
-            sortable: true,
-            width: 120,
-            render: (value) => (
-              <span className="text-sm">
-                {new Date(value).toLocaleDateString()}
-              </span>
-            ),
-          },
-          {
-            key: "expenseCount",
-            header: "Items",
-            sortable: true,
-            width: 100,
-            render: (value) => (
-              <Badge variant="secondary" className="font-medium">
-                {value}
-              </Badge>
-            ),
-          },
-          {
-            key: "totalAmount",
-            header: "Total Amount",
-            sortable: true,
-            width: 150,
-            render: (value) => (
-              <span className="font-semibold text-lg">
-                ₹{value.toLocaleString()}
-              </span>
-            ),
-          },
-          {
-            key: "policyViolations",
-            header: "Violations",
-            sortable: true,
-            width: 120,
-            render: (value) =>
-              value > 0 ? (
-                <Badge variant="destructive" className="text-xs">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  {value}
-                </Badge>
-              ) : (
-                <Badge className="bg-green-500 text-white text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  None
-                </Badge>
-              ),
-          },
-          {
-            key: "status",
-            header: "Status",
-            sortable: true,
-            width: 120,
-            render: (value) => {
-              const statusBadge = getStatusBadge(value);
-              return (
-                <Badge className={`${statusBadge.color} text-white`}>
-                  {statusBadge.label}
-                </Badge>
-              );
-            },
-          },
-        ]}
-        rowActions={(row) => {
-          const actions: RowAction[] = [
-            {
-              label: "View Details",
-              icon: <Eye className="h-4 w-4" />,
-              onClick: (row) => {
-                window.location.href = `/admin/expenses/${row.id}`;
-              },
-            },
-          ];
-
-          if (row.status === "pending") {
-            actions.push(
-              {
-                label: "Approve",
-                icon: <CheckCircle2 className="h-4 w-4" />,
-                onClick: (row) => handleApprove(row.id, row.reportTitle),
-              },
-              {
-                label: "Reject",
-                icon: <XCircle className="h-4 w-4" />,
-                onClick: (row) => handleReject(row.id, row.reportTitle),
-                danger: true,
-              }
-            );
-          }
-
-          if (row.status === "approved") {
-            actions.push({
-              label: "Mark as Paid",
-              icon: <CreditCard className="h-4 w-4" />,
-              onClick: (row) => handleMarkAsPaid(row.id, row.reportTitle),
-            });
-          }
-
-          return actions;
-        }}
-        density="comfortable"
-        striped={true}
+        columns={columns}
+        rowActions={rowActions}
+        density="compact"
+        striped
         emptyIcon={<FileText className="h-12 w-12" />}
         emptyMessage="No expense reports match the current filters"
       />

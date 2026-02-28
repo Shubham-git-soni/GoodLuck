@@ -5,7 +5,7 @@ import {
   format, parse, isValid, startOfMonth, endOfMonth,
   eachDayOfInterval, startOfWeek, endOfWeek,
   addMonths, subMonths, isSameMonth, isSameDay, isToday,
-  isBefore, isAfter,
+  isBefore, isAfter, setYear, setMonth, getYear, getMonth,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, X, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ interface DatePickerProps {
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ─── Calendar Modal ───────────────────────────────────────────────────────────
 function CalendarModal({
@@ -38,6 +39,11 @@ function CalendarModal({
   const [pending, setPending] = React.useState<Date | undefined>(
     isInitialValid ? initial : undefined
   );
+  const [pickerMode, setPickerMode] = React.useState<"days" | "months" | "years">("days");
+  const [yearPageStart, setYearPageStart] = React.useState(() => {
+    const yr = getYear(isInitialValid ? initial! : new Date());
+    return yr - (yr % 12);
+  });
 
   // Build 6-week grid
   const monthStart = startOfMonth(viewMonth);
@@ -93,64 +99,148 @@ function CalendarModal({
 
         <div className="h-px bg-border mx-6" />
 
-        {/* ── Month navigator ── */}
+        {/* ── Month/Year navigator ── */}
         <div className="flex items-center justify-between px-6 py-3">
           <button
             type="button"
-            onClick={() => setViewMonth(subMonths(viewMonth, 1))}
+            onClick={() => {
+              if (pickerMode === "years") setYearPageStart(y => y - 12);
+              else if (pickerMode === "months") setViewMonth(prev => setYear(prev, getYear(prev) - 1));
+              else setViewMonth(subMonths(viewMonth, 1));
+            }}
             className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70 transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <p className="font-bold text-base">
-            {format(viewMonth, "MMMM yyyy")}
-          </p>
           <button
             type="button"
-            onClick={() => setViewMonth(addMonths(viewMonth, 1))}
+            onClick={() => {
+              if (pickerMode === "days") {
+                setPickerMode("months");
+              } else if (pickerMode === "months") {
+                setYearPageStart(getYear(viewMonth) - (getYear(viewMonth) % 12));
+                setPickerMode("years");
+              } else {
+                setPickerMode("days");
+              }
+            }}
+            className="font-bold text-base hover:text-primary transition-colors"
+          >
+            {pickerMode === "years"
+              ? `${yearPageStart} – ${yearPageStart + 11}`
+              : pickerMode === "months"
+                ? format(viewMonth, "yyyy")
+                : format(viewMonth, "MMMM yyyy")
+            }
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (pickerMode === "years") setYearPageStart(y => y + 12);
+              else if (pickerMode === "months") setViewMonth(prev => setYear(prev, getYear(prev) + 1));
+              else setViewMonth(addMonths(viewMonth, 1));
+            }}
             className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70 transition-colors"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 
+        {/* ── Year picker grid ── */}
+        {pickerMode === "years" && (
+          <div className="grid grid-cols-3 gap-2 px-6 pb-4">
+            {Array.from({ length: 12 }, (_, i) => yearPageStart + i).map(yr => {
+              const isCurrent = yr === getYear(viewMonth);
+              return (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => {
+                    setViewMonth(prev => setYear(prev, yr));
+                    setPickerMode("months");
+                  }}
+                  className={cn(
+                    "py-2.5 rounded-xl text-sm font-medium transition-all",
+                    isCurrent
+                      ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  {yr}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Month picker grid ── */}
+        {pickerMode === "months" && (
+          <div className="grid grid-cols-3 gap-2 px-6 pb-4">
+            {MONTHS_SHORT.map((m, i) => {
+              const isCurrent = i === getMonth(viewMonth);
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setViewMonth(prev => setMonth(prev, i));
+                    setPickerMode("days");
+                  }}
+                  className={cn(
+                    "py-2.5 rounded-xl text-sm font-medium transition-all",
+                    isCurrent
+                      ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* ── Weekday labels ── */}
-        <div className="grid grid-cols-7 px-4 pb-1">
-          {WEEKDAYS.map((d) => (
-            <div key={d} className="text-center text-[11px] font-semibold text-muted-foreground py-1">
-              {d}
-            </div>
-          ))}
-        </div>
+        {pickerMode === "days" && (
+          <div className="grid grid-cols-7 px-4 pb-1">
+            {WEEKDAYS.map((d) => (
+              <div key={d} className="text-center text-[11px] font-semibold text-muted-foreground py-1">
+                {d}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Day grid ── */}
-        <div className="grid grid-cols-7 px-4 pb-4 gap-y-1">
-          {days.map((day) => {
-            const outside = !isSameMonth(day, viewMonth);
-            const disabled = isDisabled(day);
-            const selected = pending && isSameDay(day, pending);
-            const todayDay = isToday(day);
+        {pickerMode === "days" && (
+          <div className="grid grid-cols-7 px-4 pb-4 gap-y-1">
+            {days.map((day) => {
+              const outside = !isSameMonth(day, viewMonth);
+              const disabled = isDisabled(day);
+              const selected = pending && isSameDay(day, pending);
+              const todayDay = isToday(day);
 
-            return (
-              <button
-                key={day.toISOString()}
-                type="button"
-                disabled={disabled}
-                onClick={() => !disabled && setPending(day)}
-                className={cn(
-                  "aspect-square flex items-center justify-center rounded-full text-sm font-medium transition-all mx-auto w-9 h-9",
-                  outside && "text-muted-foreground/30",
-                  disabled && "opacity-25 cursor-not-allowed",
-                  !outside && !disabled && !selected && "hover:bg-muted",
-                  todayDay && !selected && "text-primary font-bold ring-1 ring-primary/30",
-                  selected && "bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30 hover:bg-primary/90",
-                )}
-              >
-                {format(day, "d")}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => !disabled && setPending(day)}
+                  className={cn(
+                    "aspect-square flex items-center justify-center rounded-full text-sm font-medium transition-all mx-auto w-9 h-9",
+                    outside && "text-muted-foreground/30",
+                    disabled && "opacity-25 cursor-not-allowed",
+                    !outside && !disabled && !selected && "hover:bg-muted",
+                    todayDay && !selected && "text-primary font-bold ring-1 ring-primary/30",
+                    selected && "bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30 hover:bg-primary/90",
+                  )}
+                >
+                  {format(day, "d")}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Footer ── */}
         <div className="flex gap-3 px-6 pb-6">

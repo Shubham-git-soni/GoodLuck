@@ -26,16 +26,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Schedule {
   id: string;
@@ -67,8 +61,17 @@ interface ProductManager {
   schedules: Schedule[];
 }
 
+interface FlattenedSchedule extends Schedule {
+  pmId: string;
+  pmName: string;
+  pmEmail: string;
+  pmState: string;
+  pmStatus: string;
+}
+
 export default function PMSchedulePage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [productManagers, setProductManagers] = useState<ProductManager[]>([]);
   const [filteredManagers, setFilteredManagers] = useState<ProductManager[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,7 +142,7 @@ export default function PMSchedulePage() {
 
   const handleScheduleSubmit = () => {
     if (!formData.productManagerId || !formData.date || !formData.startTime ||
-        !formData.endTime || !formData.schoolId || !formData.salesmanId || !formData.activity) {
+      !formData.endTime || !formData.schoolId || !formData.salesmanId || !formData.activity) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -212,6 +215,138 @@ export default function PMSchedulePage() {
     new Set(productManagers.map((pm) => pm.state))
   ).sort();
 
+  const allSchedules: FlattenedSchedule[] = productManagers.flatMap((pm) =>
+    pm.schedules.map((s) => ({
+      ...s,
+      pmId: pm.id,
+      pmName: pm.name,
+      pmEmail: pm.email,
+      pmState: pm.state,
+      pmStatus: pm.currentStatus,
+    }))
+  );
+
+  const flatFilteredSchedules = allSchedules.filter((s) => {
+    if (searchQuery && !s.pmName.toLowerCase().includes(searchQuery.toLowerCase()) && !s.schoolName.toLowerCase().includes(searchQuery.toLowerCase()) && !s.salesmanName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (statusFilter !== "all" && s.pmStatus.toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (stateFilter !== "all" && s.pmState !== stateFilter) return false;
+    return true;
+  });
+
+  const columns: GridColumn<FlattenedSchedule>[] = [
+    {
+      key: "pmName",
+      header: "Product Manager",
+      sortable: true,
+      filterable: true,
+      width: 200,
+      render: (v, row) => (
+        <div>
+          <div className="font-semibold text-sm text-primary">{v}</div>
+          <div className="text-xs text-muted-foreground">{row.pmState}</div>
+        </div>
+      ),
+    },
+    {
+      key: "date",
+      header: "Date & Time",
+      sortable: true,
+      filterable: true,
+      width: 150,
+      render: (v, row) => (
+        <div>
+          <Badge variant="secondary" className="font-medium text-[11px] mb-1">
+            {new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </Badge>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3" /> {row.startTime}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      sortable: true,
+      filterable: true,
+      width: 110,
+      render: (v) => <Badge variant="outline" className="capitalize text-[10px]">{v}</Badge>
+    },
+    {
+      key: "schoolName",
+      header: "School & Location",
+      sortable: true,
+      filterable: true,
+      width: 220,
+      render: (v, row) => (
+        <div>
+          <div className="font-medium truncate">{v}</div>
+          <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+            <MapPin className="w-3 h-3" /> {row.city}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: "salesmanName",
+      header: "Salesman",
+      sortable: true,
+      filterable: true,
+      width: 150,
+      render: (v) => <span className="text-[13px] font-medium">{v}</span>
+    },
+    {
+      key: "topic",
+      header: "Activity",
+      width: 250,
+      render: (v, row) => (
+        <div className="space-y-0.5 max-w-[250px]">
+          <div className="text-[13px] font-semibold text-blue-700 dark:text-blue-400 truncate">{v}</div>
+          <div className="text-[11px] text-muted-foreground line-clamp-1">{row.activity}</div>
+        </div>
+      )
+    },
+    {
+      key: "approvalStatus",
+      header: "Status",
+      sortable: true,
+      filterable: true,
+      width: 130,
+      render: (v, row) => (
+        <div className="flex flex-col gap-1 items-start">
+          <Badge
+            className={
+              v === "requested" ? "bg-yellow-500 hover:bg-yellow-600 text-white border-0"
+                : v === "approved" ? "bg-blue-500 hover:bg-blue-600 text-white border-0"
+                  : v === "booked" ? "bg-green-500 hover:bg-green-600 text-white border-0"
+                    : "bg-gray-500 hover:bg-gray-600 text-white border-0"
+            }
+          >
+            {v}
+          </Badge>
+          {row.isCompleted && (
+            <Badge className="bg-gray-600 border-0 text-white min-h-[16px] px-1 text-[10px]">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Completed
+            </Badge>
+          )}
+          {row.hasConflict && (
+            <Badge variant="destructive" className="min-h-[16px] border-0 px-1 text-[10px]">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Conflict
+            </Badge>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const rowActions: RowAction<FlattenedSchedule>[] = [
+    { label: "View Details", icon: <Eye className="h-3.5 w-3.5" />, onClick: (row) => router.push(`/admin/pm-schedule/${row.pmId}`) },
+    { label: "Edit Visit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => { } },
+    { label: "Cancel Visit", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: () => { }, danger: true }
+  ];
+
   return (
     <PageContainer>
       <div className="flex items-center justify-between mb-6">
@@ -226,7 +361,7 @@ export default function PMSchedulePage() {
               Schedule New Visit
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Schedule New Visit</DialogTitle>
               <DialogDescription>
@@ -234,7 +369,7 @@ export default function PMSchedulePage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="productManager">Product Manager *</Label>
                 <Select
@@ -256,63 +391,59 @@ export default function PMSchedulePage() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="date">Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date: e.target.value })
-                    }
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="type">Type *</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, type: value })
-                    }
-                  >
-                    <SelectTrigger id="type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="date">Date *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, date: e.target.value })
+                  }
+                  min={new Date().toISOString().split("T")[0]}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="startTime">Start Time *</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startTime: e.target.value })
-                    }
-                  />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="type">Type *</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, type: value })
+                  }
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="workshop">Workshop</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="endTime">End Time *</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endTime: e.target.value })
-                    }
-                  />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="startTime">Start Time *</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startTime: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="endTime">End Time *</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endTime: e.target.value })
+                  }
+                />
               </div>
 
               <div className="grid gap-2">
@@ -357,7 +488,7 @@ export default function PMSchedulePage() {
                 </Select>
               </div>
 
-              <div className="grid gap-2">
+              <div className="grid gap-2 lg:col-span-2">
                 <Label htmlFor="activity">Activity Description *</Label>
                 <Textarea
                   id="activity"
@@ -366,7 +497,7 @@ export default function PMSchedulePage() {
                   onChange={(e) =>
                     setFormData({ ...formData, activity: e.target.value })
                   }
-                  rows={3}
+                  rows={2}
                 />
               </div>
             </div>
@@ -427,7 +558,7 @@ export default function PMSchedulePage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, email, or state..."
+                  placeholder="Search by PM, Salesman, or School..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -466,310 +597,19 @@ export default function PMSchedulePage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6">
-        {filteredManagers.map((pm) => {
-          const todaySchedules = getTodaySchedules(pm);
-          const upcomingSchedules = getUpcomingSchedules(pm);
-
-          return (
-            <Card key={pm.id} className="overflow-hidden">
-              <CardHeader className="bg-muted/50 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-xl">{pm.name}</CardTitle>
-                      <Badge
-                        variant={pm.currentStatus === "Busy" ? "default" : "secondary"}
-                        className={
-                          pm.currentStatus === "Busy"
-                            ? "bg-orange-500 hover:bg-orange-600"
-                            : "bg-green-500 hover:bg-green-600 text-white"
-                        }
-                      >
-                        {pm.currentStatus}
-                      </Badge>
-                      <Badge variant="outline">{pm.id}</Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 shrink-0" />
-                        <span>{pm.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5 shrink-0" />
-                        <span>{pm.contactNo}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span>{pm.state}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Link href={`/admin/pm-schedule/${pm.id}`}>
-                    <Button variant="outline" size="sm">
-                      View Details
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-6">
-                {pm.schedules.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">No schedules planned</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {todaySchedules.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                          <h3 className="font-semibold text-blue-600">
-                            Today&apos;s Schedule ({todaySchedules.length})
-                          </h3>
-                        </div>
-                        <div className="rounded-md border overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/50">
-                                <TableHead className="font-semibold">Time</TableHead>
-                                <TableHead className="font-semibold">Type</TableHead>
-                                <TableHead className="font-semibold">School</TableHead>
-                                <TableHead className="font-semibold">Location</TableHead>
-                                <TableHead className="font-semibold">Salesman</TableHead>
-                                <TableHead className="font-semibold">Activity</TableHead>
-                                <TableHead className="font-semibold">Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {todaySchedules.map((schedule) => (
-                                <TableRow key={schedule.id} className="hover:bg-muted/30">
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      <div className="text-sm">
-                                        <div className="font-medium">{schedule.startTime}</div>
-                                        <div className="text-muted-foreground">{schedule.endTime}</div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className="capitalize">
-                                      {schedule.type}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div>
-                                      <div className="font-medium">{schedule.schoolName}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {schedule.schoolId}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-start gap-2">
-                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                                      <div className="text-sm">
-                                        <div className="font-medium">{schedule.city}</div>
-                                        <div className="text-muted-foreground text-xs line-clamp-1">
-                                          {schedule.address}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      <div className="text-sm">
-                                        <div className="font-medium">{schedule.salesmanName}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                          {schedule.salesmanId}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="max-w-[280px]">
-                                    <div className="space-y-1">
-                                      <div className="text-sm font-semibold text-blue-700 dark:text-blue-400">{schedule.topic}</div>
-                                      <div className="text-xs text-muted-foreground line-clamp-1">{schedule.activity}</div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex flex-col gap-1">
-                                      <Badge
-                                        className={
-                                          schedule.approvalStatus === "requested"
-                                            ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                                            : schedule.approvalStatus === "approved"
-                                            ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                            : schedule.approvalStatus === "booked"
-                                            ? "bg-green-500 hover:bg-green-600 text-white"
-                                            : "bg-gray-500 hover:bg-gray-600 text-white"
-                                        }
-                                      >
-                                        {schedule.approvalStatus}
-                                      </Badge>
-                                      {schedule.isCompleted && (
-                                        <Badge className="bg-gray-600 text-white text-xs">
-                                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                                          Completed
-                                        </Badge>
-                                      )}
-                                      {schedule.hasConflict && (
-                                        <Badge variant="destructive" className="text-xs">
-                                          <AlertTriangle className="h-3 w-3 mr-1" />
-                                          Conflict
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    )}
-
-                    {upcomingSchedules.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-4 w-4 text-purple-600" />
-                          <h3 className="font-semibold text-purple-600">
-                            Upcoming Schedules ({upcomingSchedules.length})
-                          </h3>
-                        </div>
-                        <div className="rounded-md border overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/50">
-                                <TableHead className="font-semibold">Date</TableHead>
-                                <TableHead className="font-semibold">Time</TableHead>
-                                <TableHead className="font-semibold">Type</TableHead>
-                                <TableHead className="font-semibold">School</TableHead>
-                                <TableHead className="font-semibold">Location</TableHead>
-                                <TableHead className="font-semibold">Salesman</TableHead>
-                                <TableHead className="font-semibold">Activity</TableHead>
-                                <TableHead className="font-semibold">Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {upcomingSchedules.map((schedule) => (
-                                <TableRow key={schedule.id} className="hover:bg-muted/30">
-                                  <TableCell>
-                                    <Badge variant="outline">
-                                      {new Date(schedule.date).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                      })}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      <div className="text-sm">
-                                        <div className="font-medium">{schedule.startTime}</div>
-                                        <div className="text-muted-foreground">{schedule.endTime}</div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className="capitalize">
-                                      {schedule.type}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div>
-                                      <div className="font-medium">{schedule.schoolName}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {schedule.schoolId}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-start gap-2">
-                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                                      <div className="text-sm">
-                                        <div className="font-medium">{schedule.city}</div>
-                                        <div className="text-muted-foreground text-xs line-clamp-1">
-                                          {schedule.address}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      <div className="text-sm">
-                                        <div className="font-medium">{schedule.salesmanName}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                          {schedule.salesmanId}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="max-w-[280px]">
-                                    <div className="space-y-1">
-                                      <div className="text-sm font-semibold text-blue-700 dark:text-blue-400">{schedule.topic}</div>
-                                      <div className="text-xs text-muted-foreground line-clamp-1">{schedule.activity}</div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex flex-col gap-1">
-                                      <Badge
-                                        className={
-                                          schedule.approvalStatus === "requested"
-                                            ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                                            : schedule.approvalStatus === "approved"
-                                            ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                            : schedule.approvalStatus === "booked"
-                                            ? "bg-green-500 hover:bg-green-600 text-white"
-                                            : "bg-gray-500 hover:bg-gray-600 text-white"
-                                        }
-                                      >
-                                        {schedule.approvalStatus}
-                                      </Badge>
-                                      {schedule.isCompleted && (
-                                        <Badge className="bg-gray-600 text-white text-xs">
-                                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                                          Completed
-                                        </Badge>
-                                      )}
-                                      {schedule.hasConflict && (
-                                        <Badge variant="destructive" className="text-xs">
-                                          <AlertTriangle className="h-3 w-3 mr-1" />
-                                          Conflict
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {filteredManagers.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Product Managers Found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your filters or search query
-              </p>
-            </CardContent>
-          </Card>
-        )}
+      <div className="w-full">
+        <DataGrid
+          data={flatFilteredSchedules}
+          columns={columns}
+          rowKey="id"
+          rowActions={rowActions}
+          density="compact"
+          selectable
+          inlineFilters
+          striped
+          enableRowPinning
+          defaultPageSize={15}
+        />
       </div>
     </PageContainer>
   );

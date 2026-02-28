@@ -106,6 +106,10 @@ export interface GridColumn<T = any> {
     render?: (value: any, row: T, rowIndex: number, onEdit?: (v: any) => void) => React.ReactNode;
     // Quick actions for row hover
     quickAction?: (row: T) => React.ReactNode;
+    // Mobile card: span full width instead of half-column
+    mobileFullWidth?: boolean;
+    // Mobile card: alternate read-only render (replaces render in mobile cards)
+    mobileRender?: (value: any, row: T) => React.ReactNode;
 }
 
 export interface ContextMenuItem {
@@ -164,6 +168,7 @@ export interface DataGridProps<T = any> {
     inlineFilters?: boolean; // Show filter inputs directly below column headers
     dateFilterKey?: string; // If provided, adds a date range picker to filter this specific date field/key
     density?: DensityType;
+    onMobileRowClick?: (row: T) => (() => void) | undefined;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -481,6 +486,8 @@ function MobileCard<T>({
     onCellEdit,
     isPinned,
     onTogglePin,
+    rowActions,
+    onRowClick,
 }: {
     row: T;
     columns: GridColumn<T>[];
@@ -493,8 +500,11 @@ function MobileCard<T>({
     onCellEdit?: (row: T, key: string, val: any) => void;
     isPinned?: boolean;
     onTogglePin?: () => void;
+    rowActions?: RowAction<T>[] | ((row: T) => RowAction<T>[]);
+    onRowClick?: (row: T) => (() => void) | undefined;
 }) {
     const [expanded, setExpanded] = React.useState(false);
+    const rowClickHandler = onRowClick ? onRowClick(row) : undefined;
     const visibleCols = columns.filter((c) => !c.hidden && c.type !== "actions");
     const actionCol = columns.find((c) => c.type === "actions");
     const [primary, ...rest] = visibleCols;
@@ -525,7 +535,7 @@ function MobileCard<T>({
                         <button
                             onClick={onTogglePin}
                             className={cn(
-                                "h-6 w-6 rounded-full flex items-center justify-center transition-colors",
+                                "h-6 w-6 rounded-full items-center justify-center transition-colors hidden md:flex",
                                 isPinned ? "bg-amber-100 dark:bg-amber-900/50 text-amber-600" : "bg-muted hover:bg-muted/80"
                             )}
                             aria-label={isPinned ? "Unpin row" : "Pin row"}
@@ -541,6 +551,15 @@ function MobileCard<T>({
                             aria-expanded={expanded}
                         >
                             <ExpandIcon className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-90")} />
+                        </button>
+                    )}
+                    {rowClickHandler && (
+                        <button
+                            onClick={rowClickHandler}
+                            className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                            aria-label="Open details"
+                        >
+                            <ChevronRight className="h-4 w-4 text-primary" />
                         </button>
                     )}
                     {selectable && (
@@ -562,12 +581,14 @@ function MobileCard<T>({
             <div className="h-px bg-border/50 mb-3" />
             <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
                 {rest.map((col) => (
-                    <div key={col.key} className="min-w-0">
+                    <div key={col.key} className={cn("min-w-0 overflow-hidden", col.mobileFullWidth && "col-span-2")}>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                             {col.header}
                         </p>
-                        <div className="text-xs">
-                            {col.editable && onCellEdit ? (
+                        <div className="text-xs flex flex-wrap gap-1">
+                            {col.mobileRender ? (
+                                col.mobileRender(getNested(row, col.key), row)
+                            ) : col.editable && onCellEdit ? (
                                 <EditableCell
                                     col={col}
                                     value={getNested(row, col.key)}
@@ -583,6 +604,30 @@ function MobileCard<T>({
                 ))}
             </div>
             {actionCol?.render && <div className="mt-3 pt-3 border-t flex justify-end">{actionCol.render(null, row, rowIndex)}</div>}
+            {rowActions && (() => {
+                const actions = typeof rowActions === "function" ? rowActions(row) : rowActions;
+                if (!actions.length) return null;
+                return (
+                    <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                        {actions.map((action, i) => (
+                            <button
+                                key={i}
+                                onClick={() => action.onClick(row)}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors",
+                                    action.danger
+                                        ? "bg-destructive/8 text-destructive hover:bg-destructive/15 border border-destructive/20"
+                                        : "bg-muted hover:bg-muted/80 text-foreground border border-border/50"
+                                )}
+                                aria-label={action.label}
+                            >
+                                {action.icon}
+                                {action.label}
+                            </button>
+                        ))}
+                    </div>
+                );
+            })()}
             {expanded && expandedRowRender && <div className="mt-3 pt-3 border-t">{expandedRowRender(row)}</div>}
         </div>
     );
@@ -714,6 +759,7 @@ export function DataGrid<T extends object>({
     inlineFilters = true,
     dateFilterKey,
     density: initialDensity = "normal",
+    onMobileRowClick,
 }: DataGridProps<T>) {
     // ─── State ────────────────────────────────────────────────────────────────────
     const [columns, setColumns] = React.useState<GridColumn<T>[]>(initialColumns);
@@ -739,6 +785,16 @@ export function DataGrid<T extends object>({
     const [presets, setPresets] = React.useState<Record<string, any>>({});
     const [activeQuickFilters, setActiveQuickFilters] = React.useState<Set<string>>(new Set());
     const [dateRange, setDateRange] = React.useState<{ from: string; to: string }>({ from: "", to: "" });
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    // Detect mobile viewport
+    React.useEffect(() => {
+        const mql = window.matchMedia("(max-width: 767px)");
+        setIsMobile(mql.matches);
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        mql.addEventListener("change", handler);
+        return () => mql.removeEventListener("change", handler);
+    }, []);
 
     const importRef = React.useRef<HTMLInputElement>(null);
     const gridRef = React.useRef<HTMLDivElement>(null);
@@ -754,6 +810,17 @@ export function DataGrid<T extends object>({
             console.error("Failed to load presets:", error);
         }
     }, [presetKey]);
+
+    // ─── Sync columns when initialColumns change ────────────────────────────────
+    React.useEffect(() => {
+        setColumns((prev) => {
+            const updated = initialColumns.map((newCol) => {
+                const oldCol = prev.find((c) => c.key === newCol.key);
+                return oldCol ? { ...newCol, hidden: oldCol.hidden, width: oldCol.width } : newCol;
+            });
+            return updated;
+        });
+    }, [initialColumns]);
 
 
     // ─── Notify selection changes ────────────────────────────────────────────────
@@ -1150,7 +1217,7 @@ export function DataGrid<T extends object>({
 
                     {/* Search & Stats */}
                     <div className="flex items-center gap-2 flex-1 min-w-[250px] justify-end">
-                        {showStats && <QuickStats data={data} filtered={processed} />}
+                        {showStats && <div className="hidden md:block"><QuickStats data={data} filtered={processed} /></div>}
                         <div className="relative w-full max-w-sm">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                             <Input
@@ -1217,56 +1284,58 @@ export function DataGrid<T extends object>({
 
                                 <DropdownMenuSeparator />
 
-                                {/* Layout & View Submenu */}
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>
-                                        <LayoutGrid className="h-4 w-4 mr-2" />
-                                        Layout & View
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal>
-                                        <DropdownMenuSubContent className="w-56">
-                                            {/* View Options */}
-                                            <div className="px-2 py-1.5">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
-                                                <div className="grid grid-cols-3 gap-1">
-                                                    <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                        <List className="h-3.5 w-3.5" /> List
-                                                    </button>
-                                                    <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                        <LayoutGrid className="h-3.5 w-3.5" /> Card
-                                                    </button>
-                                                    <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                        <TableIcon className="h-3.5 w-3.5" /> Grid
-                                                    </button>
+                                {/* Layout & View Submenu (desktop only) */}
+                                {!isMobile && (
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                            <LayoutGrid className="h-4 w-4 mr-2" />
+                                            Layout & View
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent className="w-56">
+                                                {/* View Options */}
+                                                <div className="px-2 py-1.5">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            <List className="h-3.5 w-3.5" /> List
+                                                        </button>
+                                                        <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            <LayoutGrid className="h-3.5 w-3.5" /> Card
+                                                        </button>
+                                                        <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            <TableIcon className="h-3.5 w-3.5" /> Grid
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <DropdownMenuSeparator />
-                                            {/* Density Options */}
-                                            <div className="px-2 py-1.5">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Density</p>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => setDensity("compact")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "compact" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                        <Minus className="h-3.5 w-3.5" /> Compact
-                                                        {density === "compact" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                    </button>
-                                                    <button onClick={() => setDensity("normal")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "normal" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                        <Rows3 className="h-3.5 w-3.5" /> Normal
-                                                        {density === "normal" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                    </button>
-                                                    <button onClick={() => setDensity("comfortable")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "comfortable" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                        <SquareStack className="h-3.5 w-3.5" /> Comfortable
-                                                        {density === "comfortable" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                    </button>
+                                                <DropdownMenuSeparator />
+                                                {/* Density Options */}
+                                                <div className="px-2 py-1.5">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Density</p>
+                                                    <div className="flex flex-col gap-1">
+                                                        <button onClick={() => setDensity("compact")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "compact" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                            <Minus className="h-3.5 w-3.5" /> Compact
+                                                            {density === "compact" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                        </button>
+                                                        <button onClick={() => setDensity("normal")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "normal" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                            <Rows3 className="h-3.5 w-3.5" /> Normal
+                                                            {density === "normal" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                        </button>
+                                                        <button onClick={() => setDensity("comfortable")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "comfortable" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                            <SquareStack className="h-3.5 w-3.5" /> Comfortable
+                                                            {density === "comfortable" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)} className="text-xs">
-                                                {fullscreen ? <Minimize2 className="h-3.5 w-3.5 mr-2" /> : <Maximize2 className="h-3.5 w-3.5 mr-2" />}
-                                                {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                </DropdownMenuSub>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)} className="text-xs">
+                                                    {fullscreen ? <Minimize2 className="h-3.5 w-3.5 mr-2" /> : <Maximize2 className="h-3.5 w-3.5 mr-2" />}
+                                                    {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                )}
 
                                 {/* Export / Import Submenu */}
                                 <DropdownMenuSub>
@@ -1297,13 +1366,17 @@ export function DataGrid<T extends object>({
                                     </DropdownMenuPortal>
                                 </DropdownMenuSub>
 
-                                <DropdownMenuSeparator />
+                                {!isMobile && (
+                                    <>
+                                        <DropdownMenuSeparator />
 
-                                {/* Keyboard Shortcuts */}
-                                <DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)}>
-                                    <Keyboard className="h-4 w-4 mr-2" />
-                                    Keyboard Shortcuts
-                                </DropdownMenuItem>
+                                        {/* Keyboard Shortcuts */}
+                                        <DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)}>
+                                            <Keyboard className="h-4 w-4 mr-2" />
+                                            Keyboard Shortcuts
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
 
                                 {/* Presets */}
                                 {presetKey && (
@@ -1325,9 +1398,11 @@ export function DataGrid<T extends object>({
                                     </p>
                                     {columns.map((col) => (
                                         <div key={col.key} className="group hover:bg-muted">
-                                            <button
+                                            <div
+                                                role="button"
+                                                tabIndex={0}
                                                 onClick={() => toggleCol(col.key)}
-                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left"
+                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left cursor-pointer"
                                             >
                                                 <div
                                                     className={cn(
@@ -1368,7 +1443,7 @@ export function DataGrid<T extends object>({
                                                         </button>
                                                     </div>
                                                 )}
-                                            </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -1459,526 +1534,534 @@ export function DataGrid<T extends object>({
             <KeyboardShortcutsDialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts} />
 
             {/* ── Column Filters ── Only show when NOT using inline filters */}
-            {!inlineFilters && showColFilters && (
-                <div className="px-4 py-3 border-b bg-muted/10 space-y-2 animate-in slide-in-from-top duration-200">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                            <Filter className="h-3.5 w-3.5" />
-                            Column Filters
-                        </p>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                                setColFilters({});
-                                setPage(1);
-                                toast.success("Column filters cleared");
-                            }}
-                            className="h-6 text-xs"
-                        >
-                            Clear All
-                        </Button>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {columns
-                            .filter((c) => !c.hidden && c.filterable !== false && c.type !== "actions")
-                            .map((col) => (
-                                <div key={col.key} className="relative">
-                                    <label className="text-[10px] font-semibold text-muted-foreground mb-1 block">
-                                        {col.header}
-                                    </label>
-                                    <Input
-                                        className="h-8 text-xs"
-                                        placeholder={`Filter ${col.header}...`}
-                                        value={colFilters[col.key] ?? ""}
-                                        onChange={(e) => {
-                                            setColFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
-                                            setPage(1);
-                                        }}
-                                    />
-                                    {colFilters[col.key] && (
-                                        <button
-                                            onClick={() => {
-                                                setColFilters((prev) => {
-                                                    const updated = { ...prev };
-                                                    delete updated[col.key];
-                                                    return updated;
-                                                });
+            {
+                !inlineFilters && showColFilters && (
+                    <div className="px-4 py-3 border-b bg-muted/10 space-y-2 animate-in slide-in-from-top duration-200">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                <Filter className="h-3.5 w-3.5" />
+                                Column Filters
+                            </p>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                    setColFilters({});
+                                    setPage(1);
+                                    toast.success("Column filters cleared");
+                                }}
+                                className="h-6 text-xs"
+                            >
+                                Clear All
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {columns
+                                .filter((c) => !c.hidden && c.filterable !== false && c.type !== "actions")
+                                .map((col) => (
+                                    <div key={col.key} className="relative">
+                                        <label className="text-[10px] font-semibold text-muted-foreground mb-1 block">
+                                            {col.header}
+                                        </label>
+                                        <Input
+                                            className="h-8 text-xs"
+                                            placeholder={`Filter ${col.header}...`}
+                                            value={colFilters[col.key] ?? ""}
+                                            onChange={(e) => {
+                                                setColFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
                                                 setPage(1);
                                             }}
-                                            className="absolute right-2 top-[26px] text-muted-foreground hover:text-foreground"
-                                            aria-label={`Clear ${col.header} filter`}
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                        />
+                                        {colFilters[col.key] && (
+                                            <button
+                                                onClick={() => {
+                                                    setColFilters((prev) => {
+                                                        const updated = { ...prev };
+                                                        delete updated[col.key];
+                                                        return updated;
+                                                    });
+                                                    setPage(1);
+                                                }}
+                                                className="absolute right-2 top-[26px] text-muted-foreground hover:text-foreground"
+                                                aria-label={`Clear ${col.header} filter`}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ── Loading State ── */}
             {loading && <Skeleton rows={6} cols={visibleCols.length} />}
 
             {/* ── Desktop Table ── */}
-            {!loading && (
-                <div className="hidden md:block overflow-hidden">
-                    <div
-                        className="overflow-auto"
-                        style={{ maxHeight: fullscreen ? "calc(100vh - 220px)" : `${maxHeight}px` }}
-                    >
-                        <table className="w-full border-collapse">
-                            {/* Header */}
-                            <thead className="sticky top-0 z-[15] bg-gradient-to-r from-muted/90 to-muted/70 backdrop-blur-sm border-b-2 border-primary/20">
-                                <tr>
-                                    {selectable && (
-                                        <th className="px-3 py-3 text-center w-12 bg-muted/90 backdrop-blur-sm">
-                                            <button
-                                                onClick={toggleAll}
-                                                className={cn(
-                                                    "h-4 w-4 rounded border-2 flex items-center justify-center mx-auto transition-all",
-                                                    selected.size === paginated.length && paginated.length > 0
-                                                        ? "bg-primary border-primary"
-                                                        : "border-muted-foreground/30 hover:border-primary"
-                                                )}
-                                                aria-label="Select all rows"
-                                                aria-checked={selected.size === paginated.length && paginated.length > 0}
-                                                role="checkbox"
-                                            >
-                                                {selected.size === paginated.length && paginated.length > 0 && (
-                                                    <Check className="h-2.5 w-2.5 text-white" />
-                                                )}
-                                            </button>
-                                        </th>
-                                    )}
-                                    {expandedRowRender && <th className="px-1 w-10 bg-muted/90 backdrop-blur-sm" />}
-                                    {enableRowPinning && <th className="px-1 w-10 bg-muted/90 backdrop-blur-sm" />}
-                                    {visibleCols.map((col) => (
-                                        <th
-                                            key={col.key}
-                                            className={cn(
-                                                "px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b group relative",
-                                                col.align === "center" && "text-center",
-                                                col.align === "right" && "text-right",
-                                                col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
-                                                col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
-                                            )}
-                                            style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
-                                            draggable
-                                            onDragStart={(e) => {
-                                                e.dataTransfer.effectAllowed = "move";
-                                                e.dataTransfer.setData("text/plain", col.key);
-                                            }}
-                                            onDragOver={(e) => {
-                                                e.preventDefault();
-                                                e.dataTransfer.dropEffect = "move";
-                                            }}
-                                            onDrop={(e) => {
-                                                e.preventDefault();
-                                                const draggedKey = e.dataTransfer.getData("text/plain");
-                                                const targetKey = col.key;
-                                                if (draggedKey !== targetKey) {
-                                                    setColumns((prev) => {
-                                                        const draggedIdx = prev.findIndex((c) => c.key === draggedKey);
-                                                        const targetIdx = prev.findIndex((c) => c.key === targetKey);
-                                                        if (draggedIdx === -1 || targetIdx === -1) return prev;
-                                                        const newCols = [...prev];
-                                                        const [draggedCol] = newCols.splice(draggedIdx, 1);
-                                                        newCols.splice(targetIdx, 0, draggedCol);
-                                                        return newCols;
-                                                    });
-                                                    toast.success("Column reordered");
-                                                }
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-1.5 relative">
-                                                {col.sortable !== false ? (
-                                                    <button
-                                                        onClick={(e) => handleSort(col.key, e.shiftKey)}
-                                                        className="flex items-center gap-1.5 hover:text-foreground transition-colors flex-1"
-                                                        title={`Sort by ${col.header} (Shift+Click for multi-sort)`}
-                                                    >
-                                                        <span className="truncate">{col.header}</span>
-                                                        {sortBadge(col.key) ?? (
-                                                            <ChevronsUpDown className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
-                                                        )}
-                                                    </button>
-                                                ) : (
-                                                    <span className="truncate flex-1">{col.header}</span>
-                                                )}
-                                                {col.pinned && (
-                                                    <Pin className={cn("h-3 w-3 text-primary", col.pinned === "right" && "rotate-180")} />
-                                                )}
-                                                <div
-                                                    className="absolute -right-1 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onMouseDown={(e) => startResize(e, col.key)}
-                                                    aria-label={`Resize ${col.header} column`}
-                                                />
-                                            </div>
-                                        </th>
-                                    ))}
-                                    {rowActions && (
-                                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground sticky right-0 bg-muted/80 backdrop-blur-sm z-[25] border-l w-28">
-                                            Actions
-                                        </th>
-                                    )}
-                                </tr>
-
-                                {/* Inline Filter Row */}
-                                {inlineFilters && (
-                                    <tr className="bg-muted/30 border-b">
-                                        {selectable && <th className="px-1 py-1 bg-muted/30 backdrop-blur-sm" />}
-                                        {expandedRowRender && <th className="px-1 py-1 bg-muted/30 backdrop-blur-sm" />}
-                                        {enableRowPinning && <th className="px-1 py-1 bg-muted/30 backdrop-blur-sm" />}
+            {
+                !loading && (
+                    <div className="hidden md:block overflow-hidden">
+                        <div
+                            className="overflow-auto"
+                            style={{ maxHeight: fullscreen ? "calc(100vh - 220px)" : `${maxHeight}px` }}
+                        >
+                            <table className="w-full border-collapse">
+                                {/* Header */}
+                                <thead className="sticky top-0 z-[15] bg-gradient-to-r from-muted/90 to-muted/70 backdrop-blur-sm border-b-2 border-primary/20">
+                                    <tr>
+                                        {selectable && (
+                                            <th className="px-3 py-3 text-center w-12 bg-muted/90 backdrop-blur-sm">
+                                                <button
+                                                    onClick={toggleAll}
+                                                    className={cn(
+                                                        "h-4 w-4 rounded border-2 flex items-center justify-center mx-auto transition-all",
+                                                        selected.size === paginated.length && paginated.length > 0
+                                                            ? "bg-primary border-primary"
+                                                            : "border-muted-foreground/30 hover:border-primary"
+                                                    )}
+                                                    aria-label="Select all rows"
+                                                    aria-checked={selected.size === paginated.length && paginated.length > 0}
+                                                    role="checkbox"
+                                                >
+                                                    {selected.size === paginated.length && paginated.length > 0 && (
+                                                        <Check className="h-2.5 w-2.5 text-white" />
+                                                    )}
+                                                </button>
+                                            </th>
+                                        )}
+                                        {expandedRowRender && <th className="px-1 w-10 bg-muted/90 backdrop-blur-sm" />}
+                                        {enableRowPinning && <th className="px-1 w-10 bg-muted/90 backdrop-blur-sm" />}
                                         {visibleCols.map((col) => (
                                             <th
                                                 key={col.key}
                                                 className={cn(
-                                                    "px-2 py-1.5",
-                                                    col.pinned === "left" && "sticky left-0 bg-muted/30 backdrop-blur-sm z-[25]",
-                                                    col.pinned === "right" && "sticky right-0 bg-muted/30 backdrop-blur-sm z-[25]"
+                                                    "px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b group relative",
+                                                    col.align === "center" && "text-center",
+                                                    col.align === "right" && "text-right",
+                                                    col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
+                                                    col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
                                                 )}
                                                 style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
+                                                draggable
+                                                onDragStart={(e) => {
+                                                    e.dataTransfer.effectAllowed = "move";
+                                                    e.dataTransfer.setData("text/plain", col.key);
+                                                }}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    e.dataTransfer.dropEffect = "move";
+                                                }}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    const draggedKey = e.dataTransfer.getData("text/plain");
+                                                    const targetKey = col.key;
+                                                    if (draggedKey !== targetKey) {
+                                                        setColumns((prev) => {
+                                                            const draggedIdx = prev.findIndex((c) => c.key === draggedKey);
+                                                            const targetIdx = prev.findIndex((c) => c.key === targetKey);
+                                                            if (draggedIdx === -1 || targetIdx === -1) return prev;
+                                                            const newCols = [...prev];
+                                                            const [draggedCol] = newCols.splice(draggedIdx, 1);
+                                                            newCols.splice(targetIdx, 0, draggedCol);
+                                                            return newCols;
+                                                        });
+                                                        toast.success("Column reordered");
+                                                    }
+                                                }}
                                             >
-                                                {col.filterable !== false && col.type !== "actions" ? (
-                                                    <div className="relative">
-                                                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
-                                                        <Input
-                                                            className="h-7 text-xs pl-7 pr-7 border-border/50 bg-background/80 focus:bg-background placeholder:text-muted-foreground/40"
-                                                            placeholder={`Search`}
-                                                            value={colFilters[col.key] ?? ""}
-                                                            onChange={(e) => {
-                                                                setColFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
-                                                                setPage(1);
-                                                            }}
-                                                        />
-                                                        {colFilters[col.key] && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setColFilters((prev) => {
-                                                                        const updated = { ...prev };
-                                                                        delete updated[col.key];
-                                                                        return updated;
-                                                                    });
-                                                                    setPage(1);
-                                                                    toast.success(`Filter cleared for ${col.header}`);
-                                                                }}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                                                aria-label={`Clear ${col.header} filter`}
-                                                            >
-                                                                <X className="h-3 w-3" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="h-7" />
-                                                )}
+                                                <div className="flex items-center gap-1.5 relative">
+                                                    {col.sortable !== false ? (
+                                                        <button
+                                                            onClick={(e) => handleSort(col.key, e.shiftKey)}
+                                                            className="flex items-center gap-1.5 hover:text-foreground transition-colors flex-1"
+                                                            title={`Sort by ${col.header} (Shift+Click for multi-sort)`}
+                                                        >
+                                                            <span className="truncate">{col.header}</span>
+                                                            {sortBadge(col.key) ?? (
+                                                                <ChevronsUpDown className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+                                                            )}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="truncate flex-1">{col.header}</span>
+                                                    )}
+                                                    {col.pinned && (
+                                                        <Pin className={cn("h-3 w-3 text-primary", col.pinned === "right" && "rotate-180")} />
+                                                    )}
+                                                    <div
+                                                        className="absolute -right-1 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onMouseDown={(e) => startResize(e, col.key)}
+                                                        aria-label={`Resize ${col.header} column`}
+                                                    />
+                                                </div>
                                             </th>
                                         ))}
-                                        {rowActions && <th className="px-1 py-1 sticky right-0 bg-muted/30 backdrop-blur-sm z-[25] border-l" />}
+                                        {rowActions && (
+                                            <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground sticky right-0 bg-muted/80 backdrop-blur-sm z-[25] border-l w-28">
+                                                Actions
+                                            </th>
+                                        )}
                                     </tr>
-                                )}
-                            </thead>
 
-                            {/* Body */}
-                            <tbody>
-                                {paginated.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={
-                                                visibleCols.length +
-                                                (selectable ? 1 : 0) +
-                                                (expandedRowRender != null ? 1 : 0) +
-                                                (enableRowPinning ? 1 : 0) +
-                                                (rowActions ? 1 : 0)
-                                            }
-                                            className="text-center py-20"
-                                        >
-                                            <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                                                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                                                    {emptyIcon ?? <Filter className="h-7 w-7 opacity-40" />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium">{emptyMessage}</p>
-                                                    <p className="text-xs mt-1">Try adjusting your filters or search query</p>
-                                                </div>
-                                                {(search || Object.values(colFilters).some((v) => v) || activeQuickFilters.size > 0) && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setSearch("");
-                                                            setColFilters({});
-                                                            setActiveQuickFilters(new Set());
-                                                            toast.success("All filters cleared");
-                                                        }}
-                                                        className="mt-2"
-                                                    >
-                                                        <X className="h-3.5 w-3.5 mr-1.5" />
-                                                        Clear all filters
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    paginated.map((row, ri) => {
-                                        const id = getNested(row, rowKey);
-                                        const isSel = selected.has(id);
-                                        const isExp = expanded.has(id);
-                                        const isPinned = pinnedRows.has(id);
-                                        const actions = rowActions ? (typeof rowActions === "function" ? rowActions(row) : rowActions) : [];
-                                        return (
-                                            <React.Fragment key={id ?? ri}>
-                                                <tr
+                                    {/* Inline Filter Row */}
+                                    {inlineFilters && (
+                                        <tr className="bg-muted/30 border-b">
+                                            {selectable && <th className="px-1 py-1 bg-muted/30 backdrop-blur-sm" />}
+                                            {expandedRowRender && <th className="px-1 py-1 bg-muted/30 backdrop-blur-sm" />}
+                                            {enableRowPinning && <th className="px-1 py-1 bg-muted/30 backdrop-blur-sm" />}
+                                            {visibleCols.map((col) => (
+                                                <th
+                                                    key={col.key}
                                                     className={cn(
-                                                        "border-b border-border/40 transition-all duration-200 group",
-                                                        "hover:bg-muted/50 hover:shadow-sm",
-                                                        isSel && "bg-primary/5 hover:bg-primary/8 border-primary/20",
-                                                        stripedRows && ri % 2 !== 0 && "bg-muted/5",
-                                                        isPinned && "bg-amber-50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900 sticky top-[49px] z-10"
+                                                        "px-2 py-1.5",
+                                                        col.pinned === "left" && "sticky left-0 bg-muted/30 backdrop-blur-sm z-[25]",
+                                                        col.pinned === "right" && "sticky right-0 bg-muted/30 backdrop-blur-sm z-[25]"
                                                     )}
-                                                    onContextMenu={(e) => handleRightClick(e, row)}
-                                                    onMouseEnter={() => setHoveredRow(ri)}
-                                                    onMouseLeave={() => setHoveredRow(null)}
+                                                    style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
                                                 >
-                                                    {selectable && (
-                                                        <td className="px-3" onClick={() => toggleRow(id)}>
-                                                            <button
-                                                                className={cn(
-                                                                    "h-4 w-4 rounded border-2 flex items-center justify-center mx-auto transition-all",
-                                                                    isSel ? "bg-primary border-primary scale-110" : "border-muted-foreground/30 hover:border-primary hover:scale-110"
-                                                                )}
-                                                                aria-label={isSel ? "Deselect row" : "Select row"}
-                                                                aria-checked={isSel}
-                                                                role="checkbox"
-                                                            >
-                                                                {isSel && <Check className="h-2.5 w-2.5 text-white" />}
-                                                            </button>
-                                                        </td>
-                                                    )}
-                                                    {expandedRowRender && (
-                                                        <td className="px-1 text-center">
-                                                            {(!canExpandRow || canExpandRow(row)) && (
+                                                    {col.filterable !== false && col.type !== "actions" ? (
+                                                        <div className="relative">
+                                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                                                            <Input
+                                                                className="h-7 text-xs pl-7 pr-7 border-border/50 bg-background/80 focus:bg-background placeholder:text-muted-foreground/40"
+                                                                placeholder={`Search`}
+                                                                value={colFilters[col.key] ?? ""}
+                                                                onChange={(e) => {
+                                                                    setColFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
+                                                                    setPage(1);
+                                                                }}
+                                                            />
+                                                            {colFilters[col.key] && (
                                                                 <button
-                                                                    onClick={() => toggleExpand(id)}
-                                                                    className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-muted mx-auto transition-colors"
-                                                                    aria-label={isExp ? "Collapse row" : "Expand row"}
-                                                                    aria-expanded={isExp}
+                                                                    onClick={() => {
+                                                                        setColFilters((prev) => {
+                                                                            const updated = { ...prev };
+                                                                            delete updated[col.key];
+                                                                            return updated;
+                                                                        });
+                                                                        setPage(1);
+                                                                        toast.success(`Filter cleared for ${col.header}`);
+                                                                    }}
+                                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                                    aria-label={`Clear ${col.header} filter`}
                                                                 >
-                                                                    <ExpandIcon
-                                                                        className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isExp && "rotate-90")}
-                                                                    />
+                                                                    <X className="h-3 w-3" />
                                                                 </button>
                                                             )}
-                                                        </td>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-7" />
                                                     )}
-                                                    {enableRowPinning && (
-                                                        <td className="px-1 text-center">
-                                                            <button
-                                                                onClick={() => togglePinRow(id)}
-                                                                className={cn(
-                                                                    "h-6 w-6 flex items-center justify-center rounded-lg mx-auto transition-all",
-                                                                    isPinned
-                                                                        ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 hover:bg-amber-200"
-                                                                        : "opacity-0 group-hover:opacity-100 hover:bg-muted"
-                                                                )}
-                                                                aria-label={isPinned ? "Unpin row" : "Pin row"}
-                                                                title={isPinned ? "Unpin from top" : "Pin to top"}
-                                                            >
-                                                                {isPinned ? <Star className="h-3.5 w-3.5 fill-current" /> : <Star className="h-3.5 w-3.5" />}
-                                                            </button>
-                                                        </td>
+                                                </th>
+                                            ))}
+                                            {rowActions && <th className="px-1 py-1 sticky right-0 bg-muted/30 backdrop-blur-sm z-[25] border-l" />}
+                                        </tr>
+                                    )}
+                                </thead>
+
+                                {/* Body */}
+                                <tbody>
+                                    {paginated.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={
+                                                    visibleCols.length +
+                                                    (selectable ? 1 : 0) +
+                                                    (expandedRowRender != null ? 1 : 0) +
+                                                    (enableRowPinning ? 1 : 0) +
+                                                    (rowActions ? 1 : 0)
+                                                }
+                                                className="text-center py-20"
+                                            >
+                                                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                                                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                                                        {emptyIcon ?? <Filter className="h-7 w-7 opacity-40" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{emptyMessage}</p>
+                                                        <p className="text-xs mt-1">Try adjusting your filters or search query</p>
+                                                    </div>
+                                                    {(search || Object.values(colFilters).some((v) => v) || activeQuickFilters.size > 0) && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setSearch("");
+                                                                setColFilters({});
+                                                                setActiveQuickFilters(new Set());
+                                                                toast.success("All filters cleared");
+                                                            }}
+                                                            className="mt-2"
+                                                        >
+                                                            <X className="h-3.5 w-3.5 mr-1.5" />
+                                                            Clear all filters
+                                                        </Button>
                                                     )}
-                                                    {visibleCols.map((col) => {
-                                                        const value = getNested(row, col.key);
-                                                        const tooltip =
-                                                            col.tooltip === true
-                                                                ? String(value ?? "")
-                                                                : typeof col.tooltip === "function"
-                                                                    ? col.tooltip(value, row)
-                                                                    : undefined;
-                                                        return (
-                                                            <td
-                                                                key={col.key}
-                                                                className={cn(
-                                                                    "px-3 text-sm",
-                                                                    rowPadding,
-                                                                    col.align === "center" && "text-center",
-                                                                    col.align === "right" && "text-right",
-                                                                    col.width && "overflow-hidden",
-                                                                    col.pinned === "left" && "sticky left-0 bg-background group-hover:bg-muted/50 z-[5]",
-                                                                    col.pinned === "left" && isSel && "bg-primary/5 group-hover:bg-primary/8",
-                                                                    col.pinned === "right" && "sticky right-0 bg-background group-hover:bg-muted/50 z-[5]",
-                                                                    col.pinned === "right" && isSel && "bg-primary/5 group-hover:bg-primary/8",
-                                                                    isPinned && col.pinned === "left" && "bg-amber-50/50 dark:bg-amber-950/10",
-                                                                    isPinned && col.pinned === "right" && "bg-amber-50/50 dark:bg-amber-950/10"
-                                                                )}
-                                                                style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
-                                                                title={tooltip}
-                                                            >
-                                                                {col.editable ? (
-                                                                    <EditableCell
-                                                                        col={col}
-                                                                        value={value}
-                                                                        row={row}
-                                                                        rowIndex={ri}
-                                                                        onCommit={(v) => handleCellEdit(row, col.key, v)}
-                                                                    />
-                                                                ) : (
-                                                                    <Cell col={col} value={value} row={row} rowIndex={ri} searchTerm={search} />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        paginated.map((row, ri) => {
+                                            const id = getNested(row, rowKey);
+                                            const isSel = selected.has(id);
+                                            const isExp = expanded.has(id);
+                                            const isPinned = pinnedRows.has(id);
+                                            const actions = rowActions ? (typeof rowActions === "function" ? rowActions(row) : rowActions) : [];
+                                            return (
+                                                <React.Fragment key={id ?? ri}>
+                                                    <tr
+                                                        className={cn(
+                                                            "border-b border-border/40 transition-all duration-200 group",
+                                                            "hover:bg-muted/50 hover:shadow-sm",
+                                                            isSel && "bg-primary/5 hover:bg-primary/8 border-primary/20",
+                                                            stripedRows && ri % 2 !== 0 && "bg-muted/5",
+                                                            isPinned && "bg-amber-50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900 sticky top-[49px] z-10"
+                                                        )}
+                                                        onContextMenu={(e) => handleRightClick(e, row)}
+                                                        onMouseEnter={() => setHoveredRow(ri)}
+                                                        onMouseLeave={() => setHoveredRow(null)}
+                                                    >
+                                                        {selectable && (
+                                                            <td className="px-3" onClick={() => toggleRow(id)}>
+                                                                <button
+                                                                    className={cn(
+                                                                        "h-4 w-4 rounded border-2 flex items-center justify-center mx-auto transition-all",
+                                                                        isSel ? "bg-primary border-primary scale-110" : "border-muted-foreground/30 hover:border-primary hover:scale-110"
+                                                                    )}
+                                                                    aria-label={isSel ? "Deselect row" : "Select row"}
+                                                                    aria-checked={isSel}
+                                                                    role="checkbox"
+                                                                >
+                                                                    {isSel && <Check className="h-2.5 w-2.5 text-white" />}
+                                                                </button>
+                                                            </td>
+                                                        )}
+                                                        {expandedRowRender && (
+                                                            <td className="px-1 text-center">
+                                                                {(!canExpandRow || canExpandRow(row)) && (
+                                                                    <button
+                                                                        onClick={() => toggleExpand(id)}
+                                                                        className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-muted mx-auto transition-colors"
+                                                                        aria-label={isExp ? "Collapse row" : "Expand row"}
+                                                                        aria-expanded={isExp}
+                                                                    >
+                                                                        <ExpandIcon
+                                                                            className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isExp && "rotate-90")}
+                                                                        />
+                                                                    </button>
                                                                 )}
                                                             </td>
-                                                        );
-                                                    })}
-                                                    {rowActions && actions.length > 0 && (
-                                                        <td className={cn(
-                                                            "px-2 text-center sticky right-0 z-[5] border-l bg-background group-hover:bg-muted/30",
-                                                            isPinned && "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50"
-                                                        )}>
-                                                            <div className="flex items-center justify-center gap-0.5">
-                                                                {actions.map((action, i) => (
-                                                                    <button
-                                                                        key={i}
-                                                                        onClick={() => action.onClick(row)}
-                                                                        title={action.label}
-                                                                        className={cn(
-                                                                            "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
-                                                                            action.danger
-                                                                                ? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                                                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                                        )}
-                                                                        aria-label={action.label}
-                                                                    >
-                                                                        {action.icon ?? <MoreVertical className="h-3.5 w-3.5" />}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                </tr>
-                                                {isExp && expandedRowRender && (!canExpandRow || canExpandRow(row)) && (
-                                                    <tr className="bg-muted/5 animate-in slide-in-from-top duration-200">
-                                                        <td
-                                                            colSpan={
-                                                                visibleCols.length +
-                                                                (selectable ? 1 : 0) +
-                                                                (expandedRowRender != null ? 1 : 0) +
-                                                                (enableRowPinning ? 1 : 0) +
-                                                                (rowActions ? 1 : 0)
-                                                            }
-                                                            className="p-0 border-b bg-background sticky left-0 z-10"
-                                                            style={{
-                                                                position: "sticky",
-                                                                left: 0,
-                                                                width: "fit-content",
-                                                                maxWidth: "100%",
-                                                                display: "table-cell",
-                                                            }}
-                                                        >
-                                                            <div className="w-[calc(100vw-360px)] md:w-[calc(100vw-360px)] lg:w-[calc(100vw-360px)]">
-                                                                {expandedRowRender?.(row)}
-                                                            </div>
-                                                        </td>
+                                                        )}
+                                                        {enableRowPinning && (
+                                                            <td className="px-1 text-center">
+                                                                <button
+                                                                    onClick={() => togglePinRow(id)}
+                                                                    className={cn(
+                                                                        "h-6 w-6 flex items-center justify-center rounded-lg mx-auto transition-all",
+                                                                        isPinned
+                                                                            ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 hover:bg-amber-200"
+                                                                            : "opacity-0 group-hover:opacity-100 hover:bg-muted"
+                                                                    )}
+                                                                    aria-label={isPinned ? "Unpin row" : "Pin row"}
+                                                                    title={isPinned ? "Unpin from top" : "Pin to top"}
+                                                                >
+                                                                    {isPinned ? <Star className="h-3.5 w-3.5 fill-current" /> : <Star className="h-3.5 w-3.5" />}
+                                                                </button>
+                                                            </td>
+                                                        )}
+                                                        {visibleCols.map((col) => {
+                                                            const value = getNested(row, col.key);
+                                                            const tooltip =
+                                                                col.tooltip === true
+                                                                    ? String(value ?? "")
+                                                                    : typeof col.tooltip === "function"
+                                                                        ? col.tooltip(value, row)
+                                                                        : undefined;
+                                                            return (
+                                                                <td
+                                                                    key={col.key}
+                                                                    className={cn(
+                                                                        "px-3 text-sm",
+                                                                        rowPadding,
+                                                                        col.align === "center" && "text-center",
+                                                                        col.align === "right" && "text-right",
+                                                                        col.width && "overflow-hidden",
+                                                                        col.pinned === "left" && "sticky left-0 bg-background group-hover:bg-muted/50 z-[5]",
+                                                                        col.pinned === "left" && isSel && "bg-primary/5 group-hover:bg-primary/8",
+                                                                        col.pinned === "right" && "sticky right-0 bg-background group-hover:bg-muted/50 z-[5]",
+                                                                        col.pinned === "right" && isSel && "bg-primary/5 group-hover:bg-primary/8",
+                                                                        isPinned && col.pinned === "left" && "bg-amber-50/50 dark:bg-amber-950/10",
+                                                                        isPinned && col.pinned === "right" && "bg-amber-50/50 dark:bg-amber-950/10"
+                                                                    )}
+                                                                    style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
+                                                                    title={tooltip}
+                                                                >
+                                                                    {col.editable ? (
+                                                                        <EditableCell
+                                                                            col={col}
+                                                                            value={value}
+                                                                            row={row}
+                                                                            rowIndex={ri}
+                                                                            onCommit={(v) => handleCellEdit(row, col.key, v)}
+                                                                        />
+                                                                    ) : (
+                                                                        <Cell col={col} value={value} row={row} rowIndex={ri} searchTerm={search} />
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        {rowActions && actions.length > 0 && (
+                                                            <td className={cn(
+                                                                "px-2 text-center sticky right-0 z-[5] border-l bg-background group-hover:bg-muted/30",
+                                                                isPinned && "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50"
+                                                            )}>
+                                                                <div className="flex items-center justify-center gap-0.5">
+                                                                    {actions.map((action, i) => (
+                                                                        <button
+                                                                            key={i}
+                                                                            onClick={() => action.onClick(row)}
+                                                                            title={action.label}
+                                                                            className={cn(
+                                                                                "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
+                                                                                action.danger
+                                                                                    ? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                                            )}
+                                                                            aria-label={action.label}
+                                                                        >
+                                                                            {action.icon ?? <MoreVertical className="h-3.5 w-3.5" />}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                     </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })
-                                )}
-                            </tbody>
+                                                    {isExp && expandedRowRender && (!canExpandRow || canExpandRow(row)) && (
+                                                        <tr className="bg-muted/5 animate-in slide-in-from-top duration-200">
+                                                            <td
+                                                                colSpan={
+                                                                    visibleCols.length +
+                                                                    (selectable ? 1 : 0) +
+                                                                    (expandedRowRender != null ? 1 : 0) +
+                                                                    (enableRowPinning ? 1 : 0) +
+                                                                    (rowActions ? 1 : 0)
+                                                                }
+                                                                className="p-0 border-b bg-background sticky left-0 z-10"
+                                                                style={{
+                                                                    position: "sticky",
+                                                                    left: 0,
+                                                                    width: "fit-content",
+                                                                    maxWidth: "100%",
+                                                                    display: "table-cell",
+                                                                }}
+                                                            >
+                                                                <div className="w-[calc(100vw-360px)] md:w-[calc(100vw-360px)] lg:w-[calc(100vw-360px)]">
+                                                                    {expandedRowRender?.(row)}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
 
-                            {/* Aggregate Footer */}
-                            {visibleCols.some((c) => c.aggregate && c.aggregate !== "none") && processed.length > 0 && (
-                                <tfoot className="sticky bottom-0 z-[15] bg-gradient-to-r from-muted/90 to-muted/70 backdrop-blur-sm border-t-2 border-primary/20">
-                                    <tr>
-                                        {selectable && <td className="bg-muted/90 backdrop-blur-sm" />}
-                                        {expandedRowRender && <td className="bg-muted/90 backdrop-blur-sm" />}
-                                        {enableRowPinning && <td className="bg-muted/90 backdrop-blur-sm" />}
-                                        {visibleCols.map((col) => {
-                                            if (!col.aggregate || col.aggregate === "none")
+                                {/* Aggregate Footer */}
+                                {visibleCols.some((c) => c.aggregate && c.aggregate !== "none") && processed.length > 0 && (
+                                    <tfoot className="sticky bottom-0 z-[15] bg-gradient-to-r from-muted/90 to-muted/70 backdrop-blur-sm border-t-2 border-primary/20">
+                                        <tr>
+                                            {selectable && <td className="bg-muted/90 backdrop-blur-sm" />}
+                                            {expandedRowRender && <td className="bg-muted/90 backdrop-blur-sm" />}
+                                            {enableRowPinning && <td className="bg-muted/90 backdrop-blur-sm" />}
+                                            {visibleCols.map((col) => {
+                                                if (!col.aggregate || col.aggregate === "none")
+                                                    return (
+                                                        <td
+                                                            key={col.key}
+                                                            className={cn(
+                                                                "px-3 py-2",
+                                                                col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
+                                                                col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
+                                                            )}
+                                                        />
+                                                    );
+                                                const values = processed.map((r) => Number(getNested(r, col.key))).filter((v) => !isNaN(v));
                                                 return (
                                                     <td
                                                         key={col.key}
                                                         className={cn(
-                                                            "px-3 py-2",
+                                                            "px-3 py-2 text-xs font-bold",
+                                                            col.align === "center" && "text-center",
+                                                            col.align === "right" && "text-right",
                                                             col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
                                                             col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
                                                         )}
-                                                    />
+                                                    >
+                                                        <div className="flex items-center gap-1.5 text-primary">
+                                                            <Sigma className="h-3.5 w-3.5 shrink-0" />
+                                                            <span className="text-[10px] text-muted-foreground uppercase font-semibold mr-0.5">
+                                                                {col.aggregate}:
+                                                            </span>
+                                                            <span className="font-bold">{aggregate(values, col.aggregate)}</span>
+                                                        </div>
+                                                    </td>
                                                 );
-                                            const values = processed.map((r) => Number(getNested(r, col.key))).filter((v) => !isNaN(v));
-                                            return (
-                                                <td
-                                                    key={col.key}
-                                                    className={cn(
-                                                        "px-3 py-2 text-xs font-bold",
-                                                        col.align === "center" && "text-center",
-                                                        col.align === "right" && "text-right",
-                                                        col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
-                                                        col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-1.5 text-primary">
-                                                        <Sigma className="h-3.5 w-3.5 shrink-0" />
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-semibold mr-0.5">
-                                                            {col.aggregate}:
-                                                        </span>
-                                                        <span className="font-bold">{aggregate(values, col.aggregate)}</span>
-                                                    </div>
-                                                </td>
-                                            );
-                                        })}
-                                        {rowActions && <td className="bg-muted/90 backdrop-blur-sm" />}
-                                    </tr>
-                                </tfoot>
-                            )}
-                        </table>
+                                            })}
+                                            {rowActions && <td className="bg-muted/90 backdrop-blur-sm" />}
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ── Mobile Cards ── */}
-            {!loading && (
-                <div
-                    className="md:hidden overflow-y-auto p-3 space-y-3"
-                    style={{ maxHeight: fullscreen ? "calc(100vh - 260px)" : `${maxHeight}px` }}
-                >
-                    {paginated.length === 0 ? (
-                        <div className="text-center py-16 flex flex-col items-center gap-3 text-muted-foreground">
-                            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                                {emptyIcon ?? <Filter className="h-7 w-7 opacity-40" />}
+            {
+                !loading && (
+                    <div
+                        className="md:hidden overflow-y-auto p-3 space-y-3"
+                        style={{ maxHeight: fullscreen ? "calc(100vh - 260px)" : `${maxHeight}px` }}
+                    >
+                        {paginated.length === 0 ? (
+                            <div className="text-center py-16 flex flex-col items-center gap-3 text-muted-foreground">
+                                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                                    {emptyIcon ?? <Filter className="h-7 w-7 opacity-40" />}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium">{emptyMessage}</p>
+                                    <p className="text-xs mt-1">Try adjusting your filters</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm font-medium">{emptyMessage}</p>
-                                <p className="text-xs mt-1">Try adjusting your filters</p>
-                            </div>
-                        </div>
-                    ) : (
-                        paginated.map((row, ri) => (
-                            <MobileCard
-                                key={getNested(row, rowKey) ?? ri}
-                                row={row}
-                                columns={columns}
-                                rowIndex={ri}
-                                selected={selected.has(getNested(row, rowKey))}
-                                onSelect={() => toggleRow(getNested(row, rowKey))}
-                                selectable={selectable}
-                                canExpandRow={canExpandRow}
-                                expandedRowRender={expandedRowRender}
-                                onCellEdit={onCellEdit ? handleCellEdit : undefined}
-                                isPinned={enableRowPinning && pinnedRows.has(getNested(row, rowKey))}
-                                onTogglePin={enableRowPinning ? () => togglePinRow(getNested(row, rowKey)) : undefined}
-                            />
-                        ))
-                    )}
-                </div>
-            )}
+                        ) : (
+                            paginated.map((row, ri) => (
+                                <MobileCard
+                                    key={getNested(row, rowKey) ?? ri}
+                                    row={row}
+                                    columns={columns}
+                                    rowIndex={ri}
+                                    selected={selected.has(getNested(row, rowKey))}
+                                    onSelect={() => toggleRow(getNested(row, rowKey))}
+                                    selectable={selectable}
+                                    canExpandRow={canExpandRow}
+                                    expandedRowRender={expandedRowRender}
+                                    onCellEdit={onCellEdit ? handleCellEdit : undefined}
+                                    isPinned={enableRowPinning && pinnedRows.has(getNested(row, rowKey))}
+                                    onTogglePin={enableRowPinning ? () => togglePinRow(getNested(row, rowKey)) : undefined}
+                                    rowActions={rowActions}
+                                    onRowClick={onMobileRowClick}
+                                />
+                            ))
+                        )}
+                    </div>
+                )
+            }
 
             {/* ── Status Bar ── */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 border-t bg-gradient-to-r from-muted/20 to-muted/10 text-[11px] text-muted-foreground shrink-0">
-                <span className="flex items-center gap-1">
+                <span className="hidden md:flex items-center gap-1">
                     <Info className="h-3 w-3" />
                     Total: <strong className="text-foreground">{data.length.toLocaleString()}</strong>
                 </span>
@@ -2012,141 +2095,145 @@ export function DataGrid<T extends object>({
             </div>
 
             {/* ── Pagination ── */}
-            {!loading && processed.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t shrink-0">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="hidden sm:inline">Rows per page:</span>
-                        <div className="flex items-center border rounded-lg overflow-hidden shadow-sm" role="group" aria-label="Rows per page">
-                            {pageSizes.map((sz) => (
-                                <button
-                                    key={sz}
-                                    onClick={() => {
-                                        setPageSize(sz);
-                                        setPage(1);
-                                        toast.success(`Showing ${sz} rows per page`);
-                                    }}
-                                    className={cn(
-                                        "px-3 py-1.5 text-xs font-medium transition-all",
-                                        pageSize === sz
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "hover:bg-muted text-muted-foreground"
-                                    )}
-                                    aria-label={`${sz} rows per page`}
-                                    aria-pressed={pageSize === sz}
-                                >
-                                    {sz}
-                                </button>
-                            ))}
+            {
+                !loading && processed.length > 0 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t shrink-0">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="hidden sm:inline">Rows per page:</span>
+                            <div className="flex items-center border rounded-lg overflow-hidden shadow-sm" role="group" aria-label="Rows per page">
+                                {pageSizes.map((sz) => (
+                                    <button
+                                        key={sz}
+                                        onClick={() => {
+                                            setPageSize(sz);
+                                            setPage(1);
+                                            toast.success(`Showing ${sz} rows per page`);
+                                        }}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-medium transition-all",
+                                            pageSize === sz
+                                                ? "bg-primary text-primary-foreground shadow-sm"
+                                                : "hover:bg-muted text-muted-foreground"
+                                        )}
+                                        aria-label={`${sz} rows per page`}
+                                        aria-pressed={pageSize === sz}
+                                    >
+                                        {sz}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            <span className="font-semibold text-foreground">
+                                {Math.min((page - 1) * pageSize + 1, processed.length)}–{Math.min(page * pageSize, processed.length)}
+                            </span>{" "}
+                            of <span className="font-semibold text-foreground">{processed.length.toLocaleString()}</span>
+                        </p>
+                        <div className="flex items-center gap-1" role="navigation" aria-label="Pagination">
+                            <button
+                                onClick={() => setPage(1)}
+                                disabled={page === 1}
+                                className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                aria-label="First page"
+                            >
+                                <ChevronsLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                                onClick={() => setPage((p) => p - 1)}
+                                disabled={page === 1}
+                                className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                aria-label="Previous page"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let p =
+                                    totalPages <= 5 ? i + 1 : page <= 3 ? i + 1 : page >= totalPages - 2 ? totalPages - 4 + i : page - 2 + i;
+                                return (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPage(p)}
+                                        className={cn(
+                                            "h-8 min-w-[32px] px-2 rounded-lg border text-xs font-medium transition-all",
+                                            page === p
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md scale-110"
+                                                : "hover:bg-muted text-muted-foreground hover:border-primary hover:scale-105"
+                                        )}
+                                        aria-label={`Page ${p}`}
+                                        aria-current={page === p ? "page" : undefined}
+                                    >
+                                        {p}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                onClick={() => setPage((p) => p + 1)}
+                                disabled={page === totalPages}
+                                className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                aria-label="Next page"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                            <button
+                                onClick={() => setPage(totalPages)}
+                                disabled={page === totalPages}
+                                className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                aria-label="Last page"
+                            >
+                                <ChevronsRight className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        <span className="font-semibold text-foreground">
-                            {Math.min((page - 1) * pageSize + 1, processed.length)}–{Math.min(page * pageSize, processed.length)}
-                        </span>{" "}
-                        of <span className="font-semibold text-foreground">{processed.length.toLocaleString()}</span>
-                    </p>
-                    <div className="flex items-center gap-1" role="navigation" aria-label="Pagination">
-                        <button
-                            onClick={() => setPage(1)}
-                            disabled={page === 1}
-                            className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                            aria-label="First page"
-                        >
-                            <ChevronsLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                            onClick={() => setPage((p) => p - 1)}
-                            disabled={page === 1}
-                            className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                            aria-label="Previous page"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            let p =
-                                totalPages <= 5 ? i + 1 : page <= 3 ? i + 1 : page >= totalPages - 2 ? totalPages - 4 + i : page - 2 + i;
-                            return (
-                                <button
-                                    key={p}
-                                    onClick={() => setPage(p)}
-                                    className={cn(
-                                        "h-8 min-w-[32px] px-2 rounded-lg border text-xs font-medium transition-all",
-                                        page === p
-                                            ? "bg-primary text-primary-foreground border-primary shadow-md scale-110"
-                                            : "hover:bg-muted text-muted-foreground hover:border-primary hover:scale-105"
-                                    )}
-                                    aria-label={`Page ${p}`}
-                                    aria-current={page === p ? "page" : undefined}
-                                >
-                                    {p}
-                                </button>
-                            );
-                        })}
-                        <button
-                            onClick={() => setPage((p) => p + 1)}
-                            disabled={page === totalPages}
-                            className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                            aria-label="Next page"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </button>
-                        <button
-                            onClick={() => setPage(totalPages)}
-                            disabled={page === totalPages}
-                            className="h-8 w-8 rounded-lg border flex items-center justify-center text-muted-foreground hover:bg-muted hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                            aria-label="Last page"
-                        >
-                            <ChevronsRight className="h-4 w-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ── Floating Bulk Action Bar ── */}
-            {selected.size > 0 && bulkActions && (
-                <div
-                    className={cn(
-                        "fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 bg-foreground text-background rounded-2xl shadow-2xl border-2 border-primary animate-in slide-in-from-bottom-4 duration-300"
-                    )}
-                    role="toolbar"
-                    aria-label="Bulk actions"
-                >
-                    <span className="text-sm font-bold mr-2 flex items-center gap-1.5">
-                        <Check className="h-4 w-4" />
-                        {selected.size} selected
-                    </span>
-                    <div className="w-px h-6 bg-background/20" />
-                    {bulkActions.map((action, i) => (
-                        <Button
-                            key={i}
-                            size="sm"
-                            variant="ghost"
-                            className={cn(
-                                "h-8 text-xs text-background hover:bg-background/10 gap-1.5",
-                                action.danger && "text-red-300 hover:text-red-200 hover:bg-red-500/20"
-                            )}
-                            onClick={() => action.onClick(data.filter((r) => selected.has(getNested(r, rowKey))))}
-                        >
-                            {action.icon}
-                            {action.label}
-                        </Button>
-                    ))}
-                    <div className="w-px h-6 bg-background/20" />
-                    <button
-                        onClick={() => {
-                            setSelected(new Set());
-                            toast.success("Selection cleared");
-                        }}
-                        className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-background/10 transition-colors"
-                        aria-label="Clear selection"
+            {
+                selected.size > 0 && bulkActions && (
+                    <div
+                        className={cn(
+                            "fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 bg-foreground text-background rounded-2xl shadow-2xl border-2 border-primary animate-in slide-in-from-bottom-4 duration-300"
+                        )}
+                        role="toolbar"
+                        aria-label="Bulk actions"
                     >
-                        <X className="h-4 w-4 text-background" />
-                    </button>
-                </div>
-            )}
+                        <span className="text-sm font-bold mr-2 flex items-center gap-1.5">
+                            <Check className="h-4 w-4" />
+                            {selected.size} selected
+                        </span>
+                        <div className="w-px h-6 bg-background/20" />
+                        {bulkActions.map((action, i) => (
+                            <Button
+                                key={i}
+                                size="sm"
+                                variant="ghost"
+                                className={cn(
+                                    "h-8 text-xs text-background hover:bg-background/10 gap-1.5",
+                                    action.danger && "text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                                )}
+                                onClick={() => action.onClick(data.filter((r) => selected.has(getNested(r, rowKey))))}
+                            >
+                                {action.icon}
+                                {action.label}
+                            </Button>
+                        ))}
+                        <div className="w-px h-6 bg-background/20" />
+                        <button
+                            onClick={() => {
+                                setSelected(new Set());
+                                toast.success("Selection cleared");
+                            }}
+                            className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-background/10 transition-colors"
+                            aria-label="Clear selection"
+                        >
+                            <X className="h-4 w-4 text-background" />
+                        </button>
+                    </div>
+                )
+            }
 
             {/* ── Context Menu ── */}
             {ctx && <CtxMenu x={ctx.x} y={ctx.y} items={ctx.items} onClose={() => setCtx(null)} />}
-        </div>
+        </div >
     );
 }

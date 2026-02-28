@@ -14,14 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 export default function AdminExpenseAnalyticsPage() {
   const [reports, setReports] = useState<any[]>([]);
@@ -87,111 +82,142 @@ export default function AdminExpenseAnalyticsPage() {
 
   const handleExport = () => {
     // Export to Excel logic
-    alert("Export to Excel functionality would be implemented here");
+    toast.success("Exporting expense report to Excel...");
   };
 
   return (
     <PageContainer>
       <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <PageHeader
-            title="Expense Analytics"
-            description="Comprehensive expense reports and analytics"
-          />
-          <Button onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export to Excel
-          </Button>
-        </div>
+        <PageHeader
+          title="Expense Analytics"
+          description="Comprehensive expense reports and analytics"
+        />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              ₹{totalExpenses.toLocaleString()}
+      {/* KPI Cards — dashboard style */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {/* Total Expenses */}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-blue-100">
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <p className="text-xl font-bold tracking-tight">₹{totalExpenses.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Expenses</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">All time submissions</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Paid Amount</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ₹{paidExpenses.toLocaleString()}
+        {/* Paid Amount */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-green-100">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {((paidExpenses / totalExpenses) * 100).toFixed(1)}% of total
-            </p>
+            <p className="text-xl font-bold tracking-tight">₹{paidExpenses.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Paid Amount</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <Progress
+                value={totalExpenses > 0 ? Math.round((paidExpenses / totalExpenses) * 100) : 0}
+                className="h-1.5"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {totalExpenses > 0 ? ((paidExpenses / totalExpenses) * 100).toFixed(1) : 0}% of total
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Amount</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              ₹{pendingExpenses.toLocaleString()}
+        {/* Pending Amount */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-purple-100">
+                <TrendingUp className="h-4 w-4 text-purple-600" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {reports.filter((r) => r.status === "pending" || r.status === "approved").length} reports
-            </p>
+            <p className="text-xl font-bold tracking-tight">₹{pendingExpenses.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pending Amount</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">
+                {reports.filter((r) => r.status === "pending" || r.status === "approved").length} pending reports
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Policy Violations</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{violationCount}</div>
-            <p className="text-xs text-muted-foreground">
-              {((violationCount / expenses.length) * 100).toFixed(1)}% of expenses
-            </p>
+        {/* Policy Violations */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-orange-100">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{violationCount}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Policy Violations</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <Progress
+                value={expenses.length > 0 ? Math.round((violationCount / expenses.length) * 100) : 0}
+                className="h-1.5"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {expenses.length > 0 ? ((violationCount / expenses.length) * 100).toFixed(1) : 0}% of expenses
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 mb-6">
         {/* Expense by Type */}
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Expenses by Type</CardTitle>
+            <CardTitle className="text-lg font-bold">Expenses by Type</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Breakdown of expenses across categories</p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-5">
               {expenseTypeData
                 .sort((a, b) => b.amount - a.amount)
-                .map((item) => {
+                .map((item, index) => {
                   const percentage = (item.amount / totalExpenses) * 100;
+                  const colors = [
+                    'bg-gradient-to-r from-blue-500 to-blue-600',
+                    'bg-gradient-to-r from-green-500 to-green-600',
+                    'bg-gradient-to-r from-purple-500 to-purple-600',
+                    'bg-gradient-to-r from-orange-500 to-orange-600',
+                    'bg-gradient-to-r from-pink-500 to-pink-600',
+                  ];
+                  const bgColors = [
+                    'bg-blue-50 dark:bg-blue-950/20',
+                    'bg-green-50 dark:bg-green-950/20',
+                    'bg-purple-50 dark:bg-purple-950/20',
+                    'bg-orange-50 dark:bg-orange-950/20',
+                    'bg-pink-50 dark:bg-pink-950/20',
+                  ];
                   return (
-                    <div key={item.type}>
+                    <div key={item.type} className={`p-3 rounded-lg ${bgColors[index % bgColors.length]}`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">{item.type}</span>
-                        <div className="text-right">
+                        <span className="text-sm font-semibold">{item.type}</span>
+                        <div className="text-right flex items-center gap-2">
                           <span className="text-sm font-bold">
                             ₹{item.amount.toLocaleString()}
                           </span>
-                          <Badge variant="secondary" className="ml-2 text-xs">
+                          <Badge variant="secondary" className="text-[10px] font-bold">
                             {percentage.toFixed(1)}%
                           </Badge>
                         </div>
                       </div>
-                      <div className="w-full bg-muted rounded-full h-2">
+                      <div className="w-full bg-white dark:bg-gray-800 rounded-full h-2.5 shadow-inner">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          className={`${colors[index % colors.length]} h-2.5 rounded-full transition-all duration-500 shadow-md`}
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -202,13 +228,16 @@ export default function AdminExpenseAnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Monthly Trend */}
-        <Card>
+        {/* Monthly Summary */}
+        <Card className="border-0 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Monthly Summary</CardTitle>
+              <div>
+                <CardTitle className="text-lg font-bold">Monthly Summary</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Current month statistics</p>
+              </div>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-[150px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -221,34 +250,48 @@ export default function AdminExpenseAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-8 w-8 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Reports</p>
-                    <p className="text-2xl font-bold">{reports.length}</p>
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
+                    <FileText className="h-7 w-7 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                      Total Reports
+                    </p>
+                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                      {reports.length}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-8 w-8 text-green-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Submitted Amount</p>
-                    <p className="text-2xl font-bold">
+              <div className="p-4 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 rounded-xl border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-xl bg-green-500 flex items-center justify-center shadow-lg">
+                    <DollarSign className="h-7 w-7 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">
+                      Submitted Amount
+                    </p>
+                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">
                       ₹{totalExpenses.toLocaleString()}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-8 w-8 text-purple-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Approved Amount</p>
-                    <p className="text-2xl font-bold">
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 rounded-xl border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-xl bg-purple-500 flex items-center justify-center shadow-lg">
+                    <CheckCircle2 className="h-7 w-7 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
+                      Approved Amount
+                    </p>
+                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
                       ₹
                       {reports
                         .filter((r) => r.status === "approved" || r.status === "paid")
@@ -269,66 +312,114 @@ export default function AdminExpenseAnalyticsPage() {
           <CardTitle>Salesman-wise Expense Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Salesman</TableHead>
-                <TableHead>Reports</TableHead>
-                <TableHead>Total Amount</TableHead>
-                <TableHead>Paid Amount</TableHead>
-                <TableHead>Pending Amount</TableHead>
-                <TableHead>Violations</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {salesmanExpenses
-                .filter((s) => s.reportCount > 0)
-                .sort((a, b) => b.totalAmount - a.totalAmount)
-                .map((salesman) => (
-                  <TableRow key={salesman.id}>
-                    <TableCell>
-                      <div className="font-medium">{salesman.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {salesman.id}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{salesman.reportCount}</Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      ₹{salesman.totalAmount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-green-600 font-medium">
-                      ₹{salesman.paidAmount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-purple-600 font-medium">
-                      ₹{salesman.pendingAmount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {salesman.violationCount > 0 ? (
-                        <Badge variant="destructive" className="text-xs">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          {salesman.violationCount}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-green-500 text-white text-xs">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          None
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {salesman.pendingAmount > 0 ? (
-                        <Badge className="bg-yellow-500 text-white">Pending</Badge>
-                      ) : (
-                        <Badge className="bg-green-500 text-white">Settled</Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <DataGrid
+            data={salesmanExpenses
+              .filter((s) => s.reportCount > 0)
+              .sort((a, b) => b.totalAmount - a.totalAmount)}
+            columns={[
+              {
+                key: "name",
+                header: "Salesman",
+                sortable: true,
+                filterable: true,
+                width: 220,
+                render: (value, row) => (
+                  <div>
+                    <div className="font-semibold text-sm">{value}</div>
+                    <div className="text-xs text-muted-foreground">{row.id}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "reportCount",
+                header: "Reports",
+                type: "number",
+                sortable: true,
+                width: 100,
+                align: "center",
+                render: (value) => (
+                  <Badge variant="secondary" className="text-xs">
+                    {value}
+                  </Badge>
+                ),
+              },
+              {
+                key: "totalAmount",
+                header: "Total Amount",
+                type: "number",
+                sortable: true,
+                width: 150,
+                render: (value) => (
+                  <span className="font-semibold">₹{value.toLocaleString()}</span>
+                ),
+              },
+              {
+                key: "paidAmount",
+                header: "Paid Amount",
+                type: "number",
+                sortable: true,
+                width: 150,
+                render: (value) => (
+                  <span className="text-green-600 font-medium">
+                    ₹{value.toLocaleString()}
+                  </span>
+                ),
+              },
+              {
+                key: "pendingAmount",
+                header: "Pending Amount",
+                type: "number",
+                sortable: true,
+                width: 150,
+                render: (value) => (
+                  <span className="text-purple-600 font-medium">
+                    ₹{value.toLocaleString()}
+                  </span>
+                ),
+              },
+              {
+                key: "violationCount",
+                header: "Violations",
+                type: "number",
+                sortable: true,
+                width: 130,
+                align: "center",
+                render: (value) =>
+                  value > 0 ? (
+                    <Badge variant="destructive" className="text-xs">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {value}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      None
+                    </Badge>
+                  ),
+              },
+              {
+                key: "pendingAmount",
+                header: "Status",
+                sortable: true,
+                width: 120,
+                align: "center",
+                render: (value) =>
+                  value > 0 ? (
+                    <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                      Pending
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                      Settled
+                    </Badge>
+                  ),
+              },
+            ]}
+            density="comfortable"
+            striped={true}
+            emptyMessage="No expense data found for salesmen"
+            emptyIcon={<Users className="h-12 w-12" />}
+          />
         </CardContent>
       </Card>
     </PageContainer>

@@ -483,6 +483,7 @@ export default function ManagerListPage() {
         defaultPageSize={15}
         selectable
         enableRowPinning
+        enableColumnPinning
         inlineFilters
         striped
         rowActions={rowActions}

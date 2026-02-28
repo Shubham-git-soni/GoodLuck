@@ -94,7 +94,7 @@ export default function GridDemoPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-sm">{v}</span>
-                {isTop && <Award className="h-3.5 w-3.5 text-amber-500 fill-amber-500" title="Top Performer" />}
+                {isTop && <Award className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />}
               </div>
               <span className="text-xs text-muted-foreground">{row.email}</span>
             </div>

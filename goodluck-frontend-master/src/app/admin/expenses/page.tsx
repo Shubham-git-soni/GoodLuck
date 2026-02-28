@@ -14,19 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 import Link from "next/link";
 
 export default function AdminExpensesPage() {
-  const { toast } = useToast();
   const [reports, setReports] = useState<any[]>([]);
   const [salesmen, setSalesmen] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -103,51 +96,65 @@ export default function AdminExpensesPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <FileText className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingReports}</div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting approval
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{approvedReports}</div>
-            <p className="text-xs text-muted-foreground">Pending payment</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <DollarSign className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              ₹{totalPendingAmount.toLocaleString()}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-yellow-100">
+                <FileText className="h-4 w-4 text-yellow-600" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">To be paid</p>
+            <p className="text-xl font-bold tracking-tight">{pendingReports}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pending Review</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Policy Violations</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{violationReports}</div>
-            <p className="text-xs text-muted-foreground">Reports flagged</p>
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-blue-100">
+                <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{approvedReports}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Approved</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Pending payment</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-purple-100">
+                <DollarSign className="h-4 w-4 text-purple-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">
+              ₹{totalPendingAmount.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Pending</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">To be paid</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-orange-100">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{violationReports}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Policy Violations</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Reports flagged</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -213,117 +220,161 @@ export default function AdminExpensesPage() {
             </div>
           </div>
 
-          {/* Reports Table */}
-          {filteredReports.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Reports Found</h3>
-              <p className="text-muted-foreground">
-                No expense reports match the current filters
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report ID</TableHead>
-                  <TableHead>Salesman</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead>Violations</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => {
-                  const statusBadge = getStatusBadge(report.status);
+          {/* Reports DataGrid */}
+          <DataGrid
+            data={filteredReports}
+            columns={[
+              {
+                key: "id",
+                header: "Report ID",
+                sortable: true,
+                filterable: true,
+                width: 120,
+                render: (value) => (
+                  <span className="font-semibold text-primary">{value}</span>
+                ),
+              },
+              {
+                key: "salesmanName",
+                header: "Salesman",
+                sortable: true,
+                filterable: true,
+                width: 180,
+                render: (value, row) => (
+                  <div>
+                    <div className="font-medium">{value}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.salesmanId}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "reportTitle",
+                header: "Title",
+                sortable: true,
+                filterable: true,
+                width: 200,
+                render: (value, row) => (
+                  <div>
+                    <div className="font-medium">{value}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.startDate} to {row.endDate}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "dateSubmitted",
+                header: "Submitted",
+                sortable: true,
+                width: 120,
+                render: (value) => (
+                  <span className="text-sm">
+                    {new Date(value).toLocaleDateString()}
+                  </span>
+                ),
+              },
+              {
+                key: "expenseCount",
+                header: "Items",
+                sortable: true,
+                width: 100,
+                render: (value) => (
+                  <Badge variant="secondary" className="font-medium">
+                    {value}
+                  </Badge>
+                ),
+              },
+              {
+                key: "totalAmount",
+                header: "Total Amount",
+                sortable: true,
+                width: 150,
+                render: (value) => (
+                  <span className="font-semibold text-lg">
+                    ₹{value.toLocaleString()}
+                  </span>
+                ),
+              },
+              {
+                key: "policyViolations",
+                header: "Violations",
+                sortable: true,
+                width: 120,
+                render: (value) =>
+                  value > 0 ? (
+                    <Badge variant="destructive" className="text-xs">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {value}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-500 text-white text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      None
+                    </Badge>
+                  ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                sortable: true,
+                width: 120,
+                render: (value) => {
+                  const statusBadge = getStatusBadge(value);
                   return (
-                    <TableRow key={report.id}>
-                      <TableCell className="font-medium">{report.id}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{report.salesmanName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {report.salesmanId}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <div className="font-medium">{report.reportTitle}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {report.startDate} to {report.endDate}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(report.dateSubmitted).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{report.expenseCount}</Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        ₹{report.totalAmount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        {report.policyViolations > 0 ? (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            {report.policyViolations}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-green-500 text-white text-xs">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            None
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${statusBadge.color} text-white`}>
-                          {statusBadge.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/admin/expenses/${report.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          {report.status === "pending" && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleApprove(report.id, report.reportTitle)}
-                              >
-                                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleReject(report.id, report.reportTitle)}
-                              >
-                                <XCircle className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </>
-                          )}
-                          {report.status === "approved" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMarkAsPaid(report.id, report.reportTitle)}
-                            >
-                              <CreditCard className="h-4 w-4 text-blue-600" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <Badge className={`${statusBadge.color} text-white`}>
+                      {statusBadge.label}
+                    </Badge>
                   );
-                })}
-              </TableBody>
-            </Table>
-          )}
+                },
+              },
+            ]}
+            rowActions={(row) => {
+              const actions: RowAction[] = [
+                {
+                  label: "View Details",
+                  icon: <Eye className="h-4 w-4" />,
+                  onClick: (row) => {
+                    window.location.href = `/admin/expenses/${row.id}`;
+                  },
+                },
+              ];
+
+              if (row.status === "pending") {
+                actions.push(
+                  {
+                    label: "Approve",
+                    icon: <CheckCircle2 className="h-4 w-4" />,
+                    onClick: (row) => handleApprove(row.id, row.reportTitle),
+                  },
+                  {
+                    label: "Reject",
+                    icon: <XCircle className="h-4 w-4" />,
+                    onClick: (row) => handleReject(row.id, row.reportTitle),
+                    danger: true,
+                  }
+                );
+              }
+
+              if (row.status === "approved") {
+                actions.push({
+                  label: "Mark as Paid",
+                  icon: <CreditCard className="h-4 w-4" />,
+                  onClick: (row) => handleMarkAsPaid(row.id, row.reportTitle),
+                });
+              }
+
+              return actions;
+            }}
+            density="comfortable"
+            striped={true}
+            emptyState={{
+              icon: <FileText className="h-12 w-12" />,
+              title: "No Reports Found",
+              description: "No expense reports match the current filters",
+            }}
+          />
         </CardContent>
       </Card>
     </PageContainer>

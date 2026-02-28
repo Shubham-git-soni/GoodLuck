@@ -4,7 +4,8 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Calendar, TrendingUp, Users, BarChart3, Filter, MapPin,
   Download, ArrowUpRight, ArrowDownRight, School, BookOpen,
-  ChevronDown, ChevronUp, RotateCcw, Eye, CheckCircle2, Clock3
+  ChevronDown, ChevronUp, RotateCcw, Eye, CheckCircle2, Clock3,
+  SlidersHorizontal, X
 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
@@ -14,9 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis,
@@ -71,6 +72,10 @@ export default function VisitAnalyticsPage() {
   const [salesmanFilter, setSalesmanFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"summary" | "log">("summary");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => { setTimeout(() => setIsLoading(false), 600); }, []);
 
@@ -140,8 +145,24 @@ export default function VisitAnalyticsPage() {
     return days;
   }, []);
 
-  const reset = () => { setDateRange("month"); setStateFilter("all"); setSalesmanFilter("all"); setTypeFilter("all"); };
+  const reset = () => { setDateRange("month"); setStateFilter("all"); setSalesmanFilter("all"); setTypeFilter("all"); setDateFrom(""); setDateTo(""); };
   const exportCSV = () => toast.success("Exporting visit report...");
+
+  const activeFilterCount = [
+    stateFilter !== "all",
+    salesmanFilter !== "all",
+    typeFilter !== "all",
+    dateFrom !== "",
+    dateTo !== "",
+  ].filter(Boolean).length;
+
+  // ── Date-range filtered data for Visit Log ──
+  const logFiltered = useMemo(() => {
+    let arr = filtered;
+    if (dateFrom) arr = arr.filter((v: any) => v.date >= dateFrom);
+    if (dateTo) arr = arr.filter((v: any) => v.date <= dateTo);
+    return arr;
+  }, [filtered, dateFrom, dateTo]);
 
   if (isLoading) return <PageContainer><DashboardSkeleton /></PageContainer>;
 
@@ -274,8 +295,105 @@ export default function VisitAnalyticsPage() {
         description="Track visits, specimen distribution and salesperson performance"
       />
 
-      {/* ── Filters — compact bar ── */}
-      <div className="mb-5 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+      {/* ── MOBILE: filter toggle row ── */}
+      <div className="flex items-center gap-2 mb-3 md:hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(o => !o)}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg border border-input bg-background text-xs font-medium hover:bg-accent transition-colors"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+        <div className="flex-1">
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{DATE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <Button size="sm" className="h-9 px-3 shrink-0" onClick={exportCSV}>
+          <Download className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* ── MOBILE: collapsible filter panel ── */}
+      {filtersOpen && (
+        <div className="mb-4 md:hidden border rounded-xl bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
+            <button type="button" onClick={() => setFiltersOpen(false)} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">State</p>
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All States</SelectItem>
+                  {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Person</p>
+              <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Salesperson</SelectItem>
+                  {salesmenData.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Type</p>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All Types" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="school">School</SelectItem>
+                  <SelectItem value="bookseller">Bookseller</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Date Range</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <DatePicker
+                    value={dateFrom}
+                    onChange={setDateFrom}
+                    placeholder="From"
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">to</span>
+                <div className="flex-1">
+                  <DatePicker
+                    value={dateTo}
+                    onChange={setDateTo}
+                    placeholder="To"
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="w-full h-9 text-xs bg-muted text-muted-foreground hover:bg-muted/80 border-0"
+            onClick={() => { reset(); setFiltersOpen(false); }}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset Filters
+          </Button>
+        </div>
+      )}
+
+      {/* ── Filters — compact bar (DESKTOP ONLY) ── */}
+      <div className="hidden md:flex mb-5 flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
         <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
@@ -337,85 +455,85 @@ export default function VisitAnalyticsPage() {
       </div>
 
       {/* ── KPI Cards — dashboard style ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+      <div className="grid grid-cols-6 lg:grid-cols-5 gap-2 md:gap-3 mb-5">
         {/* Total Visits */}
-        <Card className="border-0 shadow-sm gradient-card-orange">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Calendar className="h-4 w-4 text-primary" />
+        <Card className="col-span-2 lg:col-span-1 border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-primary/10">
+                <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
               </div>
               {totalChg && (
-                <span className={`flex items-center text-xs font-semibold ${parseFloat(totalChg) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                <span className={`flex items-center text-[10px] md:text-xs font-semibold ${parseFloat(totalChg) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                   {parseFloat(totalChg) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                   {Math.abs(parseFloat(totalChg))}%
                 </span>
               )}
             </div>
-            <p className="text-xl font-bold tracking-tight">{kpis.total}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total Visits</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">vs previous period</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{kpis.total}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Total Visits</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">vs previous period</p>
             </div>
           </CardContent>
         </Card>
         {/* School Visits */}
-        <Card className="border-0 shadow-sm gradient-card-orange">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <School className="h-4 w-4 text-primary" />
+        <Card className="col-span-2 lg:col-span-1 border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-primary/10">
+                <School className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{kpis.school}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">School Visits</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">{kpis.total > 0 ? Math.round((kpis.school / kpis.total) * 100) : 0}% of total</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{kpis.school}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">School Visits</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">{kpis.total > 0 ? Math.round((kpis.school / kpis.total) * 100) : 0}% of total</p>
             </div>
           </CardContent>
         </Card>
         {/* Bookseller */}
-        <Card className="border-0 shadow-sm gradient-card-amber">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-teal-100">
-                <BookOpen className="h-4 w-4 text-teal-600" />
+        <Card className="col-span-2 lg:col-span-1 border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-teal-100">
+                <BookOpen className="h-3.5 w-3.5 md:h-4 md:w-4 text-teal-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{kpis.bs}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Bookseller Visits</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">{kpis.total > 0 ? Math.round((kpis.bs / kpis.total) * 100) : 0}% of total</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{kpis.bs}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Bookseller Visits</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">{kpis.total > 0 ? Math.round((kpis.bs / kpis.total) * 100) : 0}% of total</p>
             </div>
           </CardContent>
         </Card>
         {/* Active Salesmen */}
-        <Card className="border-0 shadow-sm gradient-card-neutral">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-indigo-100">
-                <Users className="h-4 w-4 text-indigo-600" />
+        <Card className="col-span-3 lg:col-span-1 border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-indigo-100">
+                <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{kpis.active}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Active Salesmen</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">With visits</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{kpis.active}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Active Salesmen</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">With visits</p>
             </div>
           </CardContent>
         </Card>
         {/* Specimens */}
-        <Card className="border-0 shadow-sm gradient-card-amber">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-amber-100">
-                <BarChart3 className="h-4 w-4 text-amber-600" />
+        <Card className="col-span-3 lg:col-span-1 border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-amber-100">
+                <BarChart3 className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{kpis.specs}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Specimens Given</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">This period</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{kpis.specs}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Specimens Given</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">This period</p>
             </div>
           </CardContent>
         </Card>
@@ -468,43 +586,82 @@ export default function VisitAnalyticsPage() {
         </Card>
       </div>
 
-      {/* ── Tabs: Salesman Summary + Visit Log ── */}
-      <Tabs defaultValue="summary">
-        <TabsList className="mb-4">
-          <TabsTrigger value="summary">Salesperson Summary</TabsTrigger>
-          <TabsTrigger value="log">Visit Log ({filtered.length})</TabsTrigger>
-        </TabsList>
+      {/* ── Toggle: Salesman Summary + Visit Log ── */}
 
-        {/* ─ Salesman Summary ─ */}
-        <TabsContent value="summary">
-          <DataGrid
-            data={bySalesman}
-            columns={SUMMARY_COLUMNS}
-            rowKey="id"
-            defaultPageSize={10}
-            enableRowPinning
-            inlineFilters
-            striped
-            showStats={false}
-          />
-        </TabsContent>
+      {/* Desktop toggle */}
+      <div className="hidden md:flex items-center gap-1 bg-muted rounded-xl p-1 mb-4 w-fit">
+        <button
+          onClick={() => setActiveTab("summary")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "summary"
+            ? "bg-background text-primary shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Salesperson Summary
+        </button>
+        <button
+          onClick={() => setActiveTab("log")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "log"
+            ? "bg-background text-primary shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Visit Log ({filtered.length})
+        </button>
+      </div>
 
-        {/* ─ Visit Log ─ */}
-        <TabsContent value="log">
-          <DataGrid
-            data={filtered}
-            columns={LOG_COLUMNS}
-            rowKey="id"
-            defaultPageSize={10}
-            enableRowPinning
-            inlineFilters
-            striped
-            expandedRowRender={expandedRowRender}
-            dateFilterKey="date"
-            showStats={false}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Mobile toggle */}
+      <div className="flex gap-0 mb-4 border-b md:hidden">
+        <button
+          onClick={() => setActiveTab("summary")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px flex-1 justify-center ${activeTab === "summary"
+            ? "border-primary text-primary"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Summary
+        </button>
+        <button
+          onClick={() => setActiveTab("log")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px flex-1 justify-center ${activeTab === "log"
+            ? "border-primary text-primary"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Visit Log ({filtered.length})
+        </button>
+      </div>
+
+      {/* ─ Salesman Summary ─ */}
+      {activeTab === "summary" && (
+        <DataGrid
+          data={bySalesman}
+          columns={SUMMARY_COLUMNS}
+          rowKey="id"
+          defaultPageSize={10}
+          enableRowPinning
+          enableColumnPinning
+          inlineFilters
+          striped
+          showStats={false}
+        />
+      )}
+
+      {/* ─ Visit Log ─ */}
+      {activeTab === "log" && (
+        <DataGrid
+          data={logFiltered}
+          columns={LOG_COLUMNS}
+          rowKey="id"
+          defaultPageSize={10}
+          enableRowPinning
+          enableColumnPinning
+          inlineFilters
+          striped
+          expandedRowRender={expandedRowRender}
+          showStats={false}
+        />
+      )}
     </PageContainer>
   );
 }

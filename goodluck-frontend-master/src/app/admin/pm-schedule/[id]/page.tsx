@@ -141,7 +141,7 @@ export default function PMDetailPage() {
 
   const handleScheduleSubmit = () => {
     if (!formData.date || !formData.startTime || !formData.endTime ||
-        !formData.schoolId || !formData.salesmanId || !formData.activity) {
+      !formData.schoolId || !formData.salesmanId || !formData.activity) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -560,11 +560,10 @@ export default function PMDetailPage() {
                             <TableCell>
                               <Badge
                                 variant="outline"
-                                className={`capitalize ${
-                                  schedule.type === "workshop"
+                                className={`capitalize ${schedule.type === "workshop"
                                     ? "border-blue-500 text-blue-600"
                                     : "border-purple-500 text-purple-600"
-                                }`}
+                                  }`}
                               >
                                 {schedule.type === "workshop" ? (
                                   <Briefcase className="h-3 w-3 mr-1" />
@@ -623,10 +622,10 @@ export default function PMDetailPage() {
                                     schedule.approvalStatus === "requested"
                                       ? "bg-yellow-500 hover:bg-yellow-600 text-white"
                                       : schedule.approvalStatus === "approved"
-                                      ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                      : schedule.approvalStatus === "booked"
-                                      ? "bg-green-500 hover:bg-green-600 text-white"
-                                      : "bg-gray-500 hover:bg-gray-600 text-white"
+                                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                        : schedule.approvalStatus === "booked"
+                                          ? "bg-green-500 hover:bg-green-600 text-white"
+                                          : "bg-gray-500 hover:bg-gray-600 text-white"
                                   }
                                 >
                                   {schedule.approvalStatus}

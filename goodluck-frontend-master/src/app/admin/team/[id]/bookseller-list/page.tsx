@@ -37,17 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
 import { toast } from "@/hooks/use-toast";
 
@@ -105,6 +95,7 @@ export default function BooksellerListPage() {
   const [salesman, setSalesman] = useState<any>(null);
   const [booksellerData, setBooksellerData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -386,32 +377,15 @@ export default function BooksellerListPage() {
                       </TableCell>
                       <TableCell>{item.state}</TableCell>
                       <TableCell className="text-center">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Bookseller</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete <strong>{item.booksellerName}</strong>?
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(item)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(item)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
@@ -456,6 +430,13 @@ export default function BooksellerListPage() {
           )}
         </CardContent>
       </Card>
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget?.booksellerName ?? ""}
+        contextLabel="from the bookseller list"
+        onConfirm={() => handleDelete(deleteTarget!)}
+      />
     </PageContainer>
   );
 }

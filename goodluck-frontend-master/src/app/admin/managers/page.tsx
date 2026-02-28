@@ -21,6 +21,7 @@ import { Manager, Salesman } from "@/types";
 import managersData from "@/lib/mock-data/managers.json";
 import salesmenData from "@/lib/mock-data/salesmen.json";
 import { DataGrid, GridColumn } from "@/components/ui/data-grid";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 const MANAGER_COLUMNS: GridColumn<Manager>[] = [
@@ -303,6 +304,7 @@ export default function ManagerListPage() {
   const [viewMgr, setViewMgr] = useState<Manager | null>(null);
   const [editMgr, setEditMgr] = useState<Manager | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Manager | null>(null);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleDelete = (mgr: Manager) => {
@@ -334,7 +336,7 @@ export default function ManagerListPage() {
   const rowActions = [
     { label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: (m: Manager) => setViewMgr(m) },
     { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (m: Manager) => setEditMgr(m) },
-    { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: handleDelete, danger: true },
+    { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: (m: Manager) => setDeleteTarget(m), danger: true },
   ];
 
   // ── JSX ────────────────────────────────────────────────────────────────────
@@ -491,6 +493,13 @@ export default function ManagerListPage() {
           { key: "status", label: "Active Only", value: "Active", icon: <UserCheck className="h-3 w-3" /> },
           { key: "status", label: "Inactive Only", value: "Inactive", icon: <Users className="h-3 w-3" /> },
         ]}
+      />
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget?.name ?? ""}
+        contextLabel="from Managers"
+        onConfirm={() => handleDelete(deleteTarget!)}
       />
     </PageContainer>
   );

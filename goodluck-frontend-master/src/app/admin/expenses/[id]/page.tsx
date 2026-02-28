@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, FileText, AlertTriangle, CheckCircle2, XCircle, CreditCard, Download, MessageSquare } from "lucide-react";
+import { ArrowLeft, FileText, AlertTriangle, CheckCircle2, XCircle, CreditCard, Download, MessageSquare, Eye } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,14 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
@@ -132,6 +125,74 @@ export default function AdminExpenseReportDetailPage() {
 
   const statusBadge = getStatusBadge(report.status);
 
+  const expenseColumns: GridColumn<any>[] = [
+    {
+      key: "date",
+      header: "Date",
+      type: "date",
+      sortable: true,
+      filterable: true,
+      width: 120,
+    },
+    {
+      key: "expenseType",
+      header: "Type",
+      sortable: true,
+      filterable: true,
+      width: 150,
+      render: (v) => <Badge variant="outline">{v}</Badge>
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      type: "number",
+      sortable: true,
+      align: "right",
+      width: 120,
+      render: (v) => <span className="font-semibold tabular-nums">₹{v.toLocaleString()}</span>
+    },
+    {
+      key: "description",
+      header: "Description",
+      width: 250,
+      render: (v) => <span className="truncate block w-[250px]" title={v}>{v || "-"}</span>
+    },
+    {
+      key: "hasReceipt",
+      header: "Receipt",
+      align: "center",
+      width: 120,
+      render: (v) => v ? (
+        <Button variant="ghost" size="sm" className="h-8">
+          <Download className="h-3.5 w-3.5 mr-1" />
+          View
+        </Button>
+      ) : (
+        <Badge variant="outline" className="text-orange-600 bg-orange-50 dark:bg-orange-950/30">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Missing
+        </Badge>
+      )
+    },
+    {
+      key: "policyViolation",
+      header: "Status",
+      align: "center",
+      width: 120,
+      render: (v) => v ? (
+        <Badge variant="destructive" className="text-[11px] h-6 px-1.5">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Violation
+        </Badge>
+      ) : (
+        <Badge className="bg-green-500 text-white text-[11px] h-6 px-1.5 hover:bg-green-600 border-0">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          OK
+        </Badge>
+      )
+    }
+  ];
+
   return (
     <PageContainer>
       <div className="mb-6">
@@ -149,131 +210,77 @@ export default function AdminExpenseReportDetailPage() {
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
-          {/* Report Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Report ID</p>
-                  <p className="font-semibold">{report.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <Badge className={`${statusBadge.color} text-white`}>
-                    {statusBadge.label}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Salesman</p>
-                  <p className="font-semibold">{report.salesmanName}</p>
-                  <p className="text-xs text-muted-foreground">{report.salesmanId}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Date Submitted</p>
-                  <p className="font-semibold">
-                    {new Date(report.dateSubmitted).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Date Range</p>
-                  <p className="font-semibold">
-                    {report.startDate} to {report.endDate}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Expenses</p>
-                  <p className="font-semibold">{report.expenseCount} items</p>
-                </div>
+          {/* Compact Report Information */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 p-5 bg-card border rounded-xl shadow-sm">
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Report ID</p>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <p className="text-sm font-bold">{report.id}</p>
               </div>
-
-              {report.notes && (
-                <div className="mt-4 p-3 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">Salesman Notes</p>
-                  <p className="text-sm">{report.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Status</p>
+              <Badge className={`${statusBadge.color} text-white text-[11px] h-5`}>
+                {statusBadge.label}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Salesman</p>
+              <p className="text-sm font-semibold text-foreground">{report.salesmanName}</p>
+              <p className="text-[11px] text-muted-foreground">{report.salesmanId}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Date Range</p>
+              <p className="text-sm font-semibold">{report.startDate} to {report.endDate}</p>
+              <p className="text-[11px] text-muted-foreground">Submitted: {new Date(report.dateSubmitted).toLocaleDateString()}</p>
+            </div>
+            {report.notes && (
+              <div className="col-span-2 lg:col-span-4 mt-2 pt-3 border-t">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Salesman Notes</p>
+                <p className="text-sm italic text-muted-foreground bg-muted/30 p-2 rounded-md border-l-2 border-primary/50">{report.notes}</p>
+              </div>
+            )}
+          </div>
 
           {/* Expense Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Items ({expenses.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Receipt</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell className="font-medium">
-                        {new Date(expense.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{expense.expenseType}</Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        ₹{expense.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {expense.description || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {expense.hasReceipt ? (
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                        ) : (
-                          <Badge variant="outline" className="text-orange-600">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Missing
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {expense.policyViolation ? (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Violation
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-green-500 text-white text-xs">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            OK
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <div className="space-y-4">
+            <DataGrid
+              data={expenses}
+              columns={expenseColumns}
+              rowActions={[
+                {
+                  label: "View Receipt",
+                  icon: <Eye className="h-4 w-4" />,
+                  onClick: (row) => {
+                    if (row.hasReceipt) {
+                      toast({ title: "View Receipt", description: `Viewing receipt for ${row.expenseType}` });
+                    } else {
+                      toast({ title: "No Receipt", description: "This expense does not have a receipt attached.", variant: "destructive" });
+                    }
+                  },
+                }
+              ]}
+              title={`Expense Items (${expenses.length})`}
+              rowKey="id"
+              striped
+              density="compact"
+              emptyMessage="No expense items found"
+              emptyIcon={<FileText className="h-10 w-10 text-muted-foreground" />}
+            />
 
-              {report.policyViolations > 0 && (
-                <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-700 dark:text-orange-400 shrink-0 mt-0.5" />
-                    <p className="text-sm text-orange-700 dark:text-orange-400">
-                      <strong>Policy Violations Detected:</strong> {report.policyViolations}{" "}
-                      expense(s) exceed policy limits. Review carefully before approving.
-                    </p>
-                  </div>
+            {report.policyViolations > 0 && (
+              <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-xl border border-orange-200 dark:border-orange-800">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-orange-700 dark:text-orange-400 shrink-0 mt-0.5" />
+                  <p className="text-sm text-orange-700 dark:text-orange-400 leading-relaxed">
+                    <strong>Policy Violations Detected:</strong> {report.policyViolations}{" "}
+                    expense(s) exceed policy limits. Review carefully before approving.
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
 
           {/* Admin Comments */}
           <Card>
@@ -307,12 +314,12 @@ export default function AdminExpenseReportDetailPage() {
         </div>
 
         {/* Action Sidebar */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Report Summary</CardTitle>
+        <div className="space-y-6">
+          <Card className="border-0 shadow-sm ring-1 ring-border/50">
+            <CardHeader className="bg-muted/30 pb-4 border-b">
+              <CardTitle className="text-base font-semibold">Report Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-5">
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <span className="text-sm text-muted-foreground">Total Items</span>
@@ -340,11 +347,11 @@ export default function AdminExpenseReportDetailPage() {
                 )}
 
                 {report.policyViolations > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
+                  <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                    <span className="text-sm font-medium text-red-700 dark:text-red-400">
                       Violations
                     </span>
-                    <span className="text-lg font-bold text-orange-700 dark:text-orange-400">
+                    <span className="text-lg font-bold text-red-700 dark:text-red-400">
                       {report.policyViolations}
                     </span>
                   </div>

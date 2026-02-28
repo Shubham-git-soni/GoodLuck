@@ -10,17 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { toast } from "@/hooks/use-toast";
 
 // Import mock data
@@ -45,6 +35,7 @@ export default function ContactPersonListPage() {
   const [contacts, setContacts] = useState<ContactPerson[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<ContactPerson[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ContactPerson | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
 
@@ -258,36 +249,15 @@ export default function ContactPersonListPage() {
                         <TableCell className="font-medium">{contact.city}</TableCell>
                         <TableCell className="font-medium">{contact.state}</TableCell>
                         <TableCell className="text-center">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete <strong>{contact.name}</strong> ({contact.role}) from{" "}
-                                  <strong>{contact.schoolName}</strong>? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(contact)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(contact)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button
@@ -309,6 +279,14 @@ export default function ContactPersonListPage() {
           </CardContent>
         </Card>
       </div>
+
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={open => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget?.name ?? ""}
+        contextLabel={deleteTarget?.schoolName ? `from ${deleteTarget.schoolName}` : "from contacts"}
+        onConfirm={() => handleDelete(deleteTarget!)}
+      />
     </PageContainer>
   );
 }

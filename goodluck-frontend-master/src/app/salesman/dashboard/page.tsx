@@ -97,8 +97,8 @@ export default function SalesmanDashboard() {
         .map((v) => ({
           id: v.id,
           schoolName: v.schoolName,
-          date: v.nextVisit.date,
-          purpose: v.nextVisit.purpose,
+          date: v.nextVisit?.date || "",
+          purpose: v.nextVisit?.purpose || "",
           type: v.type,
         }))
         .filter((v) => v.date >= new Date().toISOString().split("T")[0])

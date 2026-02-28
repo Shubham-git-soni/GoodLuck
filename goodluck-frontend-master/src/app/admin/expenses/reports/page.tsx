@@ -307,16 +307,14 @@ export default function AdminExpenseAnalyticsPage() {
       </div>
 
       {/* Salesman-wise Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Salesman-wise Expense Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataGrid
-            data={salesmanExpenses
-              .filter((s) => s.reportCount > 0)
-              .sort((a, b) => b.totalAmount - a.totalAmount)}
-            columns={[
+      <div className="mb-3">
+        <h2 className="text-base font-semibold">Salesman-wise Expense Breakdown</h2>
+      </div>
+      <DataGrid
+        data={salesmanExpenses
+          .filter((s) => s.reportCount > 0)
+          .sort((a, b) => b.totalAmount - a.totalAmount)}
+        columns={[
               {
                 key: "name",
                 header: "Salesman",
@@ -420,8 +418,6 @@ export default function AdminExpenseAnalyticsPage() {
             emptyMessage="No expense data found for salesmen"
             emptyIcon={<Users className="h-12 w-12" />}
           />
-        </CardContent>
-      </Card>
     </PageContainer>
   );
 }

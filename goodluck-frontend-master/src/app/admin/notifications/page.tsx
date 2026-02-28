@@ -216,47 +216,39 @@ export default function AdminNotificationsPage() {
 
   return (
     <PageContainer>
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <PageHeader
           title="Notifications"
           description={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}` : "All caught up!"}
         />
-        <div className="flex items-center gap-2 shrink-0 mt-1">
+        <div className="flex items-center gap-1.5 shrink-0 mt-1">
           <button
             onClick={() => setShowUnreadOnly(!showUnreadOnly)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors border",
+              "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors border",
               showUnreadOnly
                 ? "bg-primary/10 text-primary border-primary/20"
                 : "bg-muted text-muted-foreground border-transparent hover:text-foreground"
             )}
           >
-            <Bell className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{showUnreadOnly ? "Unread only" : "Unread only"}</span>
+            <span>Unread</span>
             {unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+              <span className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
                 {unreadCount}
               </span>
             )}
           </button>
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" className="text-xs h-8 hidden sm:flex" onClick={handleMarkAllRead}>
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-              Mark all read
-            </Button>
+            <button
+              onClick={handleMarkAllRead}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border bg-muted text-muted-foreground border-transparent hover:text-foreground transition-colors"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              <span>Mark read</span>
+            </button>
           )}
         </div>
       </div>
-
-      {/* Mark all read — mobile only */}
-      {unreadCount > 0 && (
-        <div className="flex justify-end mb-3 sm:hidden">
-          <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleMarkAllRead}>
-            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-            Mark all read
-          </Button>
-        </div>
-      )}
 
       {/* Filter tabs */}
       <div className="flex rounded-2xl bg-muted p-1 mb-5 gap-1 overflow-x-auto no-scrollbar">

@@ -39,17 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
 import { toast } from "@/hooks/use-toast";
 
@@ -133,6 +123,7 @@ export default function BooksellerVisitReportPage() {
   const [salesman, setSalesman] = useState<any>(null);
   const [visitData, setVisitData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -462,37 +453,15 @@ export default function BooksellerVisitReportPage() {
                               <Edit className="h-4 w-4" />
                               <span className="sr-only">Edit</span>
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Visit</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete the visit to{" "}
-                                    <strong>{item.booksellerName}</strong> on {formattedDate}? This
-                                    action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(item)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget(item)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -528,6 +497,13 @@ export default function BooksellerVisitReportPage() {
           )}
         </CardContent>
       </Card>
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget ? `Visit to ${deleteTarget.booksellerName}` : ""}
+        contextLabel={deleteTarget ? `on ${new Date(deleteTarget.date).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}` : undefined}
+        onConfirm={() => handleDelete(deleteTarget!)}
+      />
     </PageContainer>
   );
 }

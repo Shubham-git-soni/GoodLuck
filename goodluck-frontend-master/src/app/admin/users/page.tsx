@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { DataGrid, GridColumn } from "@/components/ui/data-grid";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import managersData from "@/lib/mock-data/managers.json";
 import salesmenData from "@/lib/mock-data/salesmen.json";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
@@ -593,6 +594,7 @@ export default function UserMasterPage() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editUser, setEditUser] = useState<UserRow | null>(null);
     const [viewUser, setViewUser] = useState<UserRow | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
     const [isMobile, setIsMobile] = useState(false);
     React.useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
@@ -688,7 +690,7 @@ export default function UserMasterPage() {
     const rowActions = [
         { label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: (u: UserRow) => setViewUser(u) },
         { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (u: UserRow) => setEditUser(u) },
-        { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: handleDelete, danger: true },
+        { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: (u: UserRow) => setDeleteTarget(u), danger: true },
     ];
 
     return (
@@ -881,6 +883,13 @@ export default function UserMasterPage() {
                         </div>
                     );
                 }}
+            />
+            <DeleteConfirmDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+                itemName={deleteTarget?.name ?? ""}
+                contextLabel="from User Master"
+                onConfirm={() => handleDelete(deleteTarget!)}
             />
         </PageContainer>
     );

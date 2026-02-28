@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { toast } from "sonner";
 
 import schoolsData from "@/lib/mock-data/schools.json";
@@ -64,6 +65,7 @@ export default function SchoolDetailPage() {
     const [newContact, setNewContact] = useState<Contact>(emptyContact());
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editData, setEditData] = useState<Partial<Contact>>({});
+    const [deleteContactTarget, setDeleteContactTarget] = useState<Contact | null>(null);
 
     useEffect(() => {
         setTimeout(() => {
@@ -317,7 +319,7 @@ export default function SchoolDetailPage() {
                                                         <Pencil className="h-3.5 w-3.5" />
                                                     </Button>
                                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                                        onClick={() => handleDelete(contact.id, contact.name)}>
+                                                        onClick={() => setDeleteContactTarget(contact)}>
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </div>
@@ -330,6 +332,17 @@ export default function SchoolDetailPage() {
                     </Card>
                 </div>
             </div>
+        <DeleteConfirmDialog
+            open={!!deleteContactTarget}
+            onOpenChange={open => { if (!open) setDeleteContactTarget(null); }}
+            itemName={deleteContactTarget?.name ?? ""}
+            contextLabel="from school contacts"
+            onConfirm={() => {
+                if (!deleteContactTarget) return;
+                handleDelete(deleteContactTarget.id, deleteContactTarget.name);
+                setDeleteContactTarget(null);
+            }}
+        />
         </PageContainer>
     );
 }

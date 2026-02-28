@@ -368,14 +368,14 @@ export default function TourPlanPage() {
             onClick={() => setMobileRangeOpen(true)}
           >
             <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            {dateRange?.from ? (
-              dateRange.to
-                ? <span>{format(dateRange.from, "dd MMM yyyy")} → {format(dateRange.to, "dd MMM yyyy")}</span>
-                : <span>{format(dateRange.from, "dd MMM yyyy")} → Pick end date</span>
+            {dateRange?.from && dateRange?.to && dateRange.from.getTime() !== dateRange.to.getTime() ? (
+              <span>{format(dateRange.from, "dd MMM yyyy")} → {format(dateRange.to, "dd MMM yyyy")}</span>
+            ) : dateRange?.from ? (
+              <span className="text-muted-foreground">{format(dateRange.from, "dd MMM yyyy")} → Pick end date</span>
             ) : (
               <span className="text-muted-foreground">Select tour plan period</span>
             )}
-            {dateRange?.from && dateRange?.to && (
+            {dateRange?.from && dateRange?.to && dateRange.from.getTime() !== dateRange.to.getTime() && (
               <Badge variant="secondary" className="ml-auto text-xs font-semibold shrink-0">
                 {totalDays} day{totalDays !== 1 ? "s" : ""}
               </Badge>
@@ -441,7 +441,10 @@ export default function TourPlanPage() {
                     Clear
                   </Button>
                   <Button className="flex-1 h-11 rounded-2xl font-semibold"
-                    disabled={!dateRange?.from || !dateRange?.to}
+                    disabled={
+                      !dateRange?.from || !dateRange?.to ||
+                      dateRange.from.getTime() === dateRange.to.getTime()
+                    }
                     onClick={() => setMobileRangeOpen(false)}>
                     Done
                   </Button>
@@ -459,14 +462,14 @@ export default function TourPlanPage() {
                   className="w-full justify-start text-left font-normal h-10 px-3 gap-2"
                 >
                   <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {dateRange?.from ? (
-                    dateRange.to
-                      ? <span>{format(dateRange.from, "dd MMM yyyy")} → {format(dateRange.to, "dd MMM yyyy")}</span>
-                      : <span>{format(dateRange.from, "dd MMM yyyy")} → Pick end date</span>
+                  {dateRange?.from && dateRange?.to && dateRange.from.getTime() !== dateRange.to.getTime() ? (
+                    <span>{format(dateRange.from, "dd MMM yyyy")} → {format(dateRange.to, "dd MMM yyyy")}</span>
+                  ) : dateRange?.from ? (
+                    <span className="text-muted-foreground">{format(dateRange.from, "dd MMM yyyy")} → Pick end date</span>
                   ) : (
                     <span className="text-muted-foreground">Select tour plan period</span>
                   )}
-                  {dateRange?.from && dateRange?.to && (
+                  {dateRange?.from && dateRange?.to && dateRange.from.getTime() !== dateRange.to.getTime() && (
                     <Badge variant="secondary" className="ml-auto text-xs font-semibold shrink-0">
                       {totalDays} day{totalDays !== 1 ? "s" : ""}
                     </Badge>
@@ -488,11 +491,15 @@ export default function TourPlanPage() {
                   mode="range"
                   selected={dateRange}
                   onSelect={(range) => {
-                    if (range?.from && range?.to) {
-                      const days = differenceInCalendarDays(range.to, range.from) + 1;
+                    // Only treat as complete range when from & to are different dates
+                    const isCompleteRange =
+                      range?.from && range?.to &&
+                      range.from.getTime() !== range.to.getTime();
+                    if (isCompleteRange) {
+                      const days = differenceInCalendarDays(range!.to!, range!.from!) + 1;
                       if (days > MAX_DAYS) {
                         toast.error(`Max ${MAX_DAYS} days. End date adjusted.`);
-                        setDateRange({ from: range.from, to: addDays(range.from, MAX_DAYS - 1) });
+                        setDateRange({ from: range!.from, to: addDays(range!.from!, MAX_DAYS - 1) });
                         setDesktopRangeOpen(false);
                         return;
                       }
@@ -511,7 +518,10 @@ export default function TourPlanPage() {
                     Clear
                   </Button>
                   <Button size="sm" className="flex-1 text-xs h-8"
-                    disabled={!dateRange?.from || !dateRange?.to}
+                    disabled={
+                      !dateRange?.from || !dateRange?.to ||
+                      dateRange.from.getTime() === dateRange.to.getTime()
+                    }
                     onClick={() => setDesktopRangeOpen(false)}>
                     Done
                   </Button>

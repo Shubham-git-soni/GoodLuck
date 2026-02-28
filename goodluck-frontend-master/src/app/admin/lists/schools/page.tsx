@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Filter, Plus, X, Trash2, UserPlus, Eye, Pencil, Phone, Mail, UserCircle } from "lucide-react";
+import { Plus, X, Trash2, UserPlus, Eye, Pencil, Phone, Mail, UserCircle, School as SchoolIcon, Users } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListItemSkeleton } from "@/components/ui/skeleton-loaders";
-import EmptyState from "@/components/ui/empty-state";
 import { School } from "@/types";
 import { toast } from "sonner";
 import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
@@ -44,6 +42,10 @@ interface NewSchoolForm {
   contactNo: string;
   address: string;
   contacts: ContactPerson[];
+  // Sales Info
+  station: string;
+  salesTarget: string;
+  prescribeSubjects: string[];
 }
 
 const emptyContact = (): ContactPerson => ({
@@ -63,6 +65,9 @@ const defaultForm = (): NewSchoolForm => ({
   contactNo: "",
   address: "",
   contacts: [emptyContact()],
+  station: "",
+  salesTarget: "",
+  prescribeSubjects: [],
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -75,6 +80,15 @@ export default function SchoolListPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
+  const [viewSchool, setViewSchool] = useState<School | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Add School Form State
   const [newSchool, setNewSchool] = useState<NewSchoolForm>(defaultForm());
@@ -85,11 +99,6 @@ export default function SchoolListPage() {
       setIsLoading(false);
     }, 800);
   }, []);
-
-  const handleSchoolChange = (id: string, updates: Partial<School>) => {
-    setSchools((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
-    toast.success("School updated successfully", { id: "update-school" });
-  };
 
   // ── Contact Persons Handlers ────────────────────────────────────────────
   const updateContact = (idx: number, field: keyof ContactPerson, value: string) => {
@@ -129,9 +138,50 @@ export default function SchoolListPage() {
       setActiveTab("contacts");
       return;
     }
+    const salesTargetNum = parseFloat(newSchool.salesTarget) || 0;
+    const prescribedBooks = newSchool.prescribeSubjects.map(sub => ({
+      subject: sub, class: "Any", book: `${sub} Book`, status: "Under Review"
+    }));
+
     if (modalMode === "add") {
-      toast.success(`School "${newSchool.name}" added with ${newSchool.contacts.length} contact(s)!`);
-    } else {
+      const newEntry: School = {
+        id: `SCH${String(schools.length + 1).padStart(3, "0")}`,
+        name: newSchool.name,
+        city: newSchool.city,
+        board: newSchool.board,
+        strength: parseInt(newSchool.strength) || 0,
+        address: newSchool.address,
+        state: "",
+        station: newSchool.station,
+        assignedTo: "",
+        visitCount: 0,
+        businessHistory: [],
+        discountHistory: [],
+        salesPlan: { targetRevenue: salesTargetNum, subjects: newSchool.prescribeSubjects, expectedConversion: 0 },
+        prescribedBooks,
+        contacts: newSchool.contacts.map((c, i) => ({
+          id: c.id, name: c.name, role: c.designation, email: c.email, phone: c.mobile,
+          isPrimary: i === 0,
+        })),
+      } as any;
+      setSchools(prev => [newEntry, ...prev]);
+      toast.success(`School "${newSchool.name}" added successfully!`);
+    } else if (modalMode === "edit" && activeSchoolId) {
+      setSchools(prev => prev.map(s => s.id === activeSchoolId ? {
+        ...s,
+        name: newSchool.name,
+        city: newSchool.city,
+        board: newSchool.board,
+        strength: parseInt(newSchool.strength) || 0,
+        address: newSchool.address,
+        station: newSchool.station,
+        salesPlan: { ...s.salesPlan, targetRevenue: salesTargetNum, subjects: newSchool.prescribeSubjects },
+        prescribedBooks,
+        contacts: newSchool.contacts.map((c, i) => ({
+          id: c.id, name: c.name, role: c.designation, email: c.email, phone: c.mobile,
+          isPrimary: i === 0,
+        })),
+      } : s));
       toast.success(`School "${newSchool.name}" updated successfully!`);
     }
     setIsMobileSheetOpen(false);
@@ -154,7 +204,10 @@ export default function SchoolListPage() {
         address: school.address || "",
         contacts: school.contacts?.length ? school.contacts.map(c => ({
           id: c.id, name: c.name, designation: c.role || "", email: c.email || "", mobile: c.phone || ""
-        })) : [emptyContact()]
+        })) : [emptyContact()],
+        station: school.station || "",
+        salesTarget: school.salesPlan?.targetRevenue?.toString() || "",
+        prescribeSubjects: school.prescribedBooks?.map((b: any) => b.subject) || [],
       });
     } else {
       setNewSchool(defaultForm());
@@ -190,57 +243,56 @@ export default function SchoolListPage() {
     { key: "state", header: "State", width: 120, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val}</span> },
     { key: "city", header: "City", width: 120, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val}</span> },
     {
-      key: "station", header: "Station", width: 150, sortable: true, filterable: true, render: (val, row) => {
-        const allStations = Array.from(new Set(schools.map(s => s.station))).filter(Boolean);
-        return (
-          <Select value={val || ""} onValueChange={(newStation) => handleSchoolChange(row.id, { station: newStation })}>
-            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Station" /></SelectTrigger>
-            <SelectContent>
-              {allStations.map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        );
-      }
+      key: "station", header: "Station", width: 130, sortable: true, filterable: true,
+      render: (val) => <span className="text-xs">{val || "—"}</span>,
     },
     {
-      key: "salesTarget", header: "Sales Target", width: 140, align: "right", render: (_, row) => (
-        <div className="relative flex items-center">
-          <span className="absolute left-2 text-xs text-muted-foreground font-medium">₹</span>
-          <Input
-            type="number"
-            className="h-8 w-28 text-xs text-right pl-6 font-medium text-emerald-700 hide-arrows"
-            value={row.salesPlan?.targetRevenue || ""}
-            onChange={(e) => handleSchoolChange(row.id, { salesPlan: { ...row.salesPlan, targetRevenue: Number(e.target.value), subjects: row.salesPlan?.subjects || [], expectedConversion: row.salesPlan?.expectedConversion || 0 } })}
-          />
-        </div>
-      )
+      key: "salesTarget", header: "Sales Target", width: 130, align: "right", mobileFullWidth: true,
+      render: (_, row) => (
+        <span className="text-xs font-semibold text-emerald-700">
+          {row.salesPlan?.targetRevenue ? `₹ ${row.salesPlan.targetRevenue.toLocaleString()}` : "—"}
+        </span>
+      ),
     },
     {
-      key: "tryToPrescribe", header: "Try to Prescribe", width: 300, render: (_, row) => {
-        const selectedSubjects = row.prescribedBooks?.map(b => b.subject) || [];
+      key: "tryToPrescribe", header: "Try to Prescribe", width: 260, mobileFullWidth: true,
+      mobileRender: (_, row) => {
+        const subjects = row.prescribedBooks?.map((b: any) => b.subject) || [];
+        if (!subjects.length) return <span className="text-xs text-muted-foreground">—</span>;
         return (
-          <MultiSelect
-            options={dropdownOptions.subjects.map(sub => ({ label: sub, value: sub }))}
-            value={selectedSubjects}
-            onChange={(newSubjects) => {
-              const currentBooks = row.prescribedBooks || [];
-              const booksToKeep = currentBooks.filter(b => newSubjects.includes(b.subject));
-              const currentSubjects = currentBooks.map(b => b.subject);
-              const booksToAdd = newSubjects.filter(sub => !currentSubjects.includes(sub)).map(sub => ({
-                subject: sub, class: "Any", book: `${sub} Book`, status: "Under Review"
-              }));
-              handleSchoolChange(row.id, { prescribedBooks: [...booksToKeep, ...booksToAdd] });
-            }}
-            placeholder="Select books..."
-            className="[&_div[role=button]]:min-h-8 [&_div[role=button]]:py-1 [&_div[role=button]]:px-2 text-xs w-[260px]"
-          />
+          <div className="flex flex-wrap gap-1">
+            {subjects.map((s: string) => (
+              <span key={s} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">{s}</span>
+            ))}
+          </div>
         );
-      }
+      },
+      render: (_, row) => {
+        const subjects = row.prescribedBooks?.map((b: any) => b.subject) || [];
+        if (!subjects.length) return <span className="text-xs text-muted-foreground">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {subjects.map((s: string) => (
+              <span key={s} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-orange-100/80 text-orange-700">{s}</span>
+            ))}
+          </div>
+        );
+      },
     }
   ];
 
   const rowActions: RowAction<School>[] = [
-    { label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: (s) => openModal("view", s) },
+    {
+      label: "View",
+      icon: <Eye className="h-3.5 w-3.5" />,
+      onClick: (s) => {
+        if (window.innerWidth < 768) {
+          setViewSchool(s);
+        } else {
+          openModal("view", s);
+        }
+      }
+    },
     { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (s) => openModal("edit", s) },
     { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: () => toast.info("Delete confirmed..."), danger: true },
   ];
@@ -432,15 +484,75 @@ export default function SchoolListPage() {
     </div>
   );
 
+  // ── Sales Info Fields ────────────────────────────────────────────────────
+  const SalesInfoFields = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <div className="grid gap-4">
+      <div className="grid gap-2">
+        <Label>Station Allocation</Label>
+        {isMobile ? (
+          <NativeSelect disabled={modalMode === "view"} value={newSchool.station} onValueChange={(v) => setNewSchool({ ...newSchool, station: v })} placeholder="Select station">
+            {Array.from(new Set(schools.map(s => s.station))).filter(Boolean).map((st) => (
+              <NativeSelectOption key={st} value={st}>{st}</NativeSelectOption>
+            ))}
+          </NativeSelect>
+        ) : (
+          <Select disabled={modalMode === "view"} value={newSchool.station} onValueChange={(v) => setNewSchool({ ...newSchool, station: v })}>
+            <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}><SelectValue placeholder="Select station" /></SelectTrigger>
+            <SelectContent>
+              {Array.from(new Set(schools.map(s => s.station))).filter(Boolean).map((st) => (
+                <SelectItem key={st} value={st}>{st}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      <div className="grid gap-2">
+        <Label>Sales Target (₹)</Label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">₹</span>
+          <Input
+            type="number"
+            value={newSchool.salesTarget}
+            onChange={(e) => setNewSchool({ ...newSchool, salesTarget: e.target.value })}
+            placeholder="e.g. 500000"
+            readOnly={modalMode === "view"}
+            className={`pl-7 ${modalMode === "view" ? "bg-muted/50 pointer-events-none" : ""}`}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <Label>Try to Prescribe (Subjects)</Label>
+        {modalMode === "view" ? (
+          <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-muted/50 min-h-10">
+            {newSchool.prescribeSubjects.length ? newSchool.prescribeSubjects.map(s => (
+              <span key={s} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">{s}</span>
+            )) : <span className="text-xs text-muted-foreground">None selected</span>}
+          </div>
+        ) : (
+          <MultiSelect
+            options={dropdownOptions.subjects.map(sub => ({ label: sub, value: sub }))}
+            value={newSchool.prescribeSubjects}
+            onChange={(v) => setNewSchool({ ...newSchool, prescribeSubjects: v })}
+            placeholder="Select subjects to prescribe..."
+            className="[&_div[role=button]]:min-h-10 [&_div[role=button]]:py-1.5 [&_div[role=button]]:px-3 text-sm w-full"
+          />
+        )}
+      </div>
+    </div>
+  );
+
   // ── Tabbed Form ──────────────────────────────────────────────────────────
   const TabbedForm = ({ isMobile = false }: { isMobile?: boolean }) => (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
+      <TabsList className="grid w-full grid-cols-3 mb-4">
         <TabsTrigger value="basic">Basic Info</TabsTrigger>
+        <TabsTrigger value="sales">Sales Info</TabsTrigger>
         <TabsTrigger value="contacts">
-          Contact Persons
+          Contacts
           {newSchool.contacts.length > 0 && (
-            <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">
+            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">
               {newSchool.contacts.length}
             </Badge>
           )}
@@ -448,6 +560,9 @@ export default function SchoolListPage() {
       </TabsList>
       <TabsContent value="basic">
         <BasicInfoFields isMobile={isMobile} />
+      </TabsContent>
+      <TabsContent value="sales">
+        <SalesInfoFields isMobile={isMobile} />
       </TabsContent>
       <TabsContent value="contacts">
         <ContactPersonsFields isMobile={isMobile} />
@@ -457,7 +572,108 @@ export default function SchoolListPage() {
 
   return (
     <PageContainer>
-      {/* ── Mobile Bottom Sheet ── */}
+      {/* ── Mobile View Bottom Sheet ── */}
+      {isMobile && viewSchool && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setViewSchool(null)} />
+          <div className="relative bg-background rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300" style={{ maxHeight: "92dvh", display: "flex", flexDirection: "column" }}>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-1 pb-3 shrink-0">
+              <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                <SchoolIcon className="h-4 w-4" /> School Details
+              </h2>
+              <button onClick={() => setViewSchool(null)} className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-5 pb-4">
+              {/* Identity card */}
+              <div className="flex items-center gap-3 mb-4 p-3 bg-muted/40 rounded-2xl">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">
+                    {viewSchool.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-base leading-tight">{viewSchool.name}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{viewSchool.board}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                      <Users className="h-3 w-3" />{viewSchool.strength?.toLocaleString() || "0"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info rows */}
+              <div className="space-y-0 divide-y divide-border/50">
+                {[
+                  { label: "School ID", value: viewSchool.id },
+                  { label: "City", value: viewSchool.city || "—" },
+                  { label: "State", value: viewSchool.state || "—" },
+                  { label: "Station", value: viewSchool.station || "—" },
+                  { label: "Contact", value: viewSchool.contacts?.[0]?.phone || "—" },
+                  { label: "Email", value: viewSchool.contacts?.[0]?.email || "—" },
+                  { label: "Visits", value: viewSchool.visitCount?.toString() || "0" },
+                  { label: "Address", value: viewSchool.address || "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-start justify-between py-3 gap-2">
+                    <p className="text-xs text-muted-foreground font-medium shrink-0">{label}</p>
+                    <p className="text-sm font-semibold text-right break-all">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Contacts section */}
+              {viewSchool.contacts && viewSchool.contacts.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Contact Persons</p>
+                  <div className="space-y-2">
+                    {viewSchool.contacts.map((contact, idx: number) => (
+                      <div key={idx} className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                        <p className="font-semibold text-sm">{contact.name}</p>
+                        {contact.role && <p className="text-xs text-muted-foreground mt-0.5">{contact.role}</p>}
+                        <div className="flex gap-4 mt-2">
+                          {contact.phone && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3" />{contact.phone}
+                            </div>
+                          )}
+                          {contact.email && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                              <Mail className="h-3 w-3 shrink-0" /><span className="truncate">{contact.email}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Footer */}
+            <div className="shrink-0 px-5 pb-6 pt-3 border-t flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-12 rounded-2xl"
+                onClick={() => { setViewSchool(null); router.push(`/admin/lists/schools/${viewSchool.id}`); }}
+              >
+                Full Profile
+              </Button>
+              <Button className="flex-1 h-12 rounded-2xl" variant="outline" onClick={() => setViewSchool(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile Bottom Sheet (Add/Edit) ── */}
       {isMobileSheetOpen && (
         <div className="md:hidden fixed inset-0 z-[100]" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
           <div className="absolute inset-0 bg-black/60" onClick={() => setIsMobileSheetOpen(false)} />
@@ -487,7 +703,7 @@ export default function SchoolListPage() {
             {/* Footer */}
             <div className="px-5 pt-3 pb-6 border-t bg-background shrink-0">
               <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleSubmitSchool}>
-                {modalMode === "view" ? "Close" : modalMode === "edit" ? "Save Changes" : "Submit for Approval"}
+                {modalMode === "view" ? "Close" : modalMode === "edit" ? "Save Changes" : "Add School"}
               </Button>
             </div>
           </div>
@@ -512,7 +728,7 @@ export default function SchoolListPage() {
             <Button variant="outline" onClick={() => setIsDesktopDialogOpen(false)}>Close</Button>
             {modalMode !== "view" && (
               <Button onClick={handleSubmitSchool}>
-                {modalMode === "edit" ? "Save Changes" : "Submit for Approval"}
+                {modalMode === "edit" ? "Save Changes" : "Add School"}
               </Button>
             )}
           </DialogFooter>
@@ -556,6 +772,7 @@ export default function SchoolListPage() {
         defaultPageSize={15}
         selectable
         enableRowPinning
+        enableColumnPinning
         striped
         inlineFilters
         density="compact"

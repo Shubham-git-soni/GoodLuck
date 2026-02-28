@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Download, CheckCircle, XCircle, Clock, AlertCircle, User, Filter, RotateCcw, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, CheckCircle, XCircle, Clock, AlertCircle, User, Filter, RotateCcw, CalendarIcon, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import salesmenData from "@/lib/mock-data/salesmen.json";
 
@@ -234,6 +233,8 @@ export default function AttendanceReportPage() {
   const [cityFilter, setCityFilter] = useState("all");
   const [salesmanFilter, setSalesmanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"summary" | "daily">("daily");
 
   // Derive available cities based on selected state
   const availableCities = useMemo(() => {
@@ -308,6 +309,13 @@ export default function AttendanceReportPage() {
     setStatusFilter("all");
   };
 
+  const activeFilterCount = [
+    stateFilter !== "all",
+    cityFilter !== "all",
+    salesmanFilter !== "all",
+    statusFilter !== "all",
+  ].filter(Boolean).length;
+
   return (
     <PageContainer>
       <PageHeader
@@ -315,8 +323,92 @@ export default function AttendanceReportPage() {
         description="Salesperson-wise attendance, working hours & visit tracking"
       />
 
-      {/* ── Filters — compact bar ── */}
-      <div className="mb-5 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+      {/* ── MOBILE: filter toggle row ── */}
+      <div className="flex items-center gap-2 mb-3 md:hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(o => !o)}
+          className="flex items-center gap-2 h-9 px-3 rounded-lg border border-input bg-background text-xs font-medium hover:bg-accent transition-colors"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+        <div className="flex-1">
+          <MonthPicker value={monthFilter} onChange={setMonthFilter} />
+        </div>
+        <Button size="sm" className="h-9 px-3 shrink-0" onClick={handleExport}>
+          <Download className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* ── MOBILE: collapsible filter panel ── */}
+      {filtersOpen && (
+        <div className="mb-4 md:hidden border rounded-xl bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
+            <button type="button" onClick={() => setFiltersOpen(false)} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">State</p>
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All States</SelectItem>
+                  {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">City</p>
+              <Select value={cityFilter} onValueChange={setCityFilter} disabled={stateFilter === "all"}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All Cities" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {availableCities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Person</p>
+              <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Salesperson</SelectItem>
+                  {salesmenData.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Status</p>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Present">Present</SelectItem>
+                  <SelectItem value="Absent">Absent</SelectItem>
+                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="w-full h-9 text-xs bg-muted text-muted-foreground hover:bg-muted/80 border-0"
+            onClick={() => { resetFilters(); setFiltersOpen(false); }}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset Filters
+          </Button>
+        </div>
+      )}
+
+      {/* ── Filters — compact bar (DESKTOP ONLY) ── */}
+      <div className="hidden md:flex mb-5 flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
         <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
@@ -389,18 +481,18 @@ export default function AttendanceReportPage() {
       </div>
 
       {/* ── KPI Cards — dashboard style ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 mb-5">
         {/* Present */}
         <Card className="border-0 shadow-sm gradient-card-orange">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-emerald-100">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-emerald-100">
+                <CheckCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{summary.Present}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Present</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
+            <p className="text-base md:text-xl font-bold tracking-tight">{summary.Present}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Present</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
               <Progress value={summary.total > 0 ? Math.round((summary.Present / summary.total) * 100) : 0} className="h-1.5" />
               <p className="text-[10px] text-muted-foreground mt-1">{summary.total > 0 ? Math.round((summary.Present / summary.total) * 100) : 0}% of total</p>
             </div>
@@ -408,15 +500,15 @@ export default function AttendanceReportPage() {
         </Card>
         {/* Absent */}
         <Card className="border-0 shadow-sm gradient-card-neutral">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-rose-100">
-                <XCircle className="h-4 w-4 text-rose-600" />
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-rose-100">
+                <XCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-rose-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{summary.Absent}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Absent</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
+            <p className="text-base md:text-xl font-bold tracking-tight">{summary.Absent}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Absent</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
               <Progress value={summary.total > 0 ? Math.round((summary.Absent / summary.total) * 100) : 0} className="h-1.5" />
               <p className="text-[10px] text-muted-foreground mt-1">{summary.total > 0 ? Math.round((summary.Absent / summary.total) * 100) : 0}% of total</p>
             </div>
@@ -424,15 +516,15 @@ export default function AttendanceReportPage() {
         </Card>
         {/* Half Day */}
         <Card className="border-0 shadow-sm gradient-card-amber">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-amber-100">
-                <Clock className="h-4 w-4 text-amber-600" />
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-amber-100">
+                <Clock className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{summary["Half Day"]}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Half Day</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
+            <p className="text-base md:text-xl font-bold tracking-tight">{summary["Half Day"]}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Half Day</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
               <Progress value={summary.total > 0 ? Math.round((summary["Half Day"] / summary.total) * 100) : 0} className="h-1.5" />
               <p className="text-[10px] text-muted-foreground mt-1">{summary.total > 0 ? Math.round((summary["Half Day"] / summary.total) * 100) : 0}% of total</p>
             </div>
@@ -440,84 +532,126 @@ export default function AttendanceReportPage() {
         </Card>
         {/* On Leave */}
         <Card className="border-0 shadow-sm gradient-card-neutral">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-slate-100">
-                <AlertCircle className="h-4 w-4 text-slate-500" />
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-slate-100">
+                <AlertCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{summary["On Leave"]}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">On Leave</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">{summary.total} total days</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{summary["On Leave"]}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">On Leave</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">{summary.total} total days</p>
             </div>
           </CardContent>
         </Card>
         {/* Total Visits */}
         <Card className="border-0 shadow-sm gradient-card-orange">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <User className="h-4 w-4 text-primary" />
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-primary/10">
+                <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{summary.totalVisits}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total Visits</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{summary.totalVisits}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Total Visits</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">This month</p>
             </div>
           </CardContent>
         </Card>
         {/* Working Hours */}
         <Card className="border-0 shadow-sm gradient-card-amber">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 rounded-lg bg-emerald-100">
-                <Clock className="h-4 w-4 text-emerald-600" />
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-emerald-100">
+                <Clock className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{fmtHrs(summary.totalHours)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Working Hours</p>
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">Total logged</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{fmtHrs(summary.totalHours)}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Working Hours</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">Total logged</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Tabs: Monthly Summary vs Daily Records ── */}
-      <Tabs defaultValue="summary">
-        <TabsList className="mb-4">
-          <TabsTrigger value="summary">Monthly Summary</TabsTrigger>
-          <TabsTrigger value="daily">Daily Records ({filtered.length})</TabsTrigger>
-        </TabsList>
+      {/* ── Toggle: Monthly Summary vs Daily Records ── */}
 
-        {/* ─ Monthly Summary Tab ─ */}
-        <TabsContent value="summary">
-          <DataGrid
-            data={salesmanSummary}
-            columns={MONTHLY_COLUMNS}
-            rowKey="id"
-            defaultPageSize={10}
-            enableRowPinning
-            inlineFilters
-            striped
-          />
-        </TabsContent>
+      {/* Desktop toggle */}
+      <div className="hidden md:flex items-center gap-1 bg-muted rounded-xl p-1 mb-4 w-fit">
+        <button
+          onClick={() => setActiveTab("daily")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "daily"
+            ? "bg-background text-primary shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Daily Records ({filtered.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("summary")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "summary"
+            ? "bg-background text-primary shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Monthly Summary ({salesmanSummary.length})
+        </button>
+      </div>
 
-        {/* ─ Daily Records Tab ─ */}
-        <TabsContent value="daily">
-          <DataGrid
-            data={filtered}
-            columns={DAILY_COLUMNS}
-            rowKey="id"
-            defaultPageSize={15}
-            enableRowPinning
-            inlineFilters
-            striped
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Mobile toggle */}
+      <div className="flex gap-0 mb-4 border-b md:hidden">
+        <button
+          onClick={() => setActiveTab("daily")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px flex-1 justify-center ${activeTab === "daily"
+            ? "border-primary text-primary"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Daily Records ({filtered.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("summary")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px flex-1 justify-center ${activeTab === "summary"
+            ? "border-primary text-primary"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          Summary ({salesmanSummary.length})
+        </button>
+      </div>
+
+      {/* ─ Monthly Summary ─ */}
+      {activeTab === "summary" && (
+        <DataGrid
+          data={salesmanSummary}
+          columns={MONTHLY_COLUMNS}
+          rowKey="id"
+          defaultPageSize={10}
+          enableRowPinning
+          enableColumnPinning
+          inlineFilters
+          striped
+          showStats={false}
+        />
+      )}
+
+      {/* ─ Daily Records ─ */}
+      {activeTab === "daily" && (
+        <DataGrid
+          data={filtered}
+          columns={DAILY_COLUMNS}
+          rowKey="id"
+          defaultPageSize={15}
+          enableRowPinning
+          enableColumnPinning
+          inlineFilters
+          striped
+          showStats={false}
+        />
+      )}
     </PageContainer>
   );
 }

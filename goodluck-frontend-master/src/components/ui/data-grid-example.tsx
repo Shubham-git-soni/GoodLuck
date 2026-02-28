@@ -236,7 +236,7 @@ export default function DataGridExample() {
       icon: <Phone className="h-4 w-4" />,
       onClick: () => toast.info(`Calling ${user.name}`),
     },
-    { divider: true },
+    { divider: true } as any,
     {
       label: "Delete User",
       icon: <Trash2 className="h-4 w-4" />,

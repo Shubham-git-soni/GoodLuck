@@ -1812,7 +1812,7 @@ export function DataGrid<T extends object>({
                                                     <tr
                                                         className={cn(
                                                             "border-b border-border/40 transition-all duration-200 group",
-                                                            "hover:bg-muted/50 hover:shadow-sm",
+                                                            "hover:bg-primary/5 hover:shadow-sm",
                                                             isSel && "bg-primary/5 hover:bg-primary/8 border-primary/20",
                                                             stripedRows && ri % 2 !== 0 && "bg-muted/5",
                                                             isPinned && "bg-amber-50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900 sticky top-[49px] z-10"
@@ -1886,12 +1886,12 @@ export function DataGrid<T extends object>({
                                                                         col.align === "center" && "text-center",
                                                                         col.align === "right" && "text-right",
                                                                         col.width && "overflow-hidden",
-                                                                        col.pinned === "left" && "sticky left-0 bg-background group-hover:bg-muted/50 z-[5]",
+                                                                        col.pinned === "left" && "sticky left-0 bg-background bg-clip-padding group-hover:bg-primary/5 z-[5]",
                                                                         col.pinned === "left" && isSel && "bg-primary/5 group-hover:bg-primary/8",
-                                                                        col.pinned === "right" && "sticky right-0 bg-background group-hover:bg-muted/50 z-[5]",
+                                                                        col.pinned === "right" && "sticky right-0 bg-background bg-clip-padding group-hover:bg-primary/5 z-[5]",
                                                                         col.pinned === "right" && isSel && "bg-primary/5 group-hover:bg-primary/8",
-                                                                        isPinned && col.pinned === "left" && "bg-amber-50/50 dark:bg-amber-950/10",
-                                                                        isPinned && col.pinned === "right" && "bg-amber-50/50 dark:bg-amber-950/10"
+                                                                        isPinned && col.pinned === "left" && "bg-amber-50 dark:bg-amber-950",
+                                                                        isPinned && col.pinned === "right" && "bg-amber-50 dark:bg-amber-950"
                                                                     )}
                                                                     style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
                                                                     title={tooltip}
@@ -1912,8 +1912,8 @@ export function DataGrid<T extends object>({
                                                         })}
                                                         {rowActions && actions.length > 0 && (
                                                             <td className={cn(
-                                                                "px-2 text-center sticky right-0 z-[5] border-l bg-background group-hover:bg-muted/30",
-                                                                isPinned && "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50"
+                                                                "px-2 text-center sticky right-0 z-[5] border-l bg-background bg-clip-padding group-hover:bg-primary/5",
+                                                                isPinned && "bg-amber-50 dark:bg-amber-950 border-amber-200"
                                                             )}>
                                                                 <div className="flex items-center justify-center gap-0.5">
                                                                     {actions.map((action, i) => (

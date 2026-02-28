@@ -76,7 +76,7 @@ const navGroups = [
   {
     label: "Expense Management",
     items: [
-      { href: "/admin/expenses", label: "All Expense Reports", icon: Receipt },
+      { href: "/admin/expenses", label: "Expenses Reports", icon: Receipt },
       { href: "/admin/expenses/policy", label: "Expense Policies", icon: ClipboardList },
       { href: "/admin/expenses/reports", label: "Expense Analytics", icon: TrendingUp },
     ],

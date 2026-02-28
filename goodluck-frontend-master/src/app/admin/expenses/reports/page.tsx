@@ -398,13 +398,13 @@ export default function AdminExpenseAnalyticsPage() {
                   ),
               },
               {
-                key: "pendingAmount",
+                key: "status",
                 header: "Status",
                 sortable: true,
                 width: 120,
                 align: "center",
-                render: (value) =>
-                  value > 0 ? (
+                render: (value, row) =>
+                  row.pendingAmount > 0 ? (
                     <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
                       Pending
                     </Badge>

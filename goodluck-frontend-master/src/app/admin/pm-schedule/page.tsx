@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -512,41 +513,52 @@ export default function PMSchedulePage() {
         </Dialog>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Product Managers</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{productManagers.length}</div>
-            <p className="text-xs text-muted-foreground">Active managers</p>
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-blue-100">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{productManagers.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Product Managers</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Active managers</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Currently Busy</CardTitle>
-            <Briefcase className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{totalBusyManagers}</div>
-            <p className="text-xs text-muted-foreground">
-              {totalFreeManagers} managers free
-            </p>
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-orange-100">
+                <Briefcase className="h-4 w-4 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{totalBusyManagers}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Currently Busy</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{totalFreeManagers} managers free</p>
+                <Progress value={(totalBusyManagers / productManagers.length) * 100} className="w-16 h-1.5" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today&apos;s Schedules</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{totalSchedulesToday}</div>
-            <p className="text-xs text-muted-foreground">
-              Workshops and meetings
-            </p>
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-blue-100">
+                <Calendar className="h-4 w-4 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-xl font-bold tracking-tight">{totalSchedulesToday}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Today&apos;s Schedules</p>
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground">Workshops and meetings</p>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,17 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, DollarSign, AlertTriangle, Eye, CheckCircle2, XCircle, CreditCard, Clock, CheckCircle, TrendingUp } from "lucide-react";
+import { FileText, DollarSign, AlertTriangle, Eye, CheckCircle2, XCircle, CreditCard, Clock, CheckCircle } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, RowAction, GridColumn } from "@/components/ui/data-grid";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function AdminExpensesPage() {
   const [reports, setReports] = useState<any[]>([]);
@@ -198,76 +195,98 @@ export default function AdminExpensesPage() {
   return (
     <PageContainer>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-5">
+      <div className="mb-5">
         <PageHeader
           title="Expenses Reports"
           description="Review and approve expense reports from all salesmen"
         />
-        <Link href="/admin/expenses/reports">
-          <Button variant="outline" size="sm" className="shrink-0 mt-1">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            View Analytics
-          </Button>
-        </Link>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <Card className="border shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
-                <FileText className="h-4 w-4 text-yellow-600" />
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-yellow-100 shrink-0">
+                <Clock className="h-3.5 w-3.5 text-yellow-600" />
               </div>
-              <div>
-                <p className="text-xl font-bold">{pendingCount}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold">{approvedCount}</p>
-                <p className="text-xs text-muted-foreground">Approved</p>
+              <div className="min-w-0">
+                <p className="text-lg font-bold tracking-tight leading-tight">{pendingCount}</p>
+                <p className="text-[11px] text-muted-foreground truncate">Pending</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                <DollarSign className="h-4 w-4 text-purple-600" />
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-primary/10 shrink-0">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div>
-                <p className="text-xl font-bold">₹{totalPending.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Total Pending</p>
+              <div className="min-w-0">
+                <p className="text-lg font-bold tracking-tight leading-tight">{approvedCount}</p>
+                <p className="text-[11px] text-muted-foreground truncate">Approved</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4 text-orange-600" />
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-muted shrink-0">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xl font-bold">{violationCount}</p>
-                <p className="text-xs text-muted-foreground">Violations</p>
+              <div className="min-w-0">
+                <p className="text-lg font-bold tracking-tight leading-tight">₹{totalPending.toLocaleString()}</p>
+                <p className="text-[11px] text-muted-foreground truncate">Total Pending</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-orange-100 shrink-0">
+                <AlertTriangle className="h-3.5 w-3.5 text-orange-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg font-bold tracking-tight leading-tight">{violationCount}</p>
+                <p className="text-[11px] text-muted-foreground truncate">Violations</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex bg-muted/50 p-1 rounded-2xl mb-6 overflow-x-auto no-scrollbar border w-max">
+      {/* ── Mobile: scrollable chip tabs ── */}
+      <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-0.5">
+        {[
+          { key: "all",        label: "All",        count: reports.length,                                      activeClass: "bg-primary text-white border-primary"           },
+          { key: "pending",    label: "Pending",    count: reports.filter(r => r.status === "pending").length,  activeClass: "bg-yellow-500 text-white border-yellow-500"      },
+          { key: "approved",   label: "Approved",   count: reports.filter(r => r.status === "approved").length, activeClass: "bg-blue-500 text-white border-blue-500"          },
+          { key: "paid",       label: "Paid",       count: reports.filter(r => r.status === "paid").length,     activeClass: "bg-green-600 text-white border-green-600"        },
+          { key: "rejected",   label: "Rejected",   count: reports.filter(r => r.status === "rejected").length, activeClass: "bg-red-500 text-white border-red-500"            },
+          { key: "violations", label: "Violations", count: reports.filter(r => r.policyViolations > 0).length,  activeClass: "bg-orange-500 text-white border-orange-500"      },
+        ].map((tab) => {
+          const active = statusTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setStatusTab(tab.key)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 border transition-all
+                ${active ? tab.activeClass : "bg-background border-border text-muted-foreground"}`}
+            >
+              {tab.label}
+              <span className={`min-w-[16px] text-center text-[10px] font-bold px-1 rounded-full ${active ? "bg-white/25" : "bg-muted text-muted-foreground"}`}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop: pill bar ── */}
+      <div className="hidden md:flex bg-muted/50 p-1 rounded-2xl mb-6 overflow-x-auto no-scrollbar border w-max">
         <button
           onClick={() => setStatusTab("all")}
           className={`flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${statusTab === "all" ? "bg-background text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"}`}

@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Menu,
   X,
+  Plus,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -248,6 +250,69 @@ function SideDrawer({
   );
 }
 
+// ─── Mobile Bottom Tab Bar ────────────────────────────────────────────────────
+const adminBottomTabs = [
+  { href: "/admin/dashboard",    label: "Home",      icon: LayoutDashboard },
+  { href: "/admin/approvals",    label: "Approvals", icon: ClipboardList   },
+  { href: "/admin/expenses",     label: "Expenses",  icon: Receipt, isFab: true },
+  { href: "/admin/expenses/reports", label: "Reports", icon: BarChart2    },
+  { href: "/admin/notifications", label: "Alerts",   icon: Bell            },
+] as const;
+
+function AdminBottomNav({ notifCount }: { notifCount: number }) {
+  const pathname = usePathname();
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+      <div className="bg-background/95 backdrop-blur-xl border-t border-border/50">
+        <div className="flex items-center justify-around px-1 pt-1 pb-safe">
+          {adminBottomTabs.map((tab) => {
+            if ("isFab" in tab && tab.isFab) {
+              return (
+                <Link key={tab.href} href={tab.href} className="flex flex-col items-center -mt-6">
+                  <div className="h-14 w-14 rounded-2xl bg-primary shadow-xl shadow-primary/30 flex items-center justify-center ring-[3px] ring-background">
+                    <Receipt className="h-6 w-6 text-primary-foreground stroke-[2px]" />
+                  </div>
+                  <span className="text-[10px] font-bold text-primary mt-1">Expenses</span>
+                </Link>
+              );
+            }
+
+            const Icon = tab.icon;
+            const isActive =
+              pathname === tab.href ||
+              (tab.href !== "/admin/dashboard" && pathname.startsWith(tab.href + "/"));
+
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={cn(
+                  "flex flex-col items-center gap-[3px] px-2 py-2 rounded-xl min-w-[52px] transition-all relative",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <div className="relative">
+                  <Icon className={cn("h-[22px] w-[22px]", isActive && "stroke-[2.5px]")} />
+                  {tab.href === "/admin/notifications" && notifCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-[7px] w-[7px] rounded-full bg-destructive border border-background" />
+                  )}
+                </div>
+                <span className={cn("text-[10px] leading-none", isActive ? "font-bold" : "font-medium")}>
+                  {tab.label}
+                </span>
+                {isActive && (
+                  <span className="h-[3px] w-5 rounded-full bg-primary mt-0.5" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function AdminSidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -306,6 +371,9 @@ export default function AdminSidebar() {
           </div>
         </div>
       </header>
+
+      {/* ── Mobile Bottom Tab Bar ── */}
+      <AdminBottomNav notifCount={notifCount} />
 
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r lg:bg-background">

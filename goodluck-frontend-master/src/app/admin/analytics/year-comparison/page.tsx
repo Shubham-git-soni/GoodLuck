@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Minus, Award, School, Download, Save, BookOpen, Calendar, Filter, RotateCcw } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Award, School, Download, Save, BookOpen, Calendar, Filter, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -61,6 +61,7 @@ export default function YearComparisonPage() {
   // Data
   const [schools, setSchools] = useState<YearData[]>([]);
   const [filteredSchools, setFilteredSchools] = useState<YearData[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const stateMap: Record<string, string> = {
     Delhi: "Delhi",
@@ -274,7 +275,7 @@ export default function YearComparisonPage() {
       />
 
       {/* Top Stats */}
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
         <StatsCard
           title="Total Active Schools"
           value={filteredSchools.length}
@@ -295,8 +296,84 @@ export default function YearComparisonPage() {
         />
       </div>
 
-      {/* Filters — compact bar */}
-      <div className="mb-6 flex flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
+      {/* ── MOBILE: filter toggle button ── */}
+      <div className="flex items-center gap-2 mb-3 md:hidden">
+        <button
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-card shadow-sm"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+          {(() => {
+            const cnt = [yearFilter !== "all", stateFilter !== "all", salesmanFilter !== "all"].filter(Boolean).length;
+            return cnt > 0 ? (
+              <span className="ml-1 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">{cnt}</span>
+            ) : null;
+          })()}
+        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-primary"
+            onClick={() => { setYearFilter("all"); setStateFilter("all"); setSalesmanFilter("all"); }}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
+          </Button>
+          <Button size="sm" className="h-8 text-xs" onClick={() => toast.success("Exporting...")}>
+            <Download className="h-3.5 w-3.5 mr-1" /> Export
+          </Button>
+        </div>
+      </div>
+
+      {/* ── MOBILE: collapsible filter panel ── */}
+      {filtersOpen && (
+        <div className="mb-4 md:hidden border rounded-xl bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
+            <button type="button" onClick={() => setFiltersOpen(false)} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Active</p>
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All School Types" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All School Types</SelectItem>
+                  <SelectItem value="1">1-Year</SelectItem>
+                  <SelectItem value="2">2-Year</SelectItem>
+                  <SelectItem value="3">3-Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">State</p>
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All States</SelectItem>
+                  {states.map((state) => <SelectItem key={state} value={state}>{state}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 col-span-2">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide">Person</p>
+              <Select value={salesmanFilter} onValueChange={setSalesmanFilter}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All Salespersons" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Salespersons</SelectItem>
+                  {salesmen.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="w-full h-9 text-xs bg-muted text-muted-foreground hover:bg-muted/80 border-0"
+            onClick={() => { setYearFilter("all"); setStateFilter("all"); setSalesmanFilter("all"); setFiltersOpen(false); }}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset Filters
+          </Button>
+        </div>
+      )}
+
+      {/* Filters — compact bar (DESKTOP ONLY) */}
+      <div className="hidden md:flex mb-6 flex-wrap items-center gap-2 bg-card border rounded-xl px-4 py-2.5 shadow-sm">
         <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Filters</span>
 
@@ -362,9 +439,11 @@ export default function YearComparisonPage() {
         title={`School Performance & Projection (${filteredSchools.length})`}
         selectable
         enableRowPinning
+        enableColumnPinning
         striped
         inlineFilters
         rowActions={rowActions}
+        showStats={false}
         className="border shadow-sm rounded-xl overflow-hidden"
       />
     </PageContainer>

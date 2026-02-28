@@ -396,6 +396,7 @@ export default function AdminBooksPage() {
         defaultPageSize={15}
         selectable
         enableRowPinning
+        enableColumnPinning
         inlineFilters
         striped
         density="compact"

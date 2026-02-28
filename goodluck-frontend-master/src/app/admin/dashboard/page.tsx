@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -56,50 +57,46 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (v: string)
     : "Pick month";
 
   return (
-    <div className="relative w-full">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="h-9 w-full flex items-center gap-2 rounded-lg border-0 bg-muted/60 px-3 text-xs hover:bg-muted transition-colors"
-      >
-        <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className={value ? "text-foreground" : "text-muted-foreground"}>{label}</span>
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-11 right-0 z-50 bg-background border rounded-xl shadow-xl p-3 w-52">
-            {/* Year nav */}
-            <div className="flex items-center justify-between mb-2">
-              <button type="button" onClick={() => setYear(y => y - 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <span className="text-sm font-bold">{year}</span>
-              <button type="button" onClick={() => setYear(y => y + 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            {/* Month grid */}
-            <div className="grid grid-cols-3 gap-1">
-              {MONTHS.map((m, i) => {
-                const isSel = selMonth === i && parseInt(parsed[0]) === year;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { onChange(`${year}-${String(i + 1).padStart(2, "0")}`); setOpen(false); }}
-                    className={cn(
-                      "text-xs py-1.5 rounded-lg font-medium transition-all",
-                      isSel ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                    )}
-                  >{m}</button>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="h-9 w-full flex items-center gap-2 rounded-lg border-0 bg-muted/60 px-3 text-xs hover:bg-muted transition-colors"
+        >
+          <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span className={value ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-3" align="start">
+        {/* Year nav */}
+        <div className="flex items-center justify-between mb-2">
+          <button type="button" onClick={() => setYear(y => y - 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-sm font-bold">{year}</span>
+          <button type="button" onClick={() => setYear(y => y + 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {/* Month grid */}
+        <div className="grid grid-cols-3 gap-1">
+          {MONTHS.map((m, i) => {
+            const isSel = selMonth === i && parseInt(parsed[0]) === year;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { onChange(`${year}-${String(i + 1).padStart(2, "0")}`); setOpen(false); }}
+                className={cn(
+                  "text-xs py-1.5 rounded-lg font-medium transition-all",
+                  isSel ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                )}
+              >{m}</button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -111,6 +108,7 @@ export default function AdminDashboard() {
   const [visitsFilter, setVisitsFilter] = useState("all");
   const [globalDateFilter, setGlobalDateFilter] = useState("2025-11-25");
   const [performanceFilter, setPerformanceFilter] = useState("all");
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const [stats, setStats] = useState({
     totalSalesmen: 0,
@@ -354,11 +352,29 @@ export default function AdminDashboard() {
   const filteredSpecimenBudget = filteredSalesmen.reduce((sum, s) => sum + s.specimenBudget, 0);
   const filteredSpecimenUsed = filteredSalesmen.reduce((sum, s) => sum + s.specimenUsed, 0);
 
+  const activeFiltersCount = (stateFilter !== "all" ? 1 : 0) + (visitsFilter !== "all" ? 1 : 0) + (globalDateFilter !== "2025-11-25" ? 1 : 0) + (monthFilter !== "2025-11" ? 1 : 0);
+
   return (
     <PageContainer>
       <PageHeader
         title="Admin Dashboard"
         description="Overview of CRM operations"
+        action={
+          <Button
+            variant={isFiltersOpen ? "default" : "outline"}
+            size="sm"
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+            className="h-9 gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Filters</span>
+            {activeFiltersCount > 0 && (
+              <Badge variant={isFiltersOpen ? "secondary" : "default"} className="px-1.5 py-0 min-w-5 flex items-center justify-center font-bold">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </Button>
+        }
       />
 
       {/* ── Hero summary bar ── */}
@@ -449,82 +465,84 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Global Filters ── */}
-      <div className="mb-6 bg-card border rounded-2xl shadow-sm overflow-hidden">
-        {/* Header row */}
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <div className="flex items-center gap-2">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Filters</span>
+      {isFiltersOpen && (
+        <div className="mb-6 bg-card border rounded-2xl shadow-sm overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
+          {/* Header row */}
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Filters</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
+              onClick={() => {
+                setStateFilter("all");
+                setVisitsFilter("all");
+                setGlobalDateFilter("2025-11-25");
+                setMonthFilter("2025-11");
+              }}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
-            onClick={() => {
-              setStateFilter("all");
-              setVisitsFilter("all");
-              setGlobalDateFilter("2025-11-25");
-              setMonthFilter("2025-11");
-            }}
-          >
-            <RotateCcw className="h-3 w-3" />
-            Reset
-          </Button>
+
+          {/* Filter grid — 2 cols on mobile, 4 cols on desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border">
+            {/* State */}
+            <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">State</span>
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg px-3">
+                  <SelectValue placeholder="All States" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All States</SelectItem>
+                  {states.map((state) => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Visits */}
+            <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Visits</span>
+              <Select value={visitsFilter} onValueChange={setVisitsFilter}>
+                <SelectTrigger className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg px-3">
+                  <SelectValue placeholder="All Visits" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Visits</SelectItem>
+                  <SelectItem value="0">0 Visits</SelectItem>
+                  <SelectItem value="1-2">1-2 Visits</SelectItem>
+                  <SelectItem value="3-5">3-5 Visits</SelectItem>
+                  <SelectItem value="5+">5+ Visits</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date */}
+            <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</span>
+              <DatePicker
+                value={globalDateFilter}
+                onChange={(v) => setGlobalDateFilter(v || "2025-11-25")}
+                placeholder="Pick date"
+                className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg"
+              />
+            </div>
+
+            {/* Month */}
+            <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Month</span>
+              <MonthPicker value={monthFilter} onChange={setMonthFilter} />
+            </div>
+          </div>
         </div>
-
-        {/* Filter grid — 2 cols on mobile, 4 cols on desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border">
-          {/* State */}
-          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">State</span>
-            <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg px-3">
-                <SelectValue placeholder="All States" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {states.map((state) => (
-                  <SelectItem key={state} value={state}>{state}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Visits */}
-          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Visits</span>
-            <Select value={visitsFilter} onValueChange={setVisitsFilter}>
-              <SelectTrigger className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg px-3">
-                <SelectValue placeholder="All Visits" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Visits</SelectItem>
-                <SelectItem value="0">0 Visits</SelectItem>
-                <SelectItem value="1-2">1-2 Visits</SelectItem>
-                <SelectItem value="3-5">3-5 Visits</SelectItem>
-                <SelectItem value="5+">5+ Visits</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date */}
-          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</span>
-            <DatePicker
-              value={globalDateFilter}
-              onChange={(v) => setGlobalDateFilter(v || "2025-11-25")}
-              placeholder="Pick date"
-              className="h-9 w-full text-xs border-0 bg-muted/60 rounded-lg"
-            />
-          </div>
-
-          {/* Month */}
-          <div className="bg-card px-3 py-3 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Month</span>
-            <MonthPicker value={monthFilter} onChange={setMonthFilter} />
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* ── Chart: Salesman Performance — full width ── */}
       <Card className="mb-5">
@@ -665,8 +683,8 @@ export default function AdminDashboard() {
                       <span className={cn(
                         "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold",
                         salesman.utilization >= 90 ? "bg-red-100 text-red-700" :
-                        salesman.utilization >= 75 ? "bg-amber-100 text-amber-700" :
-                        "bg-emerald-100 text-emerald-700"
+                          salesman.utilization >= 75 ? "bg-amber-100 text-amber-700" :
+                            "bg-emerald-100 text-emerald-700"
                       )}>
                         {salesman.utilization}%
                       </span>

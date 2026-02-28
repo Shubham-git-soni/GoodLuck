@@ -70,8 +70,6 @@ const navGroups = [
     items: [
       { href: "/admin/pm-schedule", label: "PM Schedule", icon: CalendarCheck },
       { href: "/admin/pm-calendar", label: "PM Calendar", icon: Calendar },
-      { href: "/admin/tour-plans", label: "Tour Plans", icon: Calendar },
-      { href: "/admin/tada", label: "TA/DA Approval", icon: DollarSign },
       { href: "/admin/feedback", label: "Feedback Manager", icon: MessageSquare },
     ],
   },

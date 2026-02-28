@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
@@ -50,24 +49,14 @@ function InlineEditRow({
     );
 }
 
-// ─── Action buttons: Edit + Delete ────────────────────────────────────────────
-function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
-    return (
-        <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50" onClick={onEdit}>
-                <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={onDelete}>
-                <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-        </div>
-    );
-}
+// Removed custom RowActions since we use DataGrid rowActions
 
 export default function LocationMasterPage() {
     const [states, setStates] = useState<State[]>(locationsData.states);
     const [cities, setCities] = useState<City[]>(locationsData.cities);
     const [stations, setStations] = useState<Station[]>(locationsData.stations);
+
+    const [activeTab, setActiveTab] = useState<"states" | "cities" | "stations">("states");
 
     // ── Inline edit state (which id is being edited) ─────────────────────────
     const [editingStateId, setEditingStateId] = useState<string | null>(null);
@@ -195,6 +184,61 @@ export default function LocationMasterPage() {
         toast.success(`"${name}" removed`);
     };
 
+    // ─── GRID COLUMNS & ACTIONS ───────────────────────────────────────────────
+    const STATE_COLUMNS: GridColumn<State>[] = [
+        {
+            key: "name", header: "State Name", sortable: true, filterable: true,
+            render: (val, row) => editingStateId === row.id ? (
+                <InlineEditRow id={row.id} value={row.name} onSave={v => saveState(row.id, v)} onCancel={() => setEditingStateId(null)} />
+            ) : (
+                <span className="font-semibold flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /> {val}</span>
+            )
+        },
+        { key: "citiesCount" as keyof State, header: "Cities", width: 100, align: "center", render: (_, row) => <Badge variant="secondary" className="text-[10px]">{cities.filter(c => c.stateId === row.id).length}</Badge> },
+        { key: "stationsCount" as keyof State, header: "Stations", width: 100, align: "center", render: (_, row) => <Badge variant="outline" className="text-[10px]">{stations.filter(st => st.stateId === row.id).length}</Badge> },
+    ];
+
+    const stateRowActions: RowAction<State>[] = [
+        { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (s) => setEditingStateId(s.id) },
+        { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: (s) => deleteState(s.id, s.name), danger: true },
+    ];
+
+    const CITY_COLUMNS: GridColumn<City>[] = [
+        {
+            key: "name", header: "City Name", sortable: true, filterable: true,
+            render: (val, row) => editingCityId === row.id ? (
+                <InlineEditRow id={row.id} value={row.name} onSave={v => saveCity(row.id, v)} onCancel={() => setEditingCityId(null)} />
+            ) : (
+                <span className="font-semibold flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-blue-600 shrink-0" /> {val}</span>
+            )
+        },
+        { key: "stateName", header: "State", width: 150, sortable: true, filterable: true, render: (val) => <Badge variant="outline" className="text-[10px] gap-1"><MapPin className="h-2.5 w-2.5" />{val}</Badge> },
+        { key: "stationsCount" as keyof City, header: "Stations", width: 100, align: "center", render: (_, row) => <Badge variant="secondary" className="text-[10px]">{stations.filter(s => s.cityId === row.id).length}</Badge> },
+    ];
+
+    const cityRowActions: RowAction<City>[] = [
+        { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (c) => setEditingCityId(c.id) },
+        { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: (c) => deleteCity(c.id, c.name), danger: true },
+    ];
+
+    const STATION_COLUMNS: GridColumn<Station>[] = [
+        {
+            key: "name", header: "Station Name", sortable: true, filterable: true,
+            render: (val, row) => editingStationId === row.id ? (
+                <InlineEditRow id={row.id} value={row.name} onSave={v => saveStation(row.id, v)} onCancel={() => setEditingStationId(null)} />
+            ) : (
+                <span className="font-semibold flex items-center gap-2"><Navigation className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> {val}</span>
+            )
+        },
+        { key: "cityName", header: "City", width: 150, sortable: true, filterable: true, render: (val) => <Badge variant="outline" className="text-[10px] gap-1"><Building2 className="h-2.5 w-2.5 text-blue-600" />{val}</Badge> },
+        { key: "stateName", header: "State", width: 150, sortable: true, filterable: true, render: (val) => <Badge variant="secondary" className="text-[10px] gap-1"><MapPin className="h-2.5 w-2.5" />{val}</Badge> },
+    ];
+
+    const stationRowActions: RowAction<Station>[] = [
+        { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (s) => setEditingStationId(s.id) },
+        { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: (s) => deleteStation(s.id, s.name), danger: true },
+    ];
+
     // ─── Breadcrumb pill ──────────────────────────────────────────────────────
     const Crumb = ({ label, color }: { label: string; color: string }) => (
         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${color}`}>{label}</span>
@@ -210,24 +254,41 @@ export default function LocationMasterPage() {
                 <p className="text-sm text-muted-foreground mt-0.5">
                     Manage State → City → Station hierarchy used across the entire system
                 </p>
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <Crumb label={`${states.length} States`} color="bg-primary/10 text-primary" />
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Crumb label={`${cities.length} Cities`} color="bg-blue-100 text-blue-700" />
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Crumb label={`${stations.length} Stations`} color="bg-emerald-100 text-emerald-700" />
-                </div>
             </div>
 
-            <Tabs defaultValue="states">
-                <TabsList className="mb-5 gap-1">
-                    <TabsTrigger value="states" className="gap-1.5"><MapPin className="h-3.5 w-3.5" /> States   <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{states.length}</Badge></TabsTrigger>
-                    <TabsTrigger value="cities" className="gap-1.5"><Building2 className="h-3.5 w-3.5" /> Cities   <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{cities.length}</Badge></TabsTrigger>
-                    <TabsTrigger value="stations" className="gap-1.5"><Navigation className="h-3.5 w-3.5" /> Stations <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{stations.length}</Badge></TabsTrigger>
-                </TabsList>
+            <div className="flex bg-muted/50 p-1 rounded-2xl mb-6 overflow-x-auto no-scrollbar border w-max">
+                <button
+                    onClick={() => setActiveTab("states")}
+                    className={`flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "states" ? "bg-background text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                        }`}
+                >
+                    <MapPin className={`h-4 w-4 ${activeTab === "states" ? "text-primary" : "text-muted-foreground"}`} />
+                    States
+                    <Badge variant={activeTab === "states" ? "default" : "secondary"} className="ml-1 text-[10px] h-4 px-1">{states.length}</Badge>
+                </button>
+                <button
+                    onClick={() => setActiveTab("cities")}
+                    className={`flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "cities" ? "bg-background text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                        }`}
+                >
+                    <Building2 className={`h-4 w-4 ${activeTab === "cities" ? "text-primary" : "text-muted-foreground"}`} />
+                    Cities
+                    <Badge variant={activeTab === "cities" ? "default" : "secondary"} className="ml-1 text-[10px] h-4 px-1">{cities.length}</Badge>
+                </button>
+                <button
+                    onClick={() => setActiveTab("stations")}
+                    className={`flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "stations" ? "bg-background text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                        }`}
+                >
+                    <Navigation className={`h-4 w-4 ${activeTab === "stations" ? "text-primary" : "text-muted-foreground"}`} />
+                    Stations
+                    <Badge variant={activeTab === "stations" ? "default" : "secondary"} className="ml-1 text-[10px] h-4 px-1">{stations.length}</Badge>
+                </button>
+            </div>
 
-                {/* ══ TAB 1 — STATES ══ */}
-                <TabsContent value="states">
+            {/* ══ TAB 1 — STATES ══ */}
+            {
+                activeTab === "states" && (
                     <div className="grid lg:grid-cols-3 gap-5">
                         <Card className="lg:col-span-1 self-start">
                             <CardHeader className="pb-3">
@@ -243,68 +304,23 @@ export default function LocationMasterPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="lg:col-span-2">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between gap-3">
-                                    <CardTitle className="text-sm">All States ({filteredStates.length})</CardTitle>
-                                    <div className="relative w-56">
-                                        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                        <Input className="pl-8 h-8 text-sm" placeholder="Search states..." value={stateSearch} onChange={e => setStateSearch(e.target.value)} />
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                                <TableHead className="w-12">Sr.</TableHead>
-                                                <TableHead>State Name</TableHead>
-                                                <TableHead className="text-center">Cities</TableHead>
-                                                <TableHead className="text-center">Stations</TableHead>
-                                                <TableHead className="w-20 text-center">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredStates.length === 0 ? (
-                                                <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">No states found.</TableCell></TableRow>
-                                            ) : filteredStates.map((s, i) => (
-                                                <TableRow key={s.id} className="hover:bg-slate-50/50">
-                                                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                                                    <TableCell>
-                                                        {editingStateId === s.id ? (
-                                                            <InlineEditRow id={s.id} value={s.name}
-                                                                onSave={v => saveState(s.id, v)}
-                                                                onCancel={() => setEditingStateId(null)} />
-                                                        ) : (
-                                                            <span className="font-semibold flex items-center gap-2">
-                                                                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" /> {s.name}
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Badge variant="secondary" className="text-[10px]">{cities.filter(c => c.stateId === s.id).length}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Badge variant="outline" className="text-[10px]">{stations.filter(st => st.stateId === s.id).length}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {editingStateId !== s.id && (
-                                                            <RowActions onEdit={() => setEditingStateId(s.id)} onDelete={() => deleteState(s.id, s.name)} />
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <div className="lg:col-span-2">
+                            <DataGrid
+                                data={filteredStates}
+                                columns={STATE_COLUMNS}
+                                rowActions={stateRowActions}
+                                density="compact"
+                                maxHeight={400}
+                                selectable
+                            />
+                        </div>
                     </div>
-                </TabsContent>
+                )
+            }
 
-                {/* ══ TAB 2 — CITIES ══ */}
-                <TabsContent value="cities">
+            {/* ══ TAB 2 — CITIES ══ */}
+            {
+                activeTab === "cities" && (
                     <div className="grid lg:grid-cols-3 gap-5">
                         <Card className="lg:col-span-1 self-start">
                             <CardHeader className="pb-3">
@@ -335,84 +351,23 @@ export default function LocationMasterPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="lg:col-span-2">
-                            <CardHeader className="pb-3">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                    <CardTitle className="text-sm">All Cities ({filteredCities.length})</CardTitle>
-                                    <div className="flex gap-2 w-full sm:w-auto">
-                                        <Select value={cityStateFilter} onValueChange={setCityStateFilter}>
-                                            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All States</SelectItem>
-                                                {states.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <div className="relative flex-1 sm:w-44">
-                                            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                                            <Input className="pl-8 h-8 text-sm" placeholder="Search cities..." value={citySearch} onChange={e => setCitySearch(e.target.value)} />
-                                        </div>
-                                        {(cityStateFilter !== "all" || citySearch) && (
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setCityStateFilter("all"); setCitySearch(""); }}>
-                                                <RotateCcw className="h-3.5 w-3.5" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                                <TableHead className="w-12">Sr.</TableHead>
-                                                <TableHead>City Name</TableHead>
-                                                <TableHead>State</TableHead>
-                                                <TableHead className="text-center">Stations</TableHead>
-                                                <TableHead className="w-20 text-center">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredCities.length === 0 ? (
-                                                <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">No cities found.</TableCell></TableRow>
-                                            ) : filteredCities.map((c, i) => (
-                                                <TableRow key={c.id} className="hover:bg-slate-50/50">
-                                                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                                                    <TableCell>
-                                                        {editingCityId === c.id ? (
-                                                            <InlineEditRow id={c.id} value={c.name}
-                                                                onSave={v => saveCity(c.id, v)}
-                                                                onCancel={() => setEditingCityId(null)} />
-                                                        ) : (
-                                                            <span className="font-semibold flex items-center gap-2">
-                                                                <Building2 className="h-3.5 w-3.5 text-blue-600 shrink-0" /> {c.name}
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="outline" className="text-[10px] gap-1">
-                                                            <MapPin className="h-2.5 w-2.5" />{c.stateName}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Badge variant="secondary" className="text-[10px]">{stations.filter(s => s.cityId === c.id).length}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {editingCityId !== c.id && (
-                                                            <RowActions onEdit={() => setEditingCityId(c.id)} onDelete={() => deleteCity(c.id, c.name)} />
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <div className="lg:col-span-2">
+                            <DataGrid
+                                data={filteredCities}
+                                columns={CITY_COLUMNS}
+                                rowActions={cityRowActions}
+                                density="compact"
+                                maxHeight={400}
+                                selectable
+                            />
+                        </div>
                     </div>
-                </TabsContent>
+                )
+            }
 
-                {/* ══ TAB 3 — STATIONS ══ */}
-                <TabsContent value="stations">
+            {/* ══ TAB 3 — STATIONS ══ */}
+            {
+                activeTab === "stations" && (
                     <div className="grid lg:grid-cols-3 gap-5">
                         <Card className="lg:col-span-1 self-start">
                             <CardHeader className="pb-3">
@@ -460,91 +415,18 @@ export default function LocationMasterPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="lg:col-span-2">
-                            <CardHeader className="pb-3">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                    <CardTitle className="text-sm">All Stations ({filteredStations.length})</CardTitle>
-                                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                        <Select value={stnStateFilter} onValueChange={v => { setStnStateFilter(v); setStnCityFilter("all"); }}>
-                                            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="All States" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All States</SelectItem>
-                                                {states.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <Select value={stnCityFilter} onValueChange={setStnCityFilter} disabled={stnStateFilter === "all"}>
-                                            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="All Cities" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Cities</SelectItem>
-                                                {citiesForStnFilter.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <div className="relative flex-1 min-w-[120px]">
-                                            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                                            <Input className="pl-8 h-8 text-sm" placeholder="Search..." value={stnSearch} onChange={e => setStnSearch(e.target.value)} />
-                                        </div>
-                                        {(stnStateFilter !== "all" || stnCityFilter !== "all" || stnSearch) && (
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { setStnStateFilter("all"); setStnCityFilter("all"); setStnSearch(""); }}>
-                                                <RotateCcw className="h-3.5 w-3.5" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                                <TableHead className="w-12">Sr.</TableHead>
-                                                <TableHead>Station Name</TableHead>
-                                                <TableHead>City</TableHead>
-                                                <TableHead>State</TableHead>
-                                                <TableHead className="w-20 text-center">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredStations.length === 0 ? (
-                                                <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">No stations found.</TableCell></TableRow>
-                                            ) : filteredStations.map((s, i) => (
-                                                <TableRow key={s.id} className="hover:bg-slate-50/50">
-                                                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                                                    <TableCell>
-                                                        {editingStationId === s.id ? (
-                                                            <InlineEditRow id={s.id} value={s.name}
-                                                                onSave={v => saveStation(s.id, v)}
-                                                                onCancel={() => setEditingStationId(null)} />
-                                                        ) : (
-                                                            <span className="font-semibold flex items-center gap-2">
-                                                                <Navigation className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> {s.name}
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="outline" className="text-[10px] gap-1">
-                                                            <Building2 className="h-2.5 w-2.5 text-blue-600" />{s.cityName}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="secondary" className="text-[10px] gap-1">
-                                                            <MapPin className="h-2.5 w-2.5" />{s.stateName}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {editingStationId !== s.id && (
-                                                            <RowActions onEdit={() => setEditingStationId(s.id)} onDelete={() => deleteStation(s.id, s.name)} />
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <div className="lg:col-span-2">
+                            <DataGrid
+                                data={filteredStations}
+                                columns={STATION_COLUMNS}
+                                rowActions={stationRowActions}
+                                density="compact"
+                                maxHeight={400}
+                                selectable
+                            />
+                        </div>
                     </div>
-                </TabsContent>
-            </Tabs>
+                )}
         </PageContainer>
     );
 }

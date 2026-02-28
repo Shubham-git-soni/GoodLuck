@@ -37,9 +37,9 @@ const COLORS = {
   primary: "#F47B20",   // brand orange (primary)
   success: "#2DD4BF",   // teal — achieved/positive
   warning: "#94A3B8",   // slate — remaining/neutral
-  danger:  "#F43F5E",   // rose — alert/violation
-  purple:  "#818CF8",   // indigo — secondary metric
-  cyan:    "#38BDF8",   // sky — tertiary metric
+  danger: "#F43F5E",   // rose — alert/violation
+  purple: "#818CF8",   // indigo — secondary metric
+  cyan: "#38BDF8",   // sky — tertiary metric
 };
 
 export default function SalesmanDashboard() {
@@ -519,14 +519,12 @@ export default function SalesmanDashboard() {
                   key={alert.id}
                   className="flex items-start gap-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors cursor-pointer"
                 >
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    alert.priority === "high" ? "bg-destructive/10" :
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${alert.priority === "high" ? "bg-destructive/10" :
                     alert.priority === "medium" ? "bg-primary/10" : "bg-muted"
-                  }`}>
-                    <AlertCircle className={`h-4 w-4 ${
-                      alert.priority === "high" ? "text-destructive" :
+                    }`}>
+                    <AlertCircle className={`h-4 w-4 ${alert.priority === "high" ? "text-destructive" :
                       alert.priority === "medium" ? "text-primary" : "text-muted-foreground"
-                    }`} />
+                      }`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{alert.title}</p>

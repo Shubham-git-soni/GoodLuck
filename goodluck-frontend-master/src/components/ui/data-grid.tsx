@@ -755,6 +755,17 @@ export function DataGrid<T extends object>({
         }
     }, [presetKey]);
 
+    // ─── Sync columns when initialColumns change ────────────────────────────────
+    React.useEffect(() => {
+        setColumns((prev) => {
+            const updated = initialColumns.map((newCol) => {
+                const oldCol = prev.find((c) => c.key === newCol.key);
+                return oldCol ? { ...newCol, hidden: oldCol.hidden, width: oldCol.width } : newCol;
+            });
+            return updated;
+        });
+    }, [initialColumns]);
+
 
     // ─── Notify selection changes ────────────────────────────────────────────────
     React.useEffect(() => {
@@ -1841,7 +1852,10 @@ export function DataGrid<T extends object>({
                                                                 {actions.map((action, i) => (
                                                                     <button
                                                                         key={i}
-                                                                        onClick={() => action.onClick(row)}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            action.onClick(row);
+                                                                        }}
                                                                         title={action.label}
                                                                         className={cn(
                                                                             "h-7 w-7 flex items-center justify-center rounded-md transition-colors",

@@ -21,6 +21,7 @@ import { School } from "@/types";
 import { toast } from "sonner";
 import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { ALL_STATES, getCitiesForState } from "@/lib/state-city-map";
 
 // Import mock data
 import schoolsData from "@/lib/mock-data/schools.json";
@@ -37,6 +38,7 @@ interface ContactPerson {
 
 interface NewSchoolForm {
   name: string;
+  state: string;
   city: string;
   board: string;
   strength: string;
@@ -56,6 +58,7 @@ const emptyContact = (): ContactPerson => ({
 
 const defaultForm = (): NewSchoolForm => ({
   name: "",
+  state: "",
   city: "",
   board: "",
   strength: "",
@@ -146,6 +149,7 @@ export default function SchoolListPage() {
     if (school) {
       setNewSchool({
         name: school.name,
+        state: school.state || "",
         city: school.city,
         board: school.board,
         strength: school.strength?.toString() || "",
@@ -187,7 +191,7 @@ export default function SchoolListPage() {
     { key: "email", header: "Email", width: 180, render: (_, row) => <div className="text-xs text-muted-foreground truncate" title={row.contacts?.[0]?.email}>{row.contacts?.[0]?.email || "N/A"}</div> },
     { key: "visitCount", header: "Visits", width: 80, sortable: true, align: "center", render: (val) => <Badge variant={val >= 2 ? "default" : "outline"} className="text-[10px]">{val}</Badge> },
     { key: "address", header: "Address", width: 220, render: (val) => <div className="text-xs text-muted-foreground truncate" title={val}>{val}</div> },
-    { key: "state", header: "State", width: 120, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val}</span> },
+    { key: "state", header: "State", width: 130, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val || "—"}</span> },
     { key: "city", header: "City", width: 120, sortable: true, filterable: true, render: (val) => <span className="text-xs">{val}</span> },
     {
       key: "station", header: "Station", width: 150, sortable: true, filterable: true, render: (val, row) => {
@@ -259,17 +263,57 @@ export default function SchoolListPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* State, City, and Board in one row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="grid gap-2">
+          <Label>State <span className="text-destructive">*</span></Label>
+          {isMobile ? (
+            <NativeSelect
+              disabled={modalMode === "view"}
+              value={newSchool.state}
+              onValueChange={(v) => setNewSchool({ ...newSchool, state: v, city: "" })}
+              placeholder="Select state"
+            >
+              {ALL_STATES.map((s) => <NativeSelectOption key={s} value={s}>{s}</NativeSelectOption>)}
+            </NativeSelect>
+          ) : (
+            <Select
+              disabled={modalMode === "view"}
+              value={newSchool.state}
+              onValueChange={(v) => setNewSchool({ ...newSchool, state: v, city: "" })}
+            >
+              <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}>
+                <SelectValue placeholder="Select state" />
+              </SelectTrigger>
+              <SelectContent>
+                {ALL_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <div className="grid gap-2">
           <Label>City <span className="text-destructive">*</span></Label>
           {isMobile ? (
-            <NativeSelect disabled={modalMode === "view"} value={newSchool.city} onValueChange={(v) => setNewSchool({ ...newSchool, city: v })} placeholder="Select city">
-              {dropdownOptions.cities.map((c) => <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>)}
+            <NativeSelect
+              disabled={modalMode === "view" || !newSchool.state}
+              value={newSchool.city}
+              onValueChange={(v) => setNewSchool({ ...newSchool, city: v })}
+              placeholder={newSchool.state ? "Select city" : "Select state first"}
+            >
+              {getCitiesForState(newSchool.state).map((c) => <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>)}
             </NativeSelect>
           ) : (
-            <Select disabled={modalMode === "view"} value={newSchool.city} onValueChange={(v) => setNewSchool({ ...newSchool, city: v })}>
-              <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}><SelectValue placeholder="Select city" /></SelectTrigger>
-              <SelectContent>{dropdownOptions.cities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <Select
+              disabled={modalMode === "view" || !newSchool.state}
+              value={newSchool.city}
+              onValueChange={(v) => setNewSchool({ ...newSchool, city: v })}
+            >
+              <SelectTrigger className={modalMode === "view" ? "bg-muted/50" : ""}>
+                <SelectValue placeholder={newSchool.state ? "Select city" : "Select state first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {getCitiesForState(newSchool.state).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
             </Select>
           )}
         </div>

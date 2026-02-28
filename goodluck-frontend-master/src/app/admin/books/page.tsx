@@ -221,7 +221,7 @@ export default function AdminBooksPage() {
                 <Plus className="h-4 w-4 mr-1.5" /> Add Book
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Book</DialogTitle>
                 <DialogDescription>Add a new book to the catalog</DialogDescription>
@@ -279,25 +279,51 @@ export default function AdminBooksPage() {
 
       {/* ── View Dialog ── */}
       <Dialog open={!!viewBook} onOpenChange={(o) => !o && setViewBook(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" /> Book Details
             </DialogTitle>
           </DialogHeader>
           {viewBook && (
-            <div className="grid grid-cols-2 gap-4 py-2 text-sm">
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">ID</p><p className="font-semibold">{viewBook.id}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Class</p><p className="font-semibold">{viewBook.class}</p></div>
-              <div className="col-span-2"><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Title</p><p className="font-semibold">{viewBook.title}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Subject</p><p>{viewBook.subject || "—"}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Board</p><p>{viewBook.board || "—"}</p></div>
-              <div className="col-span-2"><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Publisher</p><p>{viewBook.publishedUnder}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">ISBN</p><p>{viewBook.isbn || "—"}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Stock</p><p>{viewBook.stockAvailable ?? 0}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">MRP</p><p className="font-semibold">₹{viewBook.mrp}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Selling</p><p className="text-green-600 font-semibold">₹{viewBook.sellingPrice}</p></div>
-              <div><p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Specimen</p><p className="text-blue-600 font-semibold">₹{viewBook.specimenPrice}</p></div>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ID</Label>
+                  <Input readOnly value={viewBook.id} className="bg-muted/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Stock</Label>
+                  <Input readOnly value={viewBook.stockAvailable ?? 0} className="bg-muted/50" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input readOnly value={viewBook.title} className="bg-muted/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Class</Label>
+                  <Input readOnly value={viewBook.class} className="bg-muted/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subject</Label>
+                  <Input readOnly value={viewBook.subject ?? ""} className="bg-muted/50" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2"><Label>MRP (₹)</Label>      <Input readOnly value={viewBook.mrp} className="bg-muted/50" /></div>
+                <div className="space-y-2"><Label>Selling (₹)</Label>  <Input readOnly value={viewBook.sellingPrice} className="text-green-600 font-medium bg-muted/50" /></div>
+                <div className="space-y-2"><Label>Specimen (₹)</Label> <Input readOnly value={viewBook.specimenPrice} className="text-blue-600 font-medium bg-muted/50" /></div>
+              </div>
+              <div className="space-y-2">
+                <Label>Publisher</Label>
+                <Input readOnly value={viewBook.publishedUnder} className="bg-muted/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Board</Label><Input readOnly value={viewBook.board ?? ""} className="bg-muted/50" /></div>
+                <div className="space-y-2"><Label>ISBN</Label> <Input readOnly value={viewBook.isbn ?? ""} className="bg-muted/50" /></div>
+              </div>
             </div>
           )}
           <DialogFooter><Button variant="outline" onClick={() => setViewBook(null)}>Close</Button></DialogFooter>
@@ -306,7 +332,7 @@ export default function AdminBooksPage() {
 
       {/* ── Edit Dialog ── */}
       <Dialog open={!!editBook} onOpenChange={(o) => !o && setEditBook(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Book</DialogTitle>
             <DialogDescription>Update the book details below</DialogDescription>

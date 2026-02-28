@@ -123,6 +123,7 @@ export interface ContextMenuItem {
 export interface QuickFilter {
     label: string;
     key: string;
+    field?: string;  // data field to filter on; defaults to key if not provided
     value: any;
     icon?: React.ReactNode;
 }
@@ -869,7 +870,7 @@ export function DataGrid<T extends object>({
             activeQuickFilters.forEach((filterKey) => {
                 const filter = quickFilters.find((f) => f.key === filterKey);
                 if (filter) {
-                    arr = arr.filter((row) => getNested(row, filter.key) === filter.value);
+                    arr = arr.filter((row) => getNested(row, filter.field ?? filter.key) === filter.value);
                 }
             });
         }
@@ -982,17 +983,15 @@ export function DataGrid<T extends object>({
     }, []);
 
     const togglePinRow = React.useCallback((id: any) => {
+        let wasPinned = false;
         setPinnedRows((prev) => {
             const n = new Set(prev);
-            if (n.has(id)) {
-                n.delete(id);
-                toast.success("Row unpinned");
-            } else {
-                n.add(id);
-                toast.success("Row pinned to top");
-            }
+            if (n.has(id)) { n.delete(id); wasPinned = true; }
+            else n.add(id);
             return n;
         });
+        // toast outside updater — Strict Mode calls updaters twice, toasts must be outside
+        setTimeout(() => toast.success(wasPinned ? "Row unpinned" : "Row pinned to top"), 0);
     }, []);
 
     const toggleCol = React.useCallback((key: string) => {
@@ -1639,8 +1638,8 @@ export function DataGrid<T extends object>({
                                                     "px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b group relative",
                                                     col.align === "center" && "text-center",
                                                     col.align === "right" && "text-right",
-                                                    col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
-                                                    col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
+                                                    col.pinned === "left" && "sticky left-0 bg-muted z-[25]",
+                                                    col.pinned === "right" && "sticky right-0 bg-muted z-[25]"
                                                 )}
                                                 style={colWidths[col.key] ? { width: colWidths[col.key] } : {}}
                                                 draggable
@@ -1754,7 +1753,7 @@ export function DataGrid<T extends object>({
                                                     )}
                                                 </th>
                                             ))}
-                                            {rowActions && <th className="px-1 py-1 sticky right-0 bg-muted/30 backdrop-blur-sm z-[25] border-l" />}
+                                            {rowActions && <th className="px-1 py-1 sticky right-0 bg-muted backdrop-blur-sm z-[25] border-l" />}
                                         </tr>
                                     )}
                                 </thead>
@@ -1912,8 +1911,8 @@ export function DataGrid<T extends object>({
                                                         })}
                                                         {rowActions && actions.length > 0 && (
                                                             <td className={cn(
-                                                                "px-2 text-center sticky right-0 z-[5] border-l bg-background bg-clip-padding group-hover:bg-primary/5",
-                                                                isPinned && "bg-amber-50 dark:bg-amber-950 border-amber-200"
+                                                                "px-2 text-center sticky right-0 z-[5] border-l bg-card group-hover:bg-muted",
+                                                                isPinned && "bg-amber-50 dark:bg-amber-950/20 border-amber-200/50"
                                                             )}>
                                                                 <div className="flex items-center justify-center gap-0.5">
                                                                     {actions.map((action, i) => (
@@ -1981,8 +1980,8 @@ export function DataGrid<T extends object>({
                                                             key={col.key}
                                                             className={cn(
                                                                 "px-3 py-2",
-                                                                col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
-                                                                col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
+                                                                col.pinned === "left" && "sticky left-0 bg-muted z-[25]",
+                                                                col.pinned === "right" && "sticky right-0 bg-muted z-[25]"
                                                             )}
                                                         />
                                                     );
@@ -1994,8 +1993,8 @@ export function DataGrid<T extends object>({
                                                             "px-3 py-2 text-xs font-bold",
                                                             col.align === "center" && "text-center",
                                                             col.align === "right" && "text-right",
-                                                            col.pinned === "left" && "sticky left-0 bg-muted/90 backdrop-blur-sm z-[25]",
-                                                            col.pinned === "right" && "sticky right-0 bg-muted/90 backdrop-blur-sm z-[25]"
+                                                            col.pinned === "left" && "sticky left-0 bg-muted z-[25]",
+                                                            col.pinned === "right" && "sticky right-0 bg-muted z-[25]"
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-1.5 text-primary">

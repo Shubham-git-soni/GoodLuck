@@ -19,6 +19,7 @@ import { School } from "@/types";
 import { toast } from "sonner";
 import { DataGrid, GridColumn, RowAction } from "@/components/ui/data-grid";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { ALL_STATES, getCitiesForState } from "@/lib/state-city-map";
 
 // Import mock data
@@ -85,6 +86,7 @@ export default function SchoolListPage() {
   const [activeTab, setActiveTab] = useState("basic");
   const [viewSchool, setViewSchool] = useState<School | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<School | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -298,7 +300,7 @@ export default function SchoolListPage() {
       }
     },
     { label: "Edit", icon: <Pencil className="h-3.5 w-3.5" />, onClick: (s) => openModal("edit", s) },
-    { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: () => toast.info("Delete confirmed..."), danger: true },
+    { label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, onClick: (s) => setDeleteTarget(s), danger: true },
   ];
 
   // ── Shared Basic Info Fields ─────────────────────────────────────────────
@@ -853,6 +855,19 @@ export default function SchoolListPage() {
         }}
         className="border shadow-sm rounded-xl overflow-hidden"
         emptyMessage="No schools found matching your criteria"
+      />
+
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={open => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget?.name ?? ""}
+        contextLabel="from schools list"
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          setSchools(prev => prev.filter(s => s.id !== deleteTarget.id));
+          toast.success(`"${deleteTarget.name}" deleted`);
+          setDeleteTarget(null);
+        }}
       />
     </PageContainer>
   );

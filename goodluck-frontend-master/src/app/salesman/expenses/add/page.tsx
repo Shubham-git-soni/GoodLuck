@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, AlertTriangle, Save, Send, ArrowLeft } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
@@ -34,9 +34,13 @@ export default function AddExpensePage() {
   });
 
   const [policyWarning, setPolicyWarning] = useState("");
+  const [expensePolicies, setExpensePolicies] = useState<any[]>([]);
 
-  // Load expense policies
-  const expensePolicies = require("@/lib/mock-data/expense-policies.json");
+  useEffect(() => {
+    import("@/lib/dummy-api").then(({ getExpensePolicies }) =>
+      getExpensePolicies().then(setExpensePolicies)
+    );
+  }, []);
 
   const handleAmountChange = (amount: string) => {
     setFormData({ ...formData, amount });

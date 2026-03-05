@@ -832,6 +832,19 @@ export function DataGrid<T extends object>({
     // ─── Keyboard shortcuts ────────────────────────────────────────────────────
     React.useEffect(() => {
         const h = (e: KeyboardEvent) => {
+            // Skip if any modal/dialog is open — check both Radix portal and active element
+            if (
+                document.querySelector('[data-slot="dialog-content"]') ||
+                document.querySelector('[role="dialog"]') ||
+                document.body.hasAttribute('data-scroll-locked') ||
+                (document.activeElement as HTMLElement)?.closest('[role="dialog"]')
+            ) return;
+            // Skip if focus is inside an input, textarea, select, or contenteditable
+            const activeEl = document.activeElement as HTMLElement;
+            const activeTag = activeEl?.tagName;
+            if (activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT") return;
+            if (activeEl?.isContentEditable) return;
+
             if (e.ctrlKey || e.metaKey) {
                 if (e.key === "a") {
                     e.preventDefault();

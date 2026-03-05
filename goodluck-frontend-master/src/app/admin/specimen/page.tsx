@@ -10,36 +10,31 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders";
 
-import specimensData from "@/lib/mock-data/specimens.json";
-import salesmenData from "@/lib/mock-data/salesmen.json";
-
 export default function SpecimenTrackingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<any>({});
+  const [specimensData, setSpecimensData] = useState<any[]>([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      const totalBudget = salesmenData.reduce((sum, s) => sum + s.specimenBudget, 0);
-      const totalUsed = salesmenData.reduce((sum, s) => sum + s.specimenUsed, 0);
-      const totalStock = specimensData.reduce((sum, s) => sum + s.stockAvailable, 0);
+    import("@/lib/dummy-api").then(({ getSpecimens, getSalesmen }) =>
+      Promise.all([getSpecimens(), getSalesmen()]).then(([specimens, salesmen]) => {
+        setSpecimensData(specimens);
+        const totalBudget = salesmen.reduce((sum: number, s: any) => sum + s.specimenBudget, 0);
+        const totalUsed = salesmen.reduce((sum: number, s: any) => sum + s.specimenUsed, 0);
+        const totalStock = specimens.reduce((sum: number, s: any) => sum + s.stockAvailable, 0);
 
-      const bySalesman = salesmenData.map((sm) => ({
-        name: sm.name,
-        budget: sm.specimenBudget,
-        used: sm.specimenUsed,
-        remaining: sm.specimenBudget - sm.specimenUsed,
-        percentage: Math.round((sm.specimenUsed / sm.specimenBudget) * 100),
-      }));
+        const bySalesman = salesmen.map((sm: any) => ({
+          name: sm.name,
+          budget: sm.specimenBudget,
+          used: sm.specimenUsed,
+          remaining: sm.specimenBudget - sm.specimenUsed,
+          percentage: Math.round((sm.specimenUsed / sm.specimenBudget) * 100),
+        }));
 
-      setStats({
-        totalBudget,
-        totalUsed,
-        totalRemaining: totalBudget - totalUsed,
-        totalStock,
-        bySalesman,
-      });
-      setIsLoading(false);
-    }, 800);
+        setStats({ totalBudget, totalUsed, totalRemaining: totalBudget - totalUsed, totalStock, bySalesman });
+        setIsLoading(false);
+      })
+    );
   }, []);
 
   if (isLoading) {

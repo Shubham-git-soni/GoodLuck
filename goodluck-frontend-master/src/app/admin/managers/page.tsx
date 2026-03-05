@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, Eye, Pencil, Trash2, Users, UserCheck, Search, Check } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Manager, Salesman } from "@/types";
-import managersData from "@/lib/mock-data/managers.json";
-import salesmenData from "@/lib/mock-data/salesmen.json";
 import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
@@ -299,8 +297,17 @@ function AddManagerModal({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ManagerListPage() {
-  const [managers, setManagers] = useState<Manager[]>(managersData as Manager[]);
-  const [salesmen] = useState<Salesman[]>(salesmenData as Salesman[]);
+  const [managers, setManagers] = useState<Manager[]>([]);
+  const [salesmen, setSalesmen] = useState<Salesman[]>([]);
+
+  useEffect(() => {
+    import("@/lib/dummy-api").then(({ getManagers, getSalesmen }) =>
+      Promise.all([getManagers(), getSalesmen()]).then(([m, s]) => {
+        setManagers(m as Manager[]);
+        setSalesmen(s as Salesman[]);
+      })
+    );
+  }, []);
   const [viewMgr, setViewMgr] = useState<Manager | null>(null);
   const [editMgr, setEditMgr] = useState<Manager | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);

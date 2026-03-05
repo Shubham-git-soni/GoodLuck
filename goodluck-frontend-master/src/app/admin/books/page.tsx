@@ -19,7 +19,6 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Book } from "@/types";
-import booksData from "@/lib/mock-data/books.json";
 import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
@@ -38,12 +37,23 @@ const EMPTY_FORM: FormState = {
 const CLASS_OPTIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const PUBLISHER_OPTIONS = ["Goodluck Publications", "Vidhyarthi Prakashan"];
 
+const DROPDOWN_KEY = "db_dropdown_options";
+function getSubjectOptions(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(DROPDOWN_KEY);
+    if (stored) return JSON.parse(stored)?.subjects || [];
+  } catch {}
+  return [];
+}
+
 // ─── Form Fields (extracted outside component — prevents keyboard close on mobile) ──
 function BookFormFields({
-  form, setForm, mobile = false,
+  form, setForm, subjectOptions, mobile = false,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
+  subjectOptions: string[];
   mobile?: boolean;
 }) {
   return (
@@ -73,7 +83,16 @@ function BookFormFields({
         </div>
         <div className="grid gap-2">
           <Label>Subject</Label>
-          <Input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="e.g., Mathematics" />
+          {mobile ? (
+            <NativeSelect value={form.subject} onValueChange={v => setForm({ ...form, subject: v })} placeholder="Select subject">
+              {subjectOptions.map(s => <NativeSelectOption key={s} value={s}>{s}</NativeSelectOption>)}
+            </NativeSelect>
+          ) : (
+            <Select value={form.subject} onValueChange={v => setForm({ ...form, subject: v })}>
+              <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
+              <SelectContent>{subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -147,7 +166,8 @@ const BOOK_COLUMNS: GridColumn<Book>[] = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminBooksPage() {
-  const [books, setBooks] = useState<Book[]>(booksData as Book[]);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
 
   // mobile sheet states
@@ -167,11 +187,19 @@ export default function AdminBooksPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => { setSubjectOptions(getSubjectOptions()); }, []);
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    import("@/lib/dummy-api").then(({ getBooks }) =>
+      getBooks().then((data) => setBooks(data as Book[]))
+    );
   }, []);
 
   const resetForm = () => setForm(EMPTY_FORM);
@@ -427,7 +455,7 @@ export default function AdminBooksPage() {
               </button>
             </div>
             <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" as any }} className="px-5 pb-4">
-              <BookFormFields form={form} setForm={setForm} mobile />
+              <BookFormFields form={form} setForm={setForm} subjectOptions={subjectOptions} mobile />
             </div>
             <div className="px-5 pt-3 pb-6 border-t bg-background shrink-0">
               <Button className="w-full h-12 text-sm font-semibold rounded-2xl" onClick={handleMobileSubmit}>
@@ -446,7 +474,7 @@ export default function AdminBooksPage() {
             <DialogDescription>Add a new book to the catalog</DialogDescription>
           </DialogHeader>
           <div className="py-2">
-            <BookFormFields form={form} setForm={setForm} />
+            <BookFormFields form={form} setForm={setForm} subjectOptions={subjectOptions} />
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => { setIsAddBookOpen(false); resetForm(); }}>Cancel</Button>

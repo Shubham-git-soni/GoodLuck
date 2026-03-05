@@ -24,11 +24,9 @@ export default function CreateReportPage() {
   const [reportNotes, setReportNotes] = useState("");
 
   useEffect(() => {
-    const expensesData = require("@/lib/mock-data/expenses.json");
-    const drafts = expensesData.filter(
-      (e: any) => e.salesmanId === "SM001" && e.status === "draft"
+    import("@/lib/dummy-api").then(({ getExpenses }) =>
+      getExpenses({ salesmanId: "SM001", status: "draft" }).then(setDraftExpenses)
     );
-    setDraftExpenses(drafts);
   }, []);
 
   const handleSelectExpense = (expenseId: string) => {

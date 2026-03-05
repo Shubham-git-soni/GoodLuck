@@ -18,7 +18,6 @@ import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 
-import tadaClaimsData from "@/lib/mock-data/tada-claims.json";
 import dropdownOptions from "@/lib/mock-data/dropdown-options.json";
 
 export default function TadaPage() {
@@ -37,11 +36,12 @@ export default function TadaPage() {
   });
 
   useEffect(() => {
-    setTimeout(() => {
-      const userClaims = tadaClaimsData.filter((c) => c.salesmanId === "SM001");
-      setClaims(userClaims);
-      setIsLoading(false);
-    }, 800);
+    import("@/lib/dummy-api").then(({ getTadaClaims }) =>
+      getTadaClaims({ salesmanId: "SM001" }).then((data) => {
+        setClaims(data);
+        setIsLoading(false);
+      })
+    );
   }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {

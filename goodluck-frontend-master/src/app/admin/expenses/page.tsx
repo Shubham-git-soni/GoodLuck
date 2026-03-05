@@ -22,8 +22,9 @@ export default function AdminExpensesPage() {
   const violationCount = reports.filter((r) => r.policyViolations > 0).length;
 
   useEffect(() => {
-    const reportsData = require("@/lib/mock-data/expense-reports.json");
-    setReports(reportsData);
+    import("@/lib/dummy-api").then(({ getExpenseReports }) =>
+      getExpenseReports().then(setReports)
+    );
   }, []);
 
   // Filter reports based on status tab

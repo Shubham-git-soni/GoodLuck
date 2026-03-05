@@ -22,8 +22,6 @@ import {
 } from "@/lib/dummy-api";
 import type { SalesmanNotification } from "@/lib/dummy-api";
 
-// Also load static notifications for this salesman (seed)
-import notificationsData from "@/lib/mock-data/notifications.json";
 
 const SALESMAN_ID = "SM001";
 
@@ -62,29 +60,8 @@ export default function NotificationsPage() {
   useEffect(() => {
     async function load() {
       // Merge: localStorage API notifications + static JSON for this salesman
-      const apiNotifs = await getSalesmanNotifications(SALESMAN_ID);
-
-      // Map static JSON to SalesmanNotification shape (so they appear too)
-      const staticNotifs: SalesmanNotification[] = (notificationsData as any[])
-        .filter((n: any) => n.userId === SALESMAN_ID)
-        .map((n: any) => ({
-          id: n.id,
-          userId: n.userId,
-          type: n.type,
-          title: n.title,
-          message: n.message,
-          date: n.date,
-          read: n.read,
-          priority: n.priority,
-          actionUrl: n.actionUrl,
-        }));
-
-      // API notifications first (newest), then static (dedup by id)
-      const apiIds = new Set(apiNotifs.map(n => n.id));
-      const merged = [...apiNotifs, ...staticNotifs.filter(n => !apiIds.has(n.id))];
-      // Sort newest first
-      merged.sort((a, b) => b.date.localeCompare(a.date));
-      setNotifications(merged);
+      const notifs = await getSalesmanNotifications(SALESMAN_ID);
+      setNotifications(notifs);
       setIsLoading(false);
     }
     load();

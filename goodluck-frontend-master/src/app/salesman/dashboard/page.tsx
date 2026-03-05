@@ -26,11 +26,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Import mock data
-import salesmenData from "@/lib/mock-data/salesmen.json";
-import notificationsData from "@/lib/mock-data/notifications.json";
-import visitsData from "@/lib/mock-data/visits.json";
-import schoolsData from "@/lib/mock-data/schools.json";
 
 // Enterprise chart palette — orange accent + professional neutrals
 const COLORS = {
@@ -65,17 +60,20 @@ export default function SalesmanDashboard() {
   const [schoolCoverage, setSchoolCoverage] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate data loading
+    import("@/lib/dummy-api").then(({ getSalesmen, getSalesmanNotifications, getAllSchools }) =>
+      Promise.all([getSalesmen(), import("@/lib/mock-data/visits.json")]).then(([salesmen, visitsModule]) => {
+        const visitsData: any[] = (visitsModule as any).default;
+        const schoolsData: any[] = getAllSchools();
+        const salesmenData = salesmen;
+
     setTimeout(() => {
       // Get salesman data (using first salesman as example)
       const salesman = salesmenData[0];
       setSalesmanData(salesman);
 
-      // Get unread notifications
-      const userNotifications = notificationsData
-        .filter((n) => n.userId === salesman.id && !n.read)
-        .slice(0, 5);
-      setAlerts(userNotifications);
+      getSalesmanNotifications(salesman.id).then((userNotifications) => {
+        setAlerts(userNotifications.filter((n: any) => !n.read).slice(0, 5));
+      });
 
       // Calculate visit stats (mock data)
       const today = new Date().toISOString().split("T")[0];
@@ -163,6 +161,8 @@ export default function SalesmanDashboard() {
 
       setIsLoading(false);
     }, 1000);
+    })
+    );
   }, []);
 
   if (isLoading) {

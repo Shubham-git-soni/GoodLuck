@@ -30,7 +30,7 @@ export default function PrescribedBooksPage() {
       const classCount: Record<string, number> = {};
 
       const allBooks = schoolsData.flatMap((school) =>
-        school.prescribedBooks.map((b) => {
+        (school as any).prescribedBooks?.map((b: any) => {
           totalPrescriptions++;
           subjectCount[b.subject] = (subjectCount[b.subject] || 0) + 1;
           statusCount[b.status] = (statusCount[b.status] || 0) + 1;
@@ -48,7 +48,7 @@ export default function PrescribedBooksPage() {
             status: b.status,
             assignedTo: school.assignedTo,
           };
-        })
+        }) || []
       );
 
       const topSubject = Object.entries(subjectCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';

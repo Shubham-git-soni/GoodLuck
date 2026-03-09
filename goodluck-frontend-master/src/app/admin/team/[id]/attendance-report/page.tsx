@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,6 +12,10 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  BarChart2,
+  CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
@@ -25,70 +29,99 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import salesmenData from "@/lib/mock-data/salesmen.json";
 
 // Generate attendance data for the current month
 const generateAttendanceData = () => {
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const year = 2025;
-  const month = 10; // November (0-indexed)
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const year = 2026;
+  const month = 2; // March (0-indexed)
+  const daysInMonth = 9; // Only up to 9th March for recent data mimicking screenshot
 
   const attendanceRecords = [];
 
-  for (let day = 1; day <= daysInMonth; day++) {
+  for (let day = daysInMonth; day >= 1; day--) {
     const date = new Date(year, month, day);
     const dayOfWeek = daysOfWeek[date.getDay()];
-    const dateString = date.toISOString().split("T")[0];
+    const dateString = date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).replace(/ /g, '-');
 
-    // Skip Sundays (no work)
-    if (date.getDay() === 0) {
+    // Skip Sundays
+    if (dayOfWeek === "Sunday") {
+      attendanceRecords.push({
+        srNo: daysInMonth - day + 1,
+        day: dayOfWeek,
+        date: dateString,
+        rawDate: date,
+        startTime: "-",
+        endTime: "-",
+        workingHours: 0,
+        status: "Absent",
+      });
       continue;
     }
 
-    // Random chance of absence (10% chance)
-    const isPresent = Math.random() > 0.1;
+    // Random chance of absence
+    const isPresent = Math.random() > 0.15;
 
     if (isPresent) {
-      // Generate random start time between 8:00 AM and 10:00 AM
       const startHour = 8 + Math.floor(Math.random() * 3);
       const startMinute = Math.floor(Math.random() * 60);
-      const startTime = `${String(startHour).padStart(2, "0")}:${String(startMinute).padStart(2, "0")}`;
+      const startSec = Math.floor(Math.random() * 60);
+      const startTime = `${String(startHour).padStart(2, "0")}:${String(startMinute).padStart(2, "0")}:${String(startSec).padStart(2, "0")}`;
 
-      // Generate random end time between 5:00 PM and 8:00 PM
-      const endHour = 17 + Math.floor(Math.random() * 4);
-      const endMinute = Math.floor(Math.random() * 60);
-      const endTime = `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+      let endTime = "-";
+      let workingHours = 0;
 
-      // Calculate working hours
-      const startDate = new Date(`2000-01-01T${startTime}`);
-      const endDate = new Date(`2000-01-01T${endTime}`);
-      const workingHours = ((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)).toFixed(1);
+      // Don't always have end time for today or some days
+      if (Math.random() > 0.2) {
+        const endHour = 17 + Math.floor(Math.random() * 4);
+        const endMinute = Math.floor(Math.random() * 60);
+        const endSec = Math.floor(Math.random() * 60);
+        endTime = `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}:${String(endSec).padStart(2, "0")}`;
+
+        const startDate = new Date(`2000-01-01T${startTime}`);
+        const endDate = new Date(`2000-01-01T${endTime}`);
+        workingHours = parseFloat(((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)).toFixed(1));
+      }
 
       attendanceRecords.push({
-        srNo: attendanceRecords.length + 1,
+        srNo: daysInMonth - day + 1,
         day: dayOfWeek,
         date: dateString,
+        rawDate: date,
         startTime,
         endTime,
-        workingHours: parseFloat(workingHours),
+        workingHours,
         status: "Present",
       });
     } else {
       attendanceRecords.push({
-        srNo: attendanceRecords.length + 1,
+        srNo: daysInMonth - day + 1,
         day: dayOfWeek,
         date: dateString,
+        rawDate: date,
         startTime: "-",
         endTime: "-",
         workingHours: 0,
@@ -97,9 +130,198 @@ const generateAttendanceData = () => {
     }
   }
 
+  // Adding older dates to match screenshot rows
+  let currentSrNo = attendanceRecords.length + 1;
+  const olderDates = [
+    { d: 28, m: 1, y: 2026 },
+    { d: 27, m: 1, y: 2026 },
+    { d: 26, m: 1, y: 2026 },
+    { d: 25, m: 1, y: 2026 },
+    { d: 24, m: 1, y: 2026 },
+    { d: 23, m: 1, y: 2026 },
+    { d: 22, m: 1, y: 2026 },
+    { d: 20, m: 1, y: 2026 },
+    { d: 19, m: 1, y: 2026 },
+    { d: 18, m: 1, y: 2026 },
+    { d: 17, m: 1, y: 2026 },
+  ];
+
+  olderDates.forEach(({ d, m, y }) => {
+    const date = new Date(y, m, d);
+    const dayOfWeek = daysOfWeek[date.getDay()];
+    const dateString = date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).replace(/ /g, '-');
+
+    attendanceRecords.push({
+      srNo: currentSrNo++,
+      day: dayOfWeek,
+      date: dateString,
+      rawDate: date,
+      startTime: dayOfWeek === 'Sunday' ? "-" : `${String(8 + Math.floor(Math.random() * 2)).padStart(2, "0")}:${String(Math.floor(Math.random() * 60)).padStart(2, "0")}:${String(Math.floor(Math.random() * 60)).padStart(2, "0")}`,
+      endTime: dayOfWeek === 'Sunday' || Math.random() > 0.7 ? "-" : `${String(17 + Math.floor(Math.random() * 3)).padStart(2, "0")}:${String(Math.floor(Math.random() * 60)).padStart(2, "0")}:${String(Math.floor(Math.random() * 60)).padStart(2, "0")}`,
+      workingHours: dayOfWeek === 'Sunday' ? 0 : 8.5,
+      status: dayOfWeek === 'Sunday' ? "Absent" : "Present",
+    });
+  });
+
   return attendanceRecords;
 };
 
+// ─── Chart View ──────────────────────────────────────────────────────────────
+function AttendanceChartView({ data }: { data: any[] }) {
+  // Present vs Absent
+  const presentCount = data.filter(d => d.status === "Present").length;
+  const absentCount = data.filter(d => d.status === "Absent").length;
+
+  const pieData = [
+    { name: "Present", value: presentCount, fill: "#10b981" },
+    { name: "Absent", value: absentCount, fill: "#ef4444" },
+  ];
+
+  // Working Hours by Date (Reversed to show chronological order)
+  const barData = [...data]
+    .filter(d => d.status === "Present" && d.workingHours > 0)
+    .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
+    .slice(-14) // Limit to last 14 working days
+    .map(d => ({
+      date: d.date.substring(0, 6), // e.g. "09-Mar"
+      hours: d.workingHours
+    }));
+
+  return (
+    <div className="space-y-6 p-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* Working Hours Trend */}
+        <div className="bg-card border rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3">Working Hours Trend (Last 14 Days)</p>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+              />
+              <RechartsTooltip
+                cursor={{ fill: 'transparent' }}
+                contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              />
+              <Bar
+                dataKey="hours"
+                name="Working Hours"
+                fill="#f97316"
+                radius={[4, 4, 0, 0]}
+                barSize={30}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Attendance Distribution */}
+        <div className="bg-card border rounded-xl p-4 shadow-sm flex flex-col">
+          <p className="text-sm font-semibold mb-2">Attendance Distribution</p>
+          <div className="flex-1 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-6 mt-2">
+            {pieData.map((e) => (
+              <div key={e.name} className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-sm" style={{ background: e.fill }} />
+                <span className="text-sm font-medium">{e.name}: {e.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function MonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const parsed = value ? value.split("-") : ["2026", "03"];
+  const [year, setYear] = useState(parseInt(parsed[0]));
+  const selMonth = value ? parseInt(parsed[1]) - 1 : -1;
+  const label = value
+    ? `${MONTH_NAMES[parseInt(value.split("-")[1]) - 1]} ${value.split("-")[0]}`
+    : "Pick month";
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="h-8 w-36 flex items-center gap-2 rounded-md border border-input bg-background px-3 text-xs hover:bg-accent transition-colors"
+      >
+        <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className={value ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-10 right-0 md:left-0 md:right-auto z-50 bg-background border rounded-xl shadow-xl p-3 w-52">
+            <div className="flex items-center justify-between mb-2">
+              <button type="button" onClick={() => setYear(y => y - 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <span className="text-sm font-bold">{year}</span>
+              <button type="button" onClick={() => setYear(y => y + 1)} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              {MONTH_NAMES.map((m, i) => {
+                const isSel = selMonth === i && parseInt(parsed[0]) === year;
+                return (
+                  <button key={m} type="button"
+                    onClick={() => { onChange(`${year}-${String(i + 1).padStart(2, "0")}`); setOpen(false); }}
+                    className={cn("text-xs py-1.5 rounded-lg font-medium transition-all",
+                      isSel ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    )}>{m}</button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AttendanceReportPage() {
   const params = useParams();
   const salesmanId = params.id as string;
@@ -107,11 +329,9 @@ export default function AttendanceReportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [salesman, setSalesman] = useState<any>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
-  const [filteredData, setFilteredData] = useState<any[]>([]);
 
   // Filters
-  const [monthFilter, setMonthFilter] = useState("2025-11");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("2026-03");
 
   useEffect(() => {
     setTimeout(() => {
@@ -121,24 +341,15 @@ export default function AttendanceReportPage() {
 
         // Generate attendance data
         const attendance = generateAttendanceData();
-        setAttendanceData(attendance);
-        setFilteredData(attendance);
+        // Give each row an id for DataGrid
+        const rowsWithId = attendance.map((r, i) => ({ ...r, id: `ATT-${i}` }));
+
+        setAttendanceData(rowsWithId);
       }
       setIsLoading(false);
     }, 500);
   }, [salesmanId]);
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...attendanceData];
-
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((item) => item.status === statusFilter);
-    }
-
-    setFilteredData(filtered);
-  }, [statusFilter, attendanceData]);
 
   if (isLoading) {
     return (
@@ -165,242 +376,168 @@ export default function AttendanceReportPage() {
   }
 
   // Calculate summary statistics
-  const totalDays = filteredData.length;
-  const presentDays = filteredData.filter((item) => item.status === "Present").length;
-  const absentDays = filteredData.filter((item) => item.status === "Absent").length;
-  const totalWorkingHours = filteredData.reduce((sum, item) => sum + item.workingHours, 0);
+  const totalDays = attendanceData.length;
+  const presentDays = attendanceData.filter((item) => item.status === "Present").length;
+  const absentDays = attendanceData.filter((item) => item.status === "Absent").length;
+  const totalWorkingHours = attendanceData.reduce((sum, item) => sum + item.workingHours, 0);
   const avgWorkingHours = presentDays > 0 ? (totalWorkingHours / presentDays).toFixed(1) : 0;
   const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
+  // DataGrid Columns based on screenshot: Sr. No. | Day | Date | Start Time | End Time
+  const columns: GridColumn<any>[] = [
+    { key: "srNo", header: "Sr. No.", width: 80, sortable: true },
+    { key: "day", header: "Day", width: 150, sortable: true, filterable: true, render: (v: string) => <span className="font-medium text-xs">{v}</span> },
+    { key: "date", header: "Date", width: 160, sortable: true, filterable: true, render: (v: string) => <span className="text-xs">{v}</span> },
+    {
+      key: "startTime",
+      header: "Start Time",
+      width: 150,
+      sortable: true,
+      render: (v: string) => v !== "-" ? (
+        <div className="flex items-center justify-center lg:justify-start gap-1.5 font-medium text-xs">
+          {v}
+        </div>
+      ) : <span className="text-muted-foreground">—</span>
+    },
+    {
+      key: "endTime",
+      header: "End Time",
+      width: 150,
+      sortable: true,
+      render: (v: string) => v !== "-" ? (
+        <div className="flex items-center justify-center lg:justify-start gap-1.5 font-medium text-xs">
+          {v}
+        </div>
+      ) : <span className="text-muted-foreground">—</span>
+    },
+  ];
+
+  const extraViews = [
+    {
+      key: "chart",
+      icon: <BarChart2 className="h-4 w-4" />,
+      label: "Chart View",
+      render: (data: any[]) => <AttendanceChartView data={data} />,
+    },
+  ];
+
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="mb-6">
-        <Link href={`/admin/team/${salesmanId}`}>
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
-        <PageHeader
-          title={`Attendance Report of ${salesman.name}`}
-          description={`Monthly attendance tracking for ${salesman.name}`}
-        />
+      {/* Header and specific filters layout */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <Link href={`/admin/team/${salesmanId}`}>
+            <Button variant="ghost" size="sm" className="mb-2 -ml-3 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <PageHeader
+            title={`Attendance Report of ${salesman.name}`}
+            description={`Monthly attendance tracking for ${salesman.name}`}
+          />
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Days</p>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        {/* Present */}
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-emerald-100">
+                <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">{totalDays}</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{presentDays}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Present</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <Progress value={totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0} className="h-1.5" />
+              <p className="text-[10px] text-muted-foreground mt-1">{totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0}% of total</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Present</p>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+        {/* Absent */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-rose-100">
+                <XCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-rose-600" />
+              </div>
             </div>
-            <p className="text-2xl font-bold text-green-600">{presentDays}</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{absentDays}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Absent</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <Progress value={totalDays > 0 ? Math.round((absentDays / totalDays) * 100) : 0} className="h-1.5" />
+              <p className="text-[10px] text-muted-foreground mt-1">{totalDays > 0 ? Math.round((absentDays / totalDays) * 100) : 0}% of total</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Absent</p>
-              <XCircle className="h-4 w-4 text-red-500" />
+        {/* Half Day (Keeping as placeholder or using Attendance %) */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-blue-100">
+                <BarChart2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />
+              </div>
             </div>
-            <p className="text-2xl font-bold text-red-600">{absentDays}</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{attendancePercentage}%</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Attendance Pct.</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <Progress value={attendancePercentage} className="h-1.5" />
+              <p className="text-[10px] text-muted-foreground mt-1">Based on present days</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Attendance %</p>
+        {/* Total Days */}
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-slate-100">
+                <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">{attendancePercentage}%</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{totalDays}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Total Days</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">Recorded in period</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Avg Hours/Day</p>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+        {/* Avg Working Hours */}
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-2.5 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="p-1 md:p-1.5 rounded-lg bg-emerald-100">
+                <Clock className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">{avgWorkingHours}h</p>
+            <p className="text-base md:text-xl font-bold tracking-tight">{avgWorkingHours}h</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Avg Hrs/Day</p>
+            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+              <p className="text-[10px] md:text-xs text-muted-foreground">Across present days</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Actions */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters & Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2025-11">November 2025</SelectItem>
-                <SelectItem value="2025-10">October 2025</SelectItem>
-                <SelectItem value="2025-09">September 2025</SelectItem>
-                <SelectItem value="2025-08">August 2025</SelectItem>
-                <SelectItem value="2025-07">July 2025</SelectItem>
-                <SelectItem value="2025-06">June 2025</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Present">Present Only</SelectItem>
-                <SelectItem value="Absent">Absent Only</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" className="sm:ml-auto">
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
+      {/* DataGrid */}
+      <DataGrid
+        columns={columns}
+        data={attendanceData}
+        rowKey="id"
+        extraViews={extraViews}
+        toolbar={
+          <div className="flex items-center gap-2 text-base">
+            <span className="font-medium text-foreground mr-1 hidden md:inline-block">Filter Month:</span>
+            <MonthPicker value={monthFilter} onChange={setMonthFilter} />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Attendance Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CalendarCheck className="h-5 w-5" />
-            Attendance Records ({filteredData.length} days)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">Sr. No.</TableHead>
-                  <TableHead className="min-w-[120px]">Day</TableHead>
-                  <TableHead className="min-w-[120px]">Date</TableHead>
-                  <TableHead className="min-w-[120px]">Start Time</TableHead>
-                  <TableHead className="min-w-[120px]">End Time</TableHead>
-                  <TableHead className="text-right min-w-[120px]">Working Hours</TableHead>
-                  <TableHead className="text-center min-w-[100px]">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No attendance records found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((item) => {
-                    const formattedDate = new Date(item.date).toLocaleDateString("en-US", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    });
-
-                    return (
-                      <TableRow key={item.srNo}>
-                        <TableCell className="font-medium">{item.srNo}</TableCell>
-                        <TableCell className="font-medium">{item.day}</TableCell>
-                        <TableCell>{formattedDate}</TableCell>
-                        <TableCell>
-                          {item.startTime !== "-" ? (
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              {item.startTime}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {item.endTime !== "-" ? (
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              {item.endTime}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.workingHours > 0 ? (
-                            <Badge variant="outline">{item.workingHours}h</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={item.status === "Present" ? "default" : "destructive"}
-                            className={
-                              item.status === "Present"
-                                ? "bg-green-500 hover:bg-green-600"
-                                : ""
-                            }
-                          >
-                            {item.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Table Footer Summary */}
-          {filteredData.length > 0 && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Total Days</p>
-                  <p className="font-bold text-lg">{totalDays}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Present Days</p>
-                  <p className="font-bold text-lg text-green-600">{presentDays}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Absent Days</p>
-                  <p className="font-bold text-lg text-red-600">{absentDays}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Attendance Rate</p>
-                  <p className="font-bold text-lg">{attendancePercentage}%</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Avg Working Hours</p>
-                  <p className="font-bold text-lg">{avgWorkingHours}h</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        }
+      />
     </PageContainer>
   );
 }

@@ -136,7 +136,7 @@ export async function updateFeedback(id: string, patch: Partial<Feedback>): Prom
   const all = getAllFeedback();
   const idx = all.findIndex(f => f.id === id);
   if (idx === -1) return null;
-  all[idx] = { ...all[idx], ...patch };
+  all[idx] = { ...all[idx], ...patch } as Feedback;
   persist(FEEDBACK_KEY, all);
   return all[idx];
 }

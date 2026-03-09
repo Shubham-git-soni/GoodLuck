@@ -66,7 +66,7 @@ export async function updateExpense(id: string, patch: Partial<Expense>): Promis
   const all = getAll();
   const idx = all.findIndex(e => e.id === id);
   if (idx === -1) return null;
-  all[idx] = { ...all[idx], ...patch };
+  all[idx] = { ...all[idx], ...patch } as Expense;
   persist(EXPENSES_KEY, all);
   return all[idx];
 }
@@ -115,7 +115,7 @@ export async function updateExpenseReport(id: string, patch: Partial<ExpenseRepo
   const all = getAllReports();
   const idx = all.findIndex(r => r.id === id);
   if (idx === -1) return null;
-  all[idx] = { ...all[idx], ...patch };
+  all[idx] = { ...all[idx], ...patch } as ExpenseReport;
   persist(REPORTS_KEY, all);
   return all[idx];
 }
@@ -157,7 +157,7 @@ export async function updateExpensePolicy(id: string, patch: Partial<ExpensePoli
   const all = getAllPolicies();
   const idx = all.findIndex(p => p.id === id);
   if (idx === -1) return null;
-  all[idx] = { ...all[idx], ...patch };
+  all[idx] = { ...all[idx], ...patch } as ExpensePolicy;
   persist(POLICIES_KEY, all);
   return all[idx];
 }

@@ -1249,9 +1249,10 @@ export function DataGrid<T extends object>({
                         </div>
                     )}
 
-                    {/* Search & Stats */}
+                    {/* Search, Custom Toolbar & Stats */}
                     <div className="flex items-center gap-2 flex-1 min-w-[250px] justify-end">
                         {showStats && <div className="hidden md:block"><QuickStats data={data} filtered={processed} /></div>}
+                        {toolbar && <div className="hidden md:flex items-center">{toolbar}</div>}
                         <div className="relative w-full max-w-sm">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                             <Input
@@ -1564,9 +1565,6 @@ export function DataGrid<T extends object>({
                         )}
                     </div>
                 )}
-
-                {/* Custom Toolbar */}
-                {toolbar && <div className="pt-1.5 border-t mt-1">{toolbar}</div>}
             </div>
 
             {/* Keyboard Shortcuts Dialog */}

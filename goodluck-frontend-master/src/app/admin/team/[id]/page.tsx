@@ -111,12 +111,10 @@ export default function SalesmanDashboard() {
     { label: "School Visit Report", icon: BarChart3, href: `school-visit-report` },
     { label: "Multiple Visit Report", icon: BarChart3, href: `multiple-visit-report` },
     { label: "Book Seller Visit Report", icon: Store, href: `bookseller-visit-report` },
-    { label: "Delete School List", icon: List, href: null },
-    { label: "School List with IP", icon: List, href: null },
-    { label: "Summary Report", icon: FileText, href: null },
-    { label: "Merge Report", icon: FileText, href: null },
-    { label: "IP Report", icon: FileText, href: null },
-    { label: "Drop List", icon: List, href: null },
+    { label: "Summary Report", icon: FileText, href: "summary-report" },
+    { label: "Merge Report", icon: FileText, href: "merge-report" },
+    { label: "IP Report", icon: FileText, href: "ip-report" },
+    { label: "Drop List", icon: List, href: "drop-list" },
   ];
 
   const infoItems = [

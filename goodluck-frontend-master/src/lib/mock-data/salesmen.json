@@ -1,17 +1,24 @@
 [
   {
     "id": "SM001",
-    "name": "Rajesh Kumar",
-    "email": "rajesh.kumar@company.com",
+    "name": "Vikash Sharma",
+    "email": "vikash.sharma@company.com",
     "phone": "+91 98765 43210",
     "region": "North",
-    "state": "Delhi",
-    "cities": ["Delhi", "Ghaziabad", "Noida"],
-    "assignedSchools": 120,
-    "specimenBudget": 500000,
-    "specimenUsed": 325000,
-    "salesTarget": 5000000,
-    "salesAchieved": 3750000,
+    "state": "Haryana",
+    "cities": [
+      "Panipat",
+      "Sonipat",
+      "Jind",
+      "Karnal",
+      "Kaithal",
+      "Kurukshetra"
+    ],
+    "assignedSchools": 145,
+    "specimenBudget": 600000,
+    "specimenUsed": 425000,
+    "salesTarget": 5500000,
+    "salesAchieved": 4125000,
     "joinedDate": "2019-03-15",
     "managerId": "MGR001",
     "managerName": "Amit Sharma",
@@ -24,7 +31,11 @@
     "phone": "+91 98765 43211",
     "region": "West",
     "state": "Gujarat",
-    "cities": ["Ahmedabad", "Vadodara", "Surat"],
+    "cities": [
+      "Ahmedabad",
+      "Vadodara",
+      "Surat"
+    ],
     "assignedSchools": 120,
     "specimenBudget": 450000,
     "specimenUsed": 280000,
@@ -42,7 +53,11 @@
     "phone": "+91 98765 43212",
     "region": "North",
     "state": "Rajasthan",
-    "cities": ["Jaipur", "Udaipur", "Jodhpur"],
+    "cities": [
+      "Jaipur",
+      "Udaipur",
+      "Jodhpur"
+    ],
     "assignedSchools": 120,
     "specimenBudget": 400000,
     "specimenUsed": 380000,
@@ -60,7 +75,11 @@
     "phone": "+91 98765 43213",
     "region": "South",
     "state": "Telangana",
-    "cities": ["Hyderabad", "Warangal", "Nizamabad"],
+    "cities": [
+      "Hyderabad",
+      "Warangal",
+      "Nizamabad"
+    ],
     "assignedSchools": 120,
     "specimenBudget": 480000,
     "specimenUsed": 295000,
@@ -78,7 +97,11 @@
     "phone": "+91 98765 43214",
     "region": "West",
     "state": "Maharashtra",
-    "cities": ["Mumbai", "Pune", "Nashik"],
+    "cities": [
+      "Mumbai",
+      "Pune",
+      "Nashik"
+    ],
     "assignedSchools": 120,
     "specimenBudget": 550000,
     "specimenUsed": 410000,

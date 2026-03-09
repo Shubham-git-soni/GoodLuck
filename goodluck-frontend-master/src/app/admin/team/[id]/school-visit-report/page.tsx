@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,38 +15,66 @@ import {
   Calendar,
   Clock,
   Plus,
+  TrendingUp,
+  TrendingDown,
+  Edit2,
+  BarChart2,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
-import { toast } from "@/hooks/use-toast";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
+import { toast } from "sonner";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { cn } from "@/lib/utils";
 
 import salesmenData from "@/lib/mock-data/salesmen.json";
 import schoolsData from "@/lib/mock-data/schools.json";
 import visitsData from "@/lib/mock-data/visits.json";
 
+interface SchoolVisit {
+  id: string;
+  srNo: number;
+  date: string;
+  time: string;
+  day: string;
+  schoolName: string;
+  schoolCity: string;
+  board: string;
+  strength: number;
+  contactPerson: string;
+  contactNo: string;
+  purpose: string;
+  supplyThrough: string;
+  specimenGiven: number;
+  specimenRequired: number;
+  paymentGL: number;
+  paymentVP: number;
+  jointWorking: string;
+  schoolComment: string;
+  yourComment: string;
+}
+
 // Generate enhanced visit data
-const generateSchoolVisitData = (salesmanId: string) => {
+const generateSchoolVisitData = (salesmanId: string): SchoolVisit[] => {
   const purposes = [
     "New Adoption",
     "Renewal",
@@ -102,6 +130,7 @@ const generateSchoolVisitData = (salesmanId: string) => {
       specimenRequired: Math.floor(Math.random() * 40) + 10,
       paymentGL: Math.floor(Math.random() * 50000) + 10000,
       paymentVP: Math.floor(Math.random() * 30000) + 5000,
+      jointWorking: Math.random() > 0.7 ? "Yes" : "No",
       schoolComment: [
         "Interested in new books for next session",
         "Need more specimen copies",
@@ -119,7 +148,7 @@ const generateSchoolVisitData = (salesmanId: string) => {
         "Need to send more specimens",
       ][Math.floor(Math.random() * 6)],
     };
-  }).filter(Boolean);
+  }).filter(Boolean) as SchoolVisit[];
 };
 
 export default function SchoolVisitReportPage() {
@@ -128,112 +157,161 @@ export default function SchoolVisitReportPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [salesman, setSalesman] = useState<any>(null);
-  const [visitData, setVisitData] = useState<any[]>([]);
-  const [filteredData, setFilteredData] = useState<any[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [visitData, setVisitData] = useState<SchoolVisit[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<SchoolVisit | null>(null);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [boardFilter, setBoardFilter] = useState("all");
-  const [purposeFilter, setPurposeFilter] = useState("all");
+  // Date Filters
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     setTimeout(() => {
       const foundSalesman = salesmenData.find((s) => s.id === salesmanId);
       if (foundSalesman) {
         setSalesman(foundSalesman);
-
-        // Generate visit data
         const visits = generateSchoolVisitData(salesmanId);
         setVisitData(visits);
-        setFilteredData(visits);
       }
       setIsLoading(false);
     }, 500);
   }, [salesmanId]);
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...visitData];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (item) =>
-          item.schoolName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.schoolCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.contactPerson.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const filteredData = useMemo(() => {
+    let data = [...visitData];
+    if (dateFrom) {
+      data = data.filter(d => d.date >= dateFrom);
     }
-
-    // Board filter
-    if (boardFilter !== "all") {
-      filtered = filtered.filter((item) => item.board === boardFilter);
+    if (dateTo) {
+      data = data.filter(d => d.date <= dateTo);
     }
+    return data;
+  }, [visitData, dateFrom, dateTo]);
 
-    // Purpose filter
-    if (purposeFilter !== "all") {
-      filtered = filtered.filter((item) => item.purpose === purposeFilter);
-    }
 
-    setFilteredData(filtered);
-  }, [searchQuery, boardFilter, purposeFilter, visitData]);
+  const columns: GridColumn[] = [
+    { key: "srNo", header: "Sr. No.", width: 70, type: "number", align: "center" },
+    { key: "date", header: "Date", width: 130, type: "date" },
+    { key: "time", header: "Time", width: 100 },
+    { key: "day", header: "Day", width: 110 },
+    { key: "jointWorking", header: "Joint Working", width: 120, type: "badge" },
+    { key: "schoolName", header: "School Name", width: 250 },
+    { key: "schoolCity", header: "City", width: 150 },
+    { key: "board", header: "Board", width: 100, type: "badge" },
+    { key: "strength", header: "Strength", width: 100, type: "number", align: "right" },
+    { key: "contactPerson", header: "Contact Person", width: 180 },
+    { key: "contactNo", header: "Contact No.", width: 150 },
+    { key: "purpose", header: "Purpose", width: 180, type: "badge" },
+    { key: "supplyThrough", header: "Supply Through", width: 150, type: "badge" },
+    { key: "specimenGiven", header: "Specimen Given", width: 130, type: "number", align: "right" },
+    { key: "specimenRequired", header: "Specimen Required", width: 140, type: "number", align: "right" },
+    { key: "paymentGL", header: "Payment GL", width: 120, type: "number", align: "right" },
+    { key: "paymentVP", header: "Payment VP", width: 120, type: "number", align: "right" },
+    { key: "schoolComment", header: "School Comment", width: 250 },
+    { key: "yourComment", header: "Your Comment", width: 250 },
+  ];
 
   const handleDelete = (visit: any) => {
-    const updatedData = visitData.filter((v) => v.id !== visit.id);
-    setVisitData(updatedData);
-
-    toast({
-      title: "Visit Deleted",
-      description: `Visit to ${visit.schoolName} has been removed.`,
-      variant: "destructive",
-    });
+    setVisitData(prev => prev.filter(v => v.id !== visit.id));
+    toast.success("Visit record deleted");
   };
 
-  const handleEdit = (visit: any) => {
-    toast({
-      title: "Edit Visit",
-      description: `Opening edit form for visit to ${visit.schoolName}`,
-    });
-  };
+  if (isLoading) return <PageContainer><PageSkeleton /></PageContainer>;
+  if (!salesman) return (
+    <PageContainer>
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold mb-2">Salesman Not Found</h2>
+        <Link href="/admin/team">
+          <Button><ArrowLeft className="h-4 w-4 mr-2" /> Back to Team</Button>
+        </Link>
+      </div>
+    </PageContainer>
+  );
 
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <PageSkeleton />
-      </PageContainer>
-    );
-  }
+  const totalSpecimen = filteredData.reduce((sum, item) => sum + item.specimenGiven, 0);
+  const totalGL = filteredData.reduce((sum, item) => sum + item.paymentGL, 0);
+  const totalVP = filteredData.reduce((sum, item) => sum + item.paymentVP, 0);
 
-  if (!salesman) {
-    return (
-      <PageContainer>
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-2">Salesman Not Found</h2>
-          <Link href="/admin/team">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Team
-            </Button>
-          </Link>
-        </div>
-      </PageContainer>
-    );
-  }
+  const extraViews = [
+    {
+      key: "charts",
+      label: "Analytics",
+      icon: <BarChart2 className="h-3.5 w-3.5" />,
+      render: (data: SchoolVisit[]) => {
+        const visitsByDate: Record<string, number> = {};
+        data.forEach((v: SchoolVisit) => {
+          const d = new Date(v.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' });
+          visitsByDate[d] = (visitsByDate[d] || 0) + 1;
+        });
+        const barData = Object.entries(visitsByDate).map(([name, count]) => ({ name, count }));
 
-  // Calculate summary statistics
-  const totalVisits = filteredData.length;
-  const totalSpecimenGiven = filteredData.reduce((sum, item) => sum + item.specimenGiven, 0);
-  const totalPaymentGL = filteredData.reduce((sum, item) => sum + item.paymentGL, 0);
-  const totalPaymentVP = filteredData.reduce((sum, item) => sum + item.paymentVP, 0);
+        const purposes: Record<string, number> = {};
+        data.forEach((v: SchoolVisit) => {
+          purposes[v.purpose] = (purposes[v.purpose] || 0) + 1;
+        });
+        const COLORS = ["#f97316", "#fbbf24", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#ef4444", "#6366f1"];
+        const pieData = Object.entries(purposes).map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length] }));
 
-  // Get unique boards and purposes for filters
-  const boards = Array.from(new Set(visitData.map((item) => item.board))).sort();
-  const purposes = Array.from(new Set(visitData.map((item) => item.purpose))).sort();
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 min-h-[400px]">
+            <Card className="border-0 shadow-sm bg-muted/30">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold tracking-tight">Visit Frequency</CardTitle>
+                  <p className="text-[10px] text-muted-foreground">Number of school visits by date</p>
+                </div>
+                <BarChart2 className="h-4 w-4 text-primary opacity-50" />
+              </CardHeader>
+              <CardContent className="h-[300px] pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                    <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#6b7280' }} />
+                    <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#6b7280' }} />
+                    <RechartsTooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-muted/30">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold tracking-tight">Visit Purposes</CardTitle>
+                  <p className="text-[10px] text-muted-foreground">Distribution of visit activities</p>
+                </div>
+                <PieChartIcon className="h-4 w-4 text-amber-500 opacity-50" />
+              </CardHeader>
+              <CardContent className="h-[300px] pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+    }
+  ];
 
   return (
     <PageContainer>
-      {/* Header */}
       <div className="mb-6">
         <Link href={`/admin/team/${salesmanId}`}>
           <Button variant="ghost" size="sm" className="mb-4">
@@ -243,285 +321,102 @@ export default function SchoolVisitReportPage() {
         </Link>
         <PageHeader
           title={`School Visit Report of ${salesman.name}`}
-          description={`Detailed school visit records for ${salesman.name}`}
+          description={`Detailed school visit tracking for ${salesman.name}`}
+          action={<Button><Plus className="h-4 w-4 mr-2" /> Add Visit</Button>}
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Visits</p>
-              <SchoolIcon className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4 mb-6">
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <SchoolIcon className="h-4 w-4 text-primary" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">{totalVisits}</p>
+            <p className="text-xl font-bold tracking-tight">{filteredData.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total Visits</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Specimen Given</p>
+        <Card className="border-0 shadow-sm gradient-card-amber">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-amber-100">
+                <BarChart2 className="h-4 w-4 text-amber-600" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">{totalSpecimenGiven}</p>
+            <p className="text-xl font-bold tracking-tight">{totalSpecimen}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Specimen Given</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Payment GL</p>
+        <Card className="border-0 shadow-sm gradient-card-orange">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">₹{(totalPaymentGL / 100000).toFixed(1)}L</p>
+            <p className="text-xl font-bold tracking-tight">₹{(totalGL / 1000).toFixed(1)}K</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Payment GL</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Payment VP</p>
+        <Card className="border-0 shadow-sm gradient-card-neutral">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 rounded-lg bg-muted">
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              </div>
             </div>
-            <p className="text-2xl font-bold">₹{(totalPaymentVP / 100000).toFixed(1)}L</p>
+            <p className="text-xl font-bold tracking-tight">₹{(totalVP / 1000).toFixed(1)}K</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Payment VP</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Actions */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters & Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by school name, city, or contact person..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <Select value={boardFilter} onValueChange={setBoardFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by board" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Boards</SelectItem>
-                  {boards.map((board) => (
-                    <SelectItem key={board} value={board}>
-                      {board}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filter by purpose" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Purposes</SelectItem>
-                  {purposes.map((purpose) => (
-                    <SelectItem key={purpose} value={purpose}>
-                      {purpose}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Visit
-              </Button>
+      <DataGrid
+        data={filteredData}
+        columns={columns}
+        title="School Visit Records"
+        showStats={true}
+        onExport={(data) => toast.success(`Exporting ${data.length} records to Excel`)}
+        extraViews={extraViews}
+        toolbar={
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border border-border/50">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase px-1.5">Date Filter:</span>
+              <DateRangePicker
+                from={dateFrom}
+                to={dateTo}
+                onFromChange={setDateFrom}
+                onToChange={setDateTo}
+                className="bg-transparent border-0 shadow-none hover:bg-transparent"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        }
+        rowActions={(row) => [
+          {
+            label: "Edit",
+            icon: <Edit2 className="h-3.5 w-3.5" />,
+            onClick: (row) => toast.info(`Editing visit to ${row.schoolName}`),
+          },
+          {
+            label: "Delete",
+            icon: <Trash2 className="h-3.5 w-3.5" />,
+            danger: true,
+            onClick: (row) => setDeleteTarget(row),
+          }
+        ]}
+      />
 
-      {/* School Visit Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <SchoolIcon className="h-5 w-5" />
-            School Visit Records ({filteredData.length} visits)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60px]">Sr. No.</TableHead>
-                  <TableHead className="min-w-[110px]">Date</TableHead>
-                  <TableHead className="min-w-[80px]">Time</TableHead>
-                  <TableHead className="min-w-[100px]">Day</TableHead>
-                  <TableHead className="min-w-[200px]">School Name</TableHead>
-                  <TableHead className="min-w-[120px]">City</TableHead>
-                  <TableHead className="min-w-[80px]">Board</TableHead>
-                  <TableHead className="text-right">Strength</TableHead>
-                  <TableHead className="min-w-[150px]">Contact Person</TableHead>
-                  <TableHead className="min-w-[130px]">Contact No.</TableHead>
-                  <TableHead className="min-w-[150px]">Purpose</TableHead>
-                  <TableHead className="min-w-[130px]">Supply Through</TableHead>
-                  <TableHead className="text-right">Specimen Given</TableHead>
-                  <TableHead className="text-right">Specimen Required</TableHead>
-                  <TableHead className="text-right min-w-[110px]">Payment GL</TableHead>
-                  <TableHead className="text-right min-w-[110px]">Payment VP</TableHead>
-                  <TableHead className="min-w-[200px]">School Comment</TableHead>
-                  <TableHead className="min-w-[200px]">Your Comment</TableHead>
-                  <TableHead className="w-[100px] text-center sticky right-0 bg-background">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
-                      No school visits found matching your criteria
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((item) => {
-                    const formattedDate = new Date(item.date).toLocaleDateString("en-US", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    });
-
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.srNo}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {formattedDate}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            {item.time}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {item.day}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{item.schoolName}</TableCell>
-                        <TableCell>{item.schoolCity}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{item.board}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{item.strength}</TableCell>
-                        <TableCell>{item.contactPerson}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
-                            {item.contactNo}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.purpose}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{item.supplyThrough}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="default" className="bg-green-600">
-                            {item.specimenGiven}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline">{item.specimenRequired}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ₹{(item.paymentGL / 1000).toFixed(1)}K
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ₹{(item.paymentVP / 1000).toFixed(1)}K
-                        </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {item.schoolComment}
-                          </p>
-                        </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {item.yourComment}
-                          </p>
-                        </TableCell>
-                        <TableCell className="text-center sticky right-0 bg-background">
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEdit(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteTarget(item)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Table Footer Summary */}
-          {filteredData.length > 0 && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Total Visits</p>
-                  <p className="font-bold text-lg">{totalVisits}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Specimen Given</p>
-                  <p className="font-bold text-lg">{totalSpecimenGiven}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Payment GL</p>
-                  <p className="font-bold text-lg">₹{(totalPaymentGL / 100000).toFixed(1)}L</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Payment VP</p>
-                  <p className="font-bold text-lg">₹{(totalPaymentVP / 100000).toFixed(1)}L</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
       <DeleteConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
         itemName={deleteTarget ? `Visit to ${deleteTarget.schoolName}` : ""}
-        contextLabel={deleteTarget ? `on ${new Date(deleteTarget.date).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}` : undefined}
+        contextLabel={deleteTarget ? `on ${new Date(deleteTarget.date).toLocaleDateString()}` : undefined}
         onConfirm={() => handleDelete(deleteTarget!)}
       />
     </PageContainer>

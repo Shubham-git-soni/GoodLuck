@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TrendingUp, DollarSign, Users, FileText, Download, Calendar, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { TrendingUp, DollarSign, Users, FileText, Download, Calendar, AlertTriangle, CheckCircle2, LayoutGrid, ArrowUpRight, ArrowDownRight, MoreHorizontal } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,16 @@ import {
 import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { MonthPicker } from "@/components/ui/month-picker";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend
+} from "recharts";
 
 export default function AdminExpenseAnalyticsPage() {
   const [reports, setReports] = useState<any[]>([]);
@@ -102,8 +112,8 @@ export default function AdminExpenseAnalyticsPage() {
                 <DollarSign className="h-4 w-4 text-blue-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">₹{totalExpenses.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total Expenses</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground">₹{totalExpenses.toLocaleString()}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Total Expenses</p>
             <div className="mt-2 pt-2 border-t border-border/50">
               <p className="text-xs text-muted-foreground">All time submissions</p>
             </div>
@@ -118,8 +128,8 @@ export default function AdminExpenseAnalyticsPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">₹{paidExpenses.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Paid Amount</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground">₹{paidExpenses.toLocaleString()}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Paid Amount</p>
             <div className="mt-2 pt-2 border-t border-border/50">
               <Progress
                 value={totalExpenses > 0 ? Math.round((paidExpenses / totalExpenses) * 100) : 0}
@@ -140,8 +150,8 @@ export default function AdminExpenseAnalyticsPage() {
                 <TrendingUp className="h-4 w-4 text-purple-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">₹{pendingExpenses.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Pending Amount</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground">₹{pendingExpenses.toLocaleString()}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Pending Amount</p>
             <div className="mt-2 pt-2 border-t border-border/50">
               <p className="text-xs text-muted-foreground">
                 {reports.filter((r) => r.status === "pending" || r.status === "approved").length} pending reports
@@ -158,8 +168,8 @@ export default function AdminExpenseAnalyticsPage() {
                 <AlertTriangle className="h-4 w-4 text-orange-600" />
               </div>
             </div>
-            <p className="text-xl font-bold tracking-tight">{violationCount}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Policy Violations</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground">{violationCount}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Policy Violations</p>
             <div className="mt-2 pt-2 border-t border-border/50">
               <Progress
                 value={expenses.length > 0 ? Math.round((violationCount / expenses.length) * 100) : 0}
@@ -174,129 +184,134 @@ export default function AdminExpenseAnalyticsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 mb-6">
-        {/* Expense by Type */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Expenses by Type</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">Breakdown of expenses across categories</p>
+        {/* Expense by Type - Graphical */}
+        <Card className="border shadow-sm overflow-hidden bg-white/50 backdrop-blur-sm">
+          <CardHeader className="pb-0 border-b-0 px-4 pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <LayoutGrid className="h-4 w-4 text-primary" />
+                  </div>
+                  Expenses by Type
+                </CardTitle>
+                <p className="text-[10px] text-muted-foreground mt-0.5 ml-9">Visual distribution of spend</p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full"><MoreHorizontal className="h-4 w-4" /></Button>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-5">
-              {expenseTypeData
-                .sort((a, b) => b.amount - a.amount)
-                .map((item, index) => {
-                  const percentage = (item.amount / totalExpenses) * 100;
-                  const colors = [
-                    'bg-gradient-to-r from-blue-500 to-blue-600',
-                    'bg-gradient-to-r from-green-500 to-green-600',
-                    'bg-gradient-to-r from-purple-500 to-purple-600',
-                    'bg-gradient-to-r from-orange-500 to-orange-600',
-                    'bg-gradient-to-r from-pink-500 to-pink-600',
-                  ];
-                  const bgColors = [
-                    'bg-blue-50 dark:bg-blue-950/20',
-                    'bg-green-50 dark:bg-green-950/20',
-                    'bg-purple-50 dark:bg-purple-950/20',
-                    'bg-orange-50 dark:bg-orange-950/20',
-                    'bg-pink-50 dark:bg-pink-950/20',
-                  ];
-                  return (
-                    <div key={item.type} className={`p-3 rounded-lg ${bgColors[index % bgColors.length]}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold">{item.type}</span>
-                        <div className="text-right flex items-center gap-2">
-                          <span className="text-sm font-bold">
-                            ₹{item.amount.toLocaleString()}
-                          </span>
-                          <Badge variant="secondary" className="text-[10px] font-bold">
-                            {percentage.toFixed(1)}%
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="w-full bg-white dark:bg-gray-800 rounded-full h-2.5 shadow-inner">
-                        <div
-                          className={`${colors[index % colors.length]} h-2.5 rounded-full transition-all duration-500 shadow-md`}
-                          style={{ width: `${percentage}%` }}
+          <CardContent className="pt-0 px-4 pb-4">
+            <div className="flex flex-col xl:flex-row items-center gap-4">
+              <div className="w-full xl:w-1/2 h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={expenseTypeData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      paddingAngle={4}
+                      dataKey="amount"
+                      stroke="none"
+                    >
+                      {expenseTypeData.map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={['#f97316', '#f59e0b', '#10b981', '#3b82f6', '#4b5563'][index % 5]}
+                          className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
                         />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '8px 12px' }}
+                      itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                      formatter={(v: any) => `₹${v.toLocaleString()}`}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full xl:w-1/2 space-y-2.5">
+                {expenseTypeData.sort((a, b) => b.amount - a.amount).slice(0, 4).map((item, idx) => {
+                  const colors = ['bg-orange-500', 'bg-amber-500', 'bg-emerald-500', 'bg-blue-500'];
+                  const textColors = ['text-orange-600', 'text-amber-600', 'text-emerald-600', 'text-blue-600'];
+                  return (
+                    <div key={item.type} className="flex items-center justify-between p-2 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all cursor-default group">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("h-2.5 w-2.5 rounded-full shadow-sm ring-2 ring-white", colors[idx % 4])} />
+                        <span className="text-xs font-bold text-foreground/80 lowercase first-letter:uppercase group-hover:text-foreground">{item.type}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-foreground tracking-tight">₹{item.amount.toLocaleString()}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground/70 uppercase">{((item.amount / totalExpenses) * 100).toFixed(1)}% share</p>
                       </div>
                     </div>
                   );
                 })}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Monthly Summary */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
+        {/* Monthly Summary - Metric Centric */}
+        <Card className="border shadow-sm overflow-hidden bg-white/50 backdrop-blur-sm">
+          <CardHeader className="pb-2 border-b px-4 py-3">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold">Monthly Summary</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Current month statistics</p>
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-amber-600" />
+                </div>
+                Monthly Statistics
+              </CardTitle>
+              <div className="w-[140px]">
+                <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
               </div>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[150px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2025-12">December 2025</SelectItem>
-                  <SelectItem value="2025-11">November 2025</SelectItem>
-                  <SelectItem value="2025-10">October 2025</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-                    <FileText className="h-7 w-7 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
-                      Total Reports
-                    </p>
-                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                      {reports.length}
-                    </p>
-                  </div>
-                </div>
+          <CardContent className="p-4 grid grid-cols-1 gap-3.5">
+            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-border shadow-sm relative overflow-hidden group hover:border-primary/30 transition-colors">
+              <div className="absolute -bottom-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <FileText className="h-20 w-20" />
               </div>
-
-              <div className="p-4 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 rounded-xl border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-xl bg-green-500 flex items-center justify-center shadow-lg">
-                    <DollarSign className="h-7 w-7 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">
-                      Submitted Amount
-                    </p>
-                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">
-                      ₹{totalExpenses.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
+              <div className="h-11 w-11 rounded-xl bg-muted flex items-center justify-center shadow-inner group-hover:bg-primary/5">
+                <FileText className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
+              <div>
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Reports Logged</h4>
+                <p className="text-2xl font-bold text-foreground tracking-tight leading-none">{reports.length}</p>
+              </div>
+              <div className="ml-auto">
+                <Badge variant="outline" className="text-[9px] font-black border-2 border-primary/20 bg-primary/5 text-primary">SYNCED</Badge>
+              </div>
+            </div>
 
-              <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 rounded-xl border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-xl bg-purple-500 flex items-center justify-center shadow-lg">
-                    <CheckCircle2 className="h-7 w-7 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
-                      Approved Amount
-                    </p>
-                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                      ₹
-                      {reports
-                        .filter((r) => r.status === "approved" || r.status === "paid")
-                        .reduce((sum, r) => sum + r.approvedAmount, 0)
-                        .toLocaleString()}
-                    </p>
-                  </div>
+            <div className="flex items-center gap-4 p-4 rounded-2xl gradient-card-orange border-0 shadow-sm relative overflow-hidden group ring-1 ring-orange-500/10">
+              <div className="h-11 w-11 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h4 className="text-[10px] font-bold text-orange-900/60 uppercase tracking-widest">Total Submitted</h4>
+                <p className="text-2xl font-bold text-orange-950 tracking-tight leading-none">₹{totalExpenses.toLocaleString()}</p>
+              </div>
+              <div className="ml-auto flex flex-col items-end">
+                <div className="flex items-center gap-1 text-orange-700 font-black text-xs">
+                  <ArrowUpRight className="h-4 w-4" /> 12.4%
+                </div>
+                <span className="text-[8px] font-bold text-orange-700/50 uppercase">vs Last Month</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 rounded-2xl gradient-card-amber border-0 shadow-sm relative overflow-hidden group ring-1 ring-amber-500/10">
+              <div className="h-11 w-11 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <CheckCircle2 className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h4 className="text-[10px] font-bold text-amber-900/60 uppercase tracking-widest">Amount Approved</h4>
+                <p className="text-2xl font-bold text-amber-950 tracking-tight leading-none">₹{reports.filter(r => r.status === "approved" || r.status === "paid").reduce((sum, r) => sum + r.approvedAmount, 0).toLocaleString()}</p>
+              </div>
+              <div className="ml-auto">
+                <div className="h-9 w-9 rounded-full border-4 border-amber-900/10 flex items-center justify-center bg-white/20">
+                  <div className="h-5 w-5 rounded-full bg-amber-600 animate-pulse" />
                 </div>
               </div>
             </div>
@@ -313,109 +328,109 @@ export default function AdminExpenseAnalyticsPage() {
           .filter((s) => s.reportCount > 0)
           .sort((a, b) => b.totalAmount - a.totalAmount)}
         columns={[
-              {
-                key: "name",
-                header: "Salesman",
-                sortable: true,
-                filterable: true,
-                width: 220,
-                render: (value, row) => (
-                  <div>
-                    <div className="font-semibold text-sm">{value}</div>
-                    <div className="text-xs text-muted-foreground">{row.id}</div>
-                  </div>
-                ),
-              },
-              {
-                key: "reportCount",
-                header: "Reports",
-                type: "number",
-                sortable: true,
-                width: 100,
-                align: "center",
-                render: (value) => (
-                  <Badge variant="secondary" className="text-xs">
-                    {value}
-                  </Badge>
-                ),
-              },
-              {
-                key: "totalAmount",
-                header: "Total Amount",
-                type: "number",
-                sortable: true,
-                width: 150,
-                render: (value) => (
-                  <span className="font-semibold">₹{value.toLocaleString()}</span>
-                ),
-              },
-              {
-                key: "paidAmount",
-                header: "Paid Amount",
-                type: "number",
-                sortable: true,
-                width: 150,
-                render: (value) => (
-                  <span className="text-green-600 font-medium">
-                    ₹{value.toLocaleString()}
-                  </span>
-                ),
-              },
-              {
-                key: "pendingAmount",
-                header: "Pending Amount",
-                type: "number",
-                sortable: true,
-                width: 150,
-                render: (value) => (
-                  <span className="text-purple-600 font-medium">
-                    ₹{value.toLocaleString()}
-                  </span>
-                ),
-              },
-              {
-                key: "violationCount",
-                header: "Violations",
-                type: "number",
-                sortable: true,
-                width: 130,
-                align: "center",
-                render: (value) =>
-                  value > 0 ? (
-                    <Badge variant="destructive" className="text-xs">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      {value}
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      None
-                    </Badge>
-                  ),
-              },
-              {
-                key: "status",
-                header: "Status",
-                sortable: true,
-                width: 120,
-                align: "center",
-                render: (value, row) =>
-                  row.pendingAmount > 0 ? (
-                    <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                      Pending
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white">
-                      Settled
-                    </Badge>
-                  ),
-              },
-            ]}
-            density="comfortable"
-            striped={true}
-            emptyMessage="No expense data found for salesmen"
-            emptyIcon={<Users className="h-12 w-12" />}
-          />
+          {
+            key: "name",
+            header: "Salesman",
+            sortable: true,
+            filterable: true,
+            width: 220,
+            render: (value, row) => (
+              <div>
+                <div className="font-semibold text-sm">{value}</div>
+                <div className="text-xs text-muted-foreground">{row.id}</div>
+              </div>
+            ),
+          },
+          {
+            key: "reportCount",
+            header: "Reports",
+            type: "number",
+            sortable: true,
+            width: 100,
+            align: "center",
+            render: (value) => (
+              <Badge variant="secondary" className="text-xs">
+                {value}
+              </Badge>
+            ),
+          },
+          {
+            key: "totalAmount",
+            header: "Total Amount",
+            type: "number",
+            sortable: true,
+            width: 150,
+            render: (value) => (
+              <span className="font-semibold">₹{value.toLocaleString()}</span>
+            ),
+          },
+          {
+            key: "paidAmount",
+            header: "Paid Amount",
+            type: "number",
+            sortable: true,
+            width: 150,
+            render: (value) => (
+              <span className="text-green-600 font-medium">
+                ₹{value.toLocaleString()}
+              </span>
+            ),
+          },
+          {
+            key: "pendingAmount",
+            header: "Pending Amount",
+            type: "number",
+            sortable: true,
+            width: 150,
+            render: (value) => (
+              <span className="text-purple-600 font-medium">
+                ₹{value.toLocaleString()}
+              </span>
+            ),
+          },
+          {
+            key: "violationCount",
+            header: "Violations",
+            type: "number",
+            sortable: true,
+            width: 130,
+            align: "center",
+            render: (value) =>
+              value > 0 ? (
+                <Badge variant="destructive" className="text-xs">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {value}
+                </Badge>
+              ) : (
+                <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  None
+                </Badge>
+              ),
+          },
+          {
+            key: "status",
+            header: "Status",
+            sortable: true,
+            width: 120,
+            align: "center",
+            render: (value, row) =>
+              row.pendingAmount > 0 ? (
+                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                  Pending
+                </Badge>
+              ) : (
+                <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                  Settled
+                </Badge>
+              ),
+          },
+        ]}
+        density="comfortable"
+        striped={true}
+        emptyMessage="No expense data found for salesmen"
+        emptyIcon={<Users className="h-12 w-12" />}
+      />
     </PageContainer>
   );
 }

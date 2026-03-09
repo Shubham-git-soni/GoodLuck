@@ -611,5 +611,137 @@
         "email": "principal@modern.edu"
       }
     ]
+  },
+  {
+    "id": "SCH_PAN_01",
+    "name": "Panipat Global School",
+    "city": "Panipat",
+    "state": "Haryana",
+    "station": "Panipat",
+    "board": "CBSE",
+    "strength": 1200,
+    "address": "GT Road, Panipat, Haryana",
+    "isBlocked": false,
+    "visitCount": 5,
+    "lastVisitDate": "2026-02-15",
+    "assignedTo": "SM001",
+    "businessHistory": [
+      {
+        "year": 2024,
+        "revenue": 450000
+      },
+      {
+        "year": 2025,
+        "revenue": 500000
+      }
+    ],
+    "contacts": [
+      {
+        "id": "C_P01",
+        "name": "Mr. Anil Kumar",
+        "role": "Principal",
+        "phone": "9876543210",
+        "email": "anil@pgs.com"
+      }
+    ]
+  },
+  {
+    "id": "SCH_SON_01",
+    "name": "Sonipat International Academy",
+    "city": "Sonipat",
+    "state": "Haryana",
+    "station": "Sonipat",
+    "board": "CBSE",
+    "strength": 1500,
+    "address": "Murthal Road, Sonipat, Haryana",
+    "isBlocked": false,
+    "visitCount": 8,
+    "lastVisitDate": "2026-02-20",
+    "assignedTo": "SM001",
+    "businessHistory": [
+      {
+        "year": 2024,
+        "revenue": 600000
+      },
+      {
+        "year": 2025,
+        "revenue": 650000
+      }
+    ],
+    "contacts": [
+      {
+        "id": "C_S01",
+        "name": "Ms. Reena Singh",
+        "role": "Principal",
+        "phone": "9876543211",
+        "email": "reena@sia.com"
+      }
+    ]
+  },
+  {
+    "id": "SCH_JIN_01",
+    "name": "Jind Public School",
+    "city": "Jind",
+    "state": "Haryana",
+    "station": "Jind",
+    "board": "STATE",
+    "strength": 800,
+    "address": "Civil Lines, Jind, Haryana",
+    "isBlocked": false,
+    "visitCount": 3,
+    "lastVisitDate": "2026-02-10",
+    "assignedTo": "SM001",
+    "businessHistory": [
+      {
+        "year": 2024,
+        "revenue": 200000
+      },
+      {
+        "year": 2025,
+        "revenue": 220000
+      }
+    ],
+    "contacts": [
+      {
+        "id": "C_J01",
+        "name": "Mr. Rajesh Kumar",
+        "role": "Principal",
+        "phone": "9876543212",
+        "email": "rajesh@jps.com"
+      }
+    ]
+  },
+  {
+    "id": "SCH_KAR_01",
+    "name": "Karnal Convent School",
+    "city": "Karnal",
+    "state": "Haryana",
+    "station": "Karnal",
+    "board": "CBSE",
+    "strength": 1100,
+    "address": "Sector 12, Karnal, Haryana",
+    "isBlocked": false,
+    "visitCount": 4,
+    "lastVisitDate": "2026-02-18",
+    "assignedTo": "SM001",
+    "businessHistory": [
+      {
+        "year": 2024,
+        "revenue": 380000
+      },
+      {
+        "year": 2025,
+        "revenue": 410000
+      }
+    ],
+    "contacts": [
+      {
+        "id": "C_K01",
+        "name": "Mrs. Sunita Devi",
+        "role": "Principal",
+        "phone": "9876543213",
+        "email": "sunita@kcs.com"
+      }
+    ]
   }
 ]

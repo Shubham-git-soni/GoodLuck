@@ -1,56 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  User,
-  Phone,
-  Mail,
-  Briefcase,
-  ArrowLeft,
-  Building2,
-  Target,
-  Plus,
-  AlertTriangle,
-  CheckCircle2,
+  Calendar, Clock, MapPin, User, Phone, Mail, Briefcase,
+  ArrowLeft, Building2, Target, Plus, AlertTriangle,
+  CheckCircle2, CheckCheck, Ban, LayoutGrid,
 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
-import PageHeader from "@/components/layouts/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataGrid, GridColumn } from "@/components/ui/data-grid";
 import { useToast } from "@/hooks/use-toast";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
+import { cn } from "@/lib/utils";
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+type ApprovalStatus = "requested" | "approved" | "booked" | "completed" | "rejected";
 
 interface Schedule {
   id: string;
@@ -66,10 +43,11 @@ interface Schedule {
   salesmanName: string;
   activity: string;
   topic?: string;
-  approvalStatus?: "requested" | "approved" | "booked" | "completed";
+  approvalStatus?: ApprovalStatus;
   isCompleted?: boolean;
   hasConflict?: boolean;
   status: string;
+  rejectionReason?: string;
 }
 
 interface ProductManager {
@@ -83,74 +61,66 @@ interface ProductManager {
   schedules: Schedule[];
 }
 
+// ─── Status helpers ─────────────────────────────────────────────────────────────
+const STATUS_BADGE: Record<string, string> = {
+  requested: "bg-amber-100 text-amber-700 border-amber-200",
+  booked: "bg-primary/10 text-primary border-primary/20",
+  completed: "bg-muted text-muted-foreground border-border",
+  rejected: "bg-muted text-muted-foreground border-border",
+  approved: "bg-primary/10 text-primary border-primary/20",
+  pending: "bg-amber-100 text-amber-700 border-amber-200",
+  confirmed: "bg-primary/10 text-primary border-primary/20",
+};
+
+function formatDisplayTime(t: string) {
+  if (!t) return "–";
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function formatDate(dateString: string) {
+  if (!dateString) return "–";
+  const date = new Date(dateString);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+  return date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function PMDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+
   const [productManager, setProductManager] = useState<ProductManager | null>(null);
-  const [groupedSchedules, setGroupedSchedules] = useState<Record<string, Schedule[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [schools, setSchools] = useState<any[]>([]);
   const [salesmen, setSalesmen] = useState<any[]>([]);
 
-  // Form state
   const [formData, setFormData] = useState({
-    date: "",
-    startTime: "",
-    endTime: "",
-    type: "workshop",
-    schoolId: "",
-    salesmanId: "",
-    activity: "",
+    date: "", startTime: "", endTime: "", type: "workshop",
+    schoolId: "", salesmanId: "", activity: "",
   });
 
   useEffect(() => {
-    const data = require("@/lib/mock-data/product-manager-schedules.json");
-    const pm = data.find((pm: ProductManager) => pm.id === params.id);
-
-    if (pm) {
-      setProductManager(pm);
-
-      // Group schedules by date
-      const grouped = pm.schedules.reduce((acc: Record<string, Schedule[]>, schedule: Schedule) => {
-        if (!acc[schedule.date]) {
-          acc[schedule.date] = [];
-        }
-        acc[schedule.date].push(schedule);
-        return acc;
-      }, {});
-
-      // Sort dates
-      const sortedGrouped = Object.keys(grouped)
-        .sort()
-        .reduce((acc: Record<string, Schedule[]>, key: string) => {
-          acc[key] = grouped[key].sort((a: Schedule, b: Schedule) =>
-            a.startTime.localeCompare(b.startTime)
-          );
-          return acc;
-        }, {});
-
-      setGroupedSchedules(sortedGrouped);
-    }
-
-    // Load schools and salesmen data
-    const schoolsData = require("@/lib/mock-data/schools.json");
-    const salesmenData = require("@/lib/mock-data/salesmen.json");
-    setSchools(schoolsData);
-    setSalesmen(salesmenData);
+    const data: ProductManager[] = require("@/lib/mock-data/product-manager-schedules.json");
+    const pm = data.find((p) => p.id === params.id);
+    if (pm) setProductManager(pm);
+    setSchools(require("@/lib/mock-data/schools.json"));
+    setSalesmen(require("@/lib/mock-data/salesmen.json"));
   }, [params.id]);
 
   const handleScheduleSubmit = () => {
     if (!formData.date || !formData.startTime || !formData.endTime ||
       !formData.schoolId || !formData.salesmanId || !formData.activity) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+      toast({ title: "Missing Information", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
-
     if (!productManager) return;
 
     const selectedSchool = schools.find((s) => s.id === formData.schoolId);
@@ -170,489 +140,383 @@ export default function PMDetailPage() {
       salesmanName: selectedSalesman?.name || "",
       activity: formData.activity,
       status: "pending",
+      approvalStatus: "requested",
     };
 
-    // Update product manager with new schedule
-    const updatedPM = {
-      ...productManager,
-      schedules: [...productManager.schedules, newSchedule],
-    };
-    setProductManager(updatedPM);
-
-    // Re-group schedules
-    const grouped = updatedPM.schedules.reduce((acc: Record<string, Schedule[]>, schedule: Schedule) => {
-      if (!acc[schedule.date]) {
-        acc[schedule.date] = [];
-      }
-      acc[schedule.date].push(schedule);
-      return acc;
-    }, {});
-
-    const sortedGrouped = Object.keys(grouped)
-      .sort()
-      .reduce((acc: Record<string, Schedule[]>, key: string) => {
-        acc[key] = grouped[key].sort((a: Schedule, b: Schedule) =>
-          a.startTime.localeCompare(b.startTime)
-        );
-        return acc;
-      }, {});
-
-    setGroupedSchedules(sortedGrouped);
-
-    toast({
-      title: "Schedule Created",
-      description: `New ${formData.type} scheduled successfully`,
-    });
-
-    // Reset form and close dialog
-    setFormData({
-      date: "",
-      startTime: "",
-      endTime: "",
-      type: "workshop",
-      schoolId: "",
-      salesmanId: "",
-      activity: "",
-    });
+    setProductManager(pm => pm ? { ...pm, schedules: [...pm.schedules, newSchedule] } : pm);
+    toast({ title: "Schedule Created", description: `New ${formData.type} scheduled successfully` });
+    setFormData({ date: "", startTime: "", endTime: "", type: "workshop", schoolId: "", salesmanId: "", activity: "" });
     setDialogOpen(false);
   };
+
+  // ─── KPI calculations ───────────────────────────────────────────────────────
+  const schedules = productManager?.schedules ?? [];
+  const totalWorkshops = schedules.filter(s => s.type === "workshop").length;
+  const totalMeetings = schedules.filter(s => s.type === "meeting").length;
+  const completedCount = schedules.filter(s => s.approvalStatus === "completed" || s.isCompleted).length;
+  const bookedCount = schedules.filter(s => s.approvalStatus === "booked").length;
+  const todayCount = schedules.filter(s => s.date === new Date().toISOString().split("T")[0]).length;
+  const uniqueSchools = new Set(schedules.map(s => s.schoolId)).size;
+
+  // ─── DataGrid columns ───────────────────────────────────────────────────────
+  const columns = useMemo<GridColumn<Schedule>[]>(() => [
+    {
+      key: "date",
+      header: "Date",
+      width: 160,
+      sortable: true,
+      render: (_, row) => {
+        const label = formatDate(row.date);
+        const isToday = label === "Today";
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className={cn("text-sm font-semibold", isToday && "text-primary")}>{label}</span>
+            <span className="text-xs text-muted-foreground font-mono">{row.date}</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "startTime",
+      header: "Time",
+      width: 140,
+      render: (_, row) => (
+        <div className="flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <div className="text-sm">
+            <div className="font-medium">{formatDisplayTime(row.startTime)}</div>
+            <div className="text-muted-foreground text-xs">{formatDisplayTime(row.endTime)}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      width: 120,
+      sortable: true,
+      filterable: true,
+      render: (_, row) => (
+        <Badge variant="outline" className={cn("capitalize text-[11px] gap-1",
+          row.type === "workshop" ? "border-primary/40 text-primary" : "border-muted-foreground/40 text-muted-foreground"
+        )}>
+          {row.type === "workshop" ? <Briefcase className="h-3 w-3" /> : <User className="h-3 w-3" />}
+          {row.type}
+        </Badge>
+      ),
+    },
+    {
+      key: "schoolName",
+      header: "School",
+      width: 200,
+      sortable: true,
+      filterable: true,
+      render: (_, row) => (
+        <div>
+          <div className="font-medium text-sm flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {row.schoolName}
+          </div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 pl-5">
+            <MapPin className="h-3 w-3 shrink-0" />{row.city}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "salesmanName",
+      header: "Salesman",
+      width: 160,
+      sortable: true,
+      filterable: true,
+      render: (_, row) => (
+        <div className="flex items-center gap-1.5">
+          <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <div className="text-sm">
+            <div className="font-medium">{row.salesmanName}</div>
+            <div className="text-xs text-muted-foreground">{row.salesmanId}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "activity",
+      header: "Activity",
+      width: 260,
+      render: (_, row) => (
+        <div className="space-y-0.5">
+          {row.topic && (
+            <div className="flex items-start gap-1.5">
+              <Target className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <span className="text-sm font-medium text-primary line-clamp-1">{row.topic}</span>
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground line-clamp-2 pl-5">{row.activity}</div>
+        </div>
+      ),
+    },
+    {
+      key: "approvalStatus",
+      header: "Status",
+      width: 130,
+      sortable: true,
+      filterable: true,
+      render: (_, row) => {
+        const status = row.approvalStatus || row.status || "pending";
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="outline" className={cn("capitalize text-[11px] w-fit", STATUS_BADGE[status] ?? "bg-muted")}>
+              {status}
+            </Badge>
+            {row.hasConflict && (
+              <Badge variant="destructive" className="text-[10px] gap-0.5 w-fit">
+                <AlertTriangle className="h-3 w-3" /> Conflict
+              </Badge>
+            )}
+          </div>
+        );
+      },
+    },
+  ], []);
 
   if (!productManager) {
     return (
       <PageContainer>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+        <div className="flex items-center justify-center py-24 text-muted-foreground">Loading...</div>
       </PageContainer>
     );
   }
 
-  const totalWorkshops = productManager.schedules.filter(
-    (s) => s.type === "workshop"
-  ).length;
-  const totalMeetings = productManager.schedules.filter(
-    (s) => s.type === "meeting"
-  ).length;
-  const confirmedSchedules = productManager.schedules.filter(
-    (s) => s.status === "confirmed"
-  ).length;
-  const uniqueSchools = new Set(productManager.schedules.map((s) => s.schoolId)).size;
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    } else {
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-  };
+  const isBusy = productManager.currentStatus === "Busy";
 
   return (
     <PageContainer>
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/admin/pm-schedule")}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to All Schedules
-        </Button>
 
-        <Card className="bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
+      {/* ── Back button ── */}
+      <Button variant="ghost" size="sm" className="mb-4 gap-2 text-muted-foreground hover:text-foreground"
+        onClick={() => router.push("/admin/pm-schedule")}>
+        <ArrowLeft className="h-4 w-4" /> Back to All Schedules
+      </Button>
+
+      {/* ── PM Hero Card ── */}
+      <Card className="mb-6 overflow-hidden border shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary/70 to-primary/30" />
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            {/* Avatar + Info */}
+            <div className="flex items-start gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 font-bold text-xl text-primary">
+                {productManager.name.split(" ").map(w => w[0]).join("").slice(0, 2)}
+              </div>
               <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <h1 className="text-3xl font-bold">{productManager.name}</h1>
-                  <Badge
-                    variant={productManager.currentStatus === "Busy" ? "default" : "secondary"}
-                    className={
-                      productManager.currentStatus === "Busy"
-                        ? "bg-orange-500 hover:bg-orange-600"
-                        : "bg-green-500 hover:bg-green-600 text-white"
-                    }
-                  >
-                    {productManager.currentStatus}
-                  </Badge>
-                  <Badge variant="outline">{productManager.id}</Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-bold leading-tight">{productManager.name}</h1>
+                  <Badge variant="outline" className="text-xs font-mono">{productManager.id}</Badge>
+                  <span className={cn(
+                    "text-xs font-bold px-2.5 py-0.5 rounded-full",
+                    isBusy ? "bg-orange-100 text-orange-700" : "bg-primary/10 text-primary"
+                  )}>
+                    {isBusy ? "● Busy" : "● Free"}
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{productManager.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{productManager.contactNo}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{productManager.state}</span>
-                  </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{productManager.email}</span>
+                  <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{productManager.contactNo}</span>
+                  <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{productManager.state}</span>
                 </div>
               </div>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Schedule
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Schedule</DialogTitle>
-                    <DialogDescription>
-                      Schedule a new workshop or meeting for {productManager.name}
-                    </DialogDescription>
-                  </DialogHeader>
+            </div>
 
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>Date *</Label>
-                        <DatePicker
-                          value={formData.date}
-                          onChange={(val) => setFormData({ ...formData, date: val })}
-                          placeholder="Select date"
-                          min={new Date().toISOString().split("T")[0]}
-                        />
-                      </div>
+            {/* Add Schedule dialog trigger */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 shrink-0">
+                  <Plus className="h-4 w-4" /> Add Schedule
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-xl w-full">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" /> Add New Schedule
+                  </DialogTitle>
+                  <DialogDescription>Schedule a new workshop or meeting for {productManager.name}</DialogDescription>
+                </DialogHeader>
 
-                      <div className="grid gap-2">
-                        <Label htmlFor="type">Type *</Label>
-                        <Select
-                          value={formData.type}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, type: value })
-                          }
-                        >
-                          <SelectTrigger id="type">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="workshop">Workshop</SelectItem>
-                            <SelectItem value="meeting">Meeting</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="startTime">Start Time *</Label>
-                        <Input
-                          id="startTime"
-                          type="time"
-                          value={formData.startTime}
-                          onChange={(e) =>
-                            setFormData({ ...formData, startTime: e.target.value })
-                          }
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="endTime">End Time *</Label>
-                        <Input
-                          id="endTime"
-                          type="time"
-                          value={formData.endTime}
-                          onChange={(e) =>
-                            setFormData({ ...formData, endTime: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="school">School *</Label>
-                      <Select
-                        value={formData.schoolId}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, schoolId: value })
-                        }
-                      >
-                        <SelectTrigger id="school">
-                          <SelectValue placeholder="Select school" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {schools.map((school) => (
-                            <SelectItem key={school.id} value={school.id}>
-                              {school.name} - {school.city}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="salesman">Salesman *</Label>
-                      <Select
-                        value={formData.salesmanId}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, salesmanId: value })
-                        }
-                      >
-                        <SelectTrigger id="salesman">
-                          <SelectValue placeholder="Select salesman" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {salesmen.map((salesman) => (
-                            <SelectItem key={salesman.id} value={salesman.id}>
-                              {salesman.name} - {salesman.territory}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="activity">Activity Description *</Label>
-                      <Textarea
-                        id="activity"
-                        placeholder="e.g., Book Promotion Workshop - Class 9-10 Science Series"
-                        value={formData.activity}
-                        onChange={(e) =>
-                          setFormData({ ...formData, activity: e.target.value })
-                        }
-                        rows={3}
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-4 py-2">
+                  {/* Date */}
+                  <div className="col-span-2 grid gap-2">
+                    <Label className="font-semibold">Date *</Label>
+                    <DatePicker
+                      value={formData.date}
+                      onChange={v => setFormData(f => ({ ...f, date: v }))}
+                      placeholder="Select date"
+                      min={new Date().toISOString().split("T")[0]}
+                    />
                   </div>
 
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleScheduleSubmit}>Add Schedule</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  {/* Type */}
+                  <div className="col-span-2 grid gap-2">
+                    <Label className="font-semibold">Type *</Label>
+                    <Select value={formData.type} onValueChange={v => setFormData(f => ({ ...f, type: v }))}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="workshop">Workshop</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-      <div className="grid gap-6 md:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Schedules</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{productManager.schedules.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {confirmedSchedules} confirmed
-            </p>
-          </CardContent>
-        </Card>
+                  {/* Start Time */}
+                  <div className="grid gap-2">
+                    <Label className="font-semibold">Start Time *</Label>
+                    <TimePicker value={formData.startTime} onChange={v => setFormData(f => ({ ...f, startTime: v }))} />
+                  </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Workshops</CardTitle>
-            <Briefcase className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{totalWorkshops}</div>
-            <p className="text-xs text-muted-foreground">Book promotions</p>
-          </CardContent>
-        </Card>
+                  {/* End Time */}
+                  <div className="grid gap-2">
+                    <Label className="font-semibold">End Time *</Label>
+                    <TimePicker value={formData.endTime} onChange={v => setFormData(f => ({ ...f, endTime: v }))} />
+                  </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Meetings</CardTitle>
-            <User className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{totalMeetings}</div>
-            <p className="text-xs text-muted-foreground">School discussions</p>
-          </CardContent>
-        </Card>
+                  {/* School */}
+                  <div className="col-span-2 grid gap-2">
+                    <Label className="font-semibold">School *</Label>
+                    <Select value={formData.schoolId} onValueChange={v => setFormData(f => ({ ...f, schoolId: v }))}>
+                      <SelectTrigger className="h-10"><SelectValue placeholder="Select school" /></SelectTrigger>
+                      <SelectContent className="max-h-52 overflow-y-auto z-[200]" position="popper">
+                        {schools.map(s => <SelectItem key={s.id} value={s.id}>{s.name} – {s.city}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Schools</CardTitle>
-            <Building2 className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{uniqueSchools}</div>
-            <p className="text-xs text-muted-foreground">Unique schools</p>
-          </CardContent>
-        </Card>
-      </div>
+                  {/* Salesman */}
+                  <div className="col-span-2 grid gap-2">
+                    <Label className="font-semibold">Salesman *</Label>
+                    <Select value={formData.salesmanId} onValueChange={v => setFormData(f => ({ ...f, salesmanId: v }))}>
+                      <SelectTrigger className="h-10"><SelectValue placeholder="Select salesman" /></SelectTrigger>
+                      <SelectContent className="max-h-52 overflow-y-auto z-[200]" position="popper">
+                        {salesmen.map(s => <SelectItem key={s.id} value={s.id}>{s.name} – {s.territory}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-      <div className="space-y-6">
-        {productManager.schedules.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Schedules Planned</h3>
-              <p className="text-muted-foreground">
-                This product manager currently has no scheduled activities
-              </p>
+                  {/* Activity */}
+                  <div className="col-span-2 grid gap-2">
+                    <Label className="font-semibold">Activity Description *</Label>
+                    <Textarea
+                      placeholder="e.g., Book Promotion Workshop – Class 9-10 Science Series"
+                      value={formData.activity}
+                      onChange={e => setFormData(f => ({ ...f, activity: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleScheduleSubmit} className="gap-2">
+                    <Plus className="h-4 w-4" /> Add Schedule
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 mb-5">
+        {[
+          {
+            label: "Total Schedules", value: schedules.length,
+            sub: `${uniqueSchools} unique schools`,
+            icon: <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-orange-600" />,
+            bg: "bg-orange-100", card: "gradient-card-orange",
+          },
+          {
+            label: "Workshops", value: totalWorkshops,
+            sub: "Book promotions",
+            icon: <Briefcase className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />,
+            bg: "bg-amber-100", card: "gradient-card-amber",
+          },
+          {
+            label: "Meetings", value: totalMeetings,
+            sub: "School discussions",
+            icon: <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />,
+            bg: "bg-blue-100", card: "gradient-card-blue",
+          },
+          {
+            label: "Booked", value: bookedCount,
+            sub: "Confirmed visits",
+            icon: <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />,
+            bg: "bg-emerald-100", card: "gradient-card-emerald",
+          },
+          {
+            label: "Completed", value: completedCount,
+            sub: "Done visits",
+            icon: <CheckCheck className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />,
+            bg: "bg-emerald-100", card: "gradient-card-emerald",
+          },
+          {
+            label: "Today", value: todayCount,
+            sub: "Scheduled today",
+            icon: <Clock className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />,
+            bg: "bg-primary/10", card: "gradient-card-neutral",
+          },
+        ].map(({ label, value, sub, icon, bg, card }) => (
+          <Card key={label} className={cn("border-0 shadow-sm", card)}>
+            <CardContent className="p-2.5 md:p-4">
+              <div className="flex items-center justify-between mb-2 md:mb-3">
+                <div className={cn("p-1 md:p-1.5 rounded-lg", bg)}>
+                  {icon}
+                </div>
+              </div>
+              <p className="text-base md:text-xl font-bold tracking-tight">{value}</p>
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">{label}</p>
+              <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+                <p className="text-[10px] text-muted-foreground mt-1">{sub}</p>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          Object.entries(groupedSchedules).map(([date, schedules]) => {
-            const isToday = formatDate(date) === "Today";
-            const isTomorrow = formatDate(date) === "Tomorrow";
-
-            return (
-              <Card key={date} className={isToday ? "border-blue-500 border-2" : ""}>
-                <CardHeader className="bg-muted/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Calendar className={`h-5 w-5 ${isToday ? "text-blue-600" : "text-muted-foreground"}`} />
-                      <CardTitle className={isToday ? "text-blue-600" : ""}>
-                        {formatDate(date)}
-                      </CardTitle>
-                      {isToday && (
-                        <Badge className="bg-blue-500 hover:bg-blue-600">Current Day</Badge>
-                      )}
-                      {isTomorrow && (
-                        <Badge variant="secondary">Tomorrow</Badge>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="font-mono">
-                      {schedules.length} {schedules.length === 1 ? "schedule" : "schedules"}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold">Time</TableHead>
-                          <TableHead className="font-semibold">Type</TableHead>
-                          <TableHead className="font-semibold">School</TableHead>
-                          <TableHead className="font-semibold">Location</TableHead>
-                          <TableHead className="font-semibold">Salesman</TableHead>
-                          <TableHead className="font-semibold">Activity</TableHead>
-                          <TableHead className="font-semibold">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {schedules.map((schedule) => (
-                          <TableRow key={schedule.id} className="hover:bg-muted/30">
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <div className="text-sm">
-                                  <div className="font-medium">{schedule.startTime}</div>
-                                  <div className="text-muted-foreground">{schedule.endTime}</div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={`capitalize ${schedule.type === "workshop"
-                                    ? "border-blue-500 text-blue-600"
-                                    : "border-purple-500 text-purple-600"
-                                  }`}
-                              >
-                                {schedule.type === "workshop" ? (
-                                  <Briefcase className="h-3 w-3 mr-1" />
-                                ) : (
-                                  <User className="h-3 w-3 mr-1" />
-                                )}
-                                {schedule.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium flex items-center gap-2">
-                                  <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                  {schedule.schoolName}
-                                </div>
-                                <div className="text-xs text-muted-foreground pl-5">
-                                  {schedule.schoolId}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-start gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                                <div className="text-sm">
-                                  <div className="font-medium">{schedule.city}</div>
-                                  <div className="text-muted-foreground text-xs max-w-[200px] line-clamp-1">
-                                    {schedule.address}
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <div className="text-sm">
-                                  <div className="font-medium">{schedule.salesmanName}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {schedule.salesmanId}
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-[280px]">
-                              <div className="space-y-1">
-                                <div className="flex items-start gap-2">
-                                  <Target className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                                  <div className="text-sm font-semibold text-blue-700 dark:text-blue-400">{schedule.topic}</div>
-                                </div>
-                                <div className="text-xs text-muted-foreground line-clamp-1 ml-5">{schedule.activity}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-1">
-                                <Badge
-                                  className={
-                                    schedule.approvalStatus === "requested"
-                                      ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                                      : schedule.approvalStatus === "approved"
-                                        ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                        : schedule.approvalStatus === "booked"
-                                          ? "bg-green-500 hover:bg-green-600 text-white"
-                                          : "bg-gray-500 hover:bg-gray-600 text-white"
-                                  }
-                                >
-                                  {schedule.approvalStatus}
-                                </Badge>
-                                {schedule.isCompleted && (
-                                  <Badge className="bg-gray-600 text-white text-xs">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                    Completed
-                                  </Badge>
-                                )}
-                                {schedule.hasConflict && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    <AlertTriangle className="h-3 w-3 mr-1" />
-                                    Conflict
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
+        ))}
       </div>
+
+      {/* ── DataGrid ── */}
+      <DataGrid<Schedule>
+        columns={columns}
+        data={schedules}
+        rowKey="id"
+        title="PM Schedules"
+        description={`All schedules for ${productManager.name}`}
+        emptyMessage="No schedules found"
+        emptyIcon={<Calendar className="h-10 w-10 text-muted-foreground/30" />}
+        density="normal"
+        striped
+        inlineFilters
+        selectable
+        defaultPageSize={15}
+        expandedRowRender={(row) => (
+          <div className="p-4 bg-muted/30 border-t grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">School Details</p>
+              <div className="font-semibold flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-muted-foreground" />{row.schoolName}</div>
+              <div className="text-muted-foreground flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />{row.address}, {row.city}</div>
+              <div className="text-muted-foreground flex items-center gap-1.5"><User className="h-3.5 w-3.5" />{row.salesmanName} <span className="text-xs opacity-60">({row.salesmanId})</span></div>
+            </div>
+            <div className="space-y-2 border-l pl-4 border-border/50">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Activity</p>
+              {row.topic && <p className="font-semibold text-primary">{row.topic}</p>}
+              <p className="text-muted-foreground leading-relaxed">{row.activity}</p>
+              {row.rejectionReason && (
+                <div className="mt-2 p-2 bg-muted rounded text-xs text-muted-foreground border border-border">
+                  <strong>Rejection reason:</strong> {row.rejectionReason}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      />
+
     </PageContainer>
   );
 }

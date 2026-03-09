@@ -19,6 +19,10 @@ import {
     Maximize2,
     Minimize2,
     Printer,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    EyeOff,
     Upload,
     Copy,
     ChevronRight as ExpandIcon,
@@ -44,6 +48,7 @@ import {
     LayoutGrid,
     List,
     TableIcon,
+    BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,6 +63,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -110,6 +116,8 @@ export interface GridColumn<T = any> {
     mobileFullWidth?: boolean;
     // Mobile card: alternate read-only render (replaces render in mobile cards)
     mobileRender?: (value: any, row: T) => React.ReactNode;
+    // Custom header renderer
+    renderHeader?: (col: GridColumn<T>) => React.ReactNode;
 }
 
 export interface ContextMenuItem {
@@ -170,6 +178,10 @@ export interface DataGridProps<T = any> {
     dateFilterKey?: string; // If provided, adds a date range picker to filter this specific date field/key
     density?: DensityType;
     onMobileRowClick?: (row: T) => (() => void) | undefined;
+    /** Custom render for card/grid desktop view. Receives each row. */
+    cardRender?: (row: T, rowIndex: number) => React.ReactNode;
+    /** Extra view modes injected from outside (e.g. "chart"). Key = mode label, value = render fn receiving processed data */
+    extraViews?: Array<{ key: string; icon: React.ReactNode; label: string; render: (data: T[]) => React.ReactNode }>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -761,12 +773,15 @@ export function DataGrid<T extends object>({
     dateFilterKey,
     density: initialDensity = "normal",
     onMobileRowClick,
+    cardRender,
+    extraViews = [],
 }: DataGridProps<T>) {
     // ─── State ────────────────────────────────────────────────────────────────────
     const [columns, setColumns] = React.useState<GridColumn<T>[]>(initialColumns);
     const [search, setSearch] = React.useState("");
     const [sorts, setSorts] = React.useState<SortState[]>([]);
     const [colFilters, setColFilters] = React.useState<Record<string, string>>({});
+    const [colFilterModes, setColFilterModes] = React.useState<Record<string, "contains" | "equals" | "startsWith">>({});
     const [showColFilters, setShowColFilters] = React.useState(false);
     const [page, setPage] = React.useState(1);
     const [pageSize, setPageSize] = React.useState(defaultPageSize);
@@ -776,7 +791,7 @@ export function DataGrid<T extends object>({
     const [colMenuOpen, setColMenuOpen] = React.useState(false);
     const [presetMenuOpen, setPresetMenuOpen] = React.useState(false);
     const [density, setDensity] = React.useState<DensityType>(initialDensity);
-    const [viewMode, setViewMode] = React.useState<"list" | "card" | "grid">("list");
+    const [viewMode, setViewMode] = React.useState<"list" | "card" | "grid" | string>("list");
     const [showKeyboardShortcuts, setShowKeyboardShortcuts] = React.useState(false);
     const [fullscreen, setFullscreen] = React.useState(false);
     const [stripedRows, setStripedRows] = React.useState(striped);
@@ -916,7 +931,14 @@ export function DataGrid<T extends object>({
         // Column filters
         Object.entries(colFilters).forEach(([key, val]) => {
             if (!val.trim()) return;
-            arr = arr.filter((row) => String(getNested(row, key) ?? "").toLowerCase().includes(val.toLowerCase()));
+            const mode = colFilterModes[key] || "contains";
+            const q = val.toLowerCase();
+            arr = arr.filter((row) => {
+                const rv = String(getNested(row, key) ?? "").toLowerCase();
+                if (mode === "equals") return rv === q;
+                if (mode === "startsWith") return rv.startsWith(q);
+                return rv.includes(q);
+            });
         });
 
         // Multi-sort
@@ -1308,7 +1330,7 @@ export function DataGrid<T extends object>({
                                                 {/* View Options */}
                                                 <div className="px-2 py-1.5">
                                                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
-                                                    <div className="grid grid-cols-3 gap-1">
+                                                    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${3 + extraViews.length}, 1fr)` }}>
                                                         <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
                                                             <List className="h-3.5 w-3.5" /> List
                                                         </button>
@@ -1318,6 +1340,11 @@ export function DataGrid<T extends object>({
                                                         <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
                                                             <TableIcon className="h-3.5 w-3.5" /> Grid
                                                         </button>
+                                                        {extraViews.map(ev => (
+                                                            <button key={ev.key} onClick={() => setViewMode(ev.key)} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === ev.key ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                                {ev.icon} {ev.label}
+                                                            </button>
+                                                        ))}
                                                     </div>
                                                 </div>
                                                 <DropdownMenuSeparator />
@@ -1610,9 +1637,51 @@ export function DataGrid<T extends object>({
             {/* ── Loading State ── */}
             {loading && <Skeleton rows={6} cols={visibleCols.length} />}
 
+            {/* ── Desktop Extra View (chart or custom) ── */}
+            {!loading && extraViews.some(ev => ev.key === viewMode) && (
+                <div className="hidden md:block p-4">
+                    {extraViews.find(ev => ev.key === viewMode)?.render(processed)}
+                </div>
+            )}
+
+            {/* ── Desktop Card / Grid View ── */}
+            {!loading && (viewMode === "card" || viewMode === "grid") && (
+                <div className="hidden md:block">
+                    {cardRender ? (
+                        <div
+                            className="overflow-auto p-4"
+                            style={{ maxHeight: fullscreen ? "calc(100vh - 220px)" : `${maxHeight}px` }}
+                        >
+                            <div className={cn(
+                                "gap-3",
+                                viewMode === "grid"
+                                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                                    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                            )}>
+                                {paginated.map((row, i) => (
+                                    <React.Fragment key={getNested(row, rowKey)}>
+                                        {cardRender(row, i)}
+                                    </React.Fragment>
+                                ))}
+                                {paginated.length === 0 && (
+                                    <div className="col-span-full text-center py-16 text-muted-foreground text-sm">
+                                        {emptyIcon && <div className="flex justify-center mb-3">{emptyIcon}</div>}
+                                        {emptyMessage}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 text-center text-muted-foreground text-sm py-12">
+                            Pass a <code>cardRender</code> prop to enable Card/Grid view.
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* ── Desktop Table ── */}
             {
-                !loading && (
+                !loading && viewMode === "list" && (
                     <div className="hidden md:block overflow-hidden">
                         <div
                             className="overflow-auto"
@@ -1683,22 +1752,221 @@ export function DataGrid<T extends object>({
                                                 }}
                                             >
                                                 <div className="flex items-center gap-1.5 relative">
-                                                    {col.sortable !== false ? (
-                                                        <button
-                                                            onClick={(e) => handleSort(col.key, e.shiftKey)}
-                                                            className="flex items-center gap-1.5 hover:text-foreground transition-colors flex-1"
-                                                            title={`Sort by ${col.header} (Shift+Click for multi-sort)`}
-                                                        >
-                                                            <span className="truncate">{col.header}</span>
-                                                            {sortBadge(col.key) ?? (
-                                                                <ChevronsUpDown className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+                                                    {col.renderHeader ? col.renderHeader(col) : (
+                                                        <div className="flex items-center gap-1.5 max-w-full">
+                                                            {col.sortable !== false ? (
+                                                                <button
+                                                                    onClick={(e) => handleSort(col.key, e.shiftKey)}
+                                                                    className="flex items-center gap-1.5 hover:text-foreground transition-colors flex-1"
+                                                                    title={`Sort by ${col.header} (Shift+Click for multi-sort)`}
+                                                                >
+                                                                    <span className="truncate">{col.header}</span>
+                                                                    {sortBadge(col.key) ?? (
+                                                                        <ChevronsUpDown className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+                                                                    )}
+                                                                </button>
+                                                            ) : (
+                                                                <span className="truncate flex-1">{col.header}</span>
                                                             )}
-                                                        </button>
-                                                    ) : (
-                                                        <span className="truncate flex-1">{col.header}</span>
-                                                    )}
-                                                    {col.pinned && (
-                                                        <Pin className={cn("h-3 w-3 text-primary", col.pinned === "right" && "rotate-180")} />
+
+                                                            {/* Column Context Menu */}
+                                                            {col.filterable !== false && col.type !== "actions" && (
+                                                                <DropdownMenu modal={false}>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <button
+                                                                            className={cn(
+                                                                                "p-0.5 rounded flex items-center justify-center transition-opacity hover:bg-muted-foreground/10",
+                                                                                colFilters[col.key] || sorts.some(s => s.key === col.key)
+                                                                                    ? "text-primary opacity-100"
+                                                                                    : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                                                                            )}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            title={`Menu for ${col.header}`}
+                                                                        >
+                                                                            {colFilters[col.key] ? <Filter className="h-3 w-3 text-primary" /> : <Filter className="h-3.5 w-3.5" />}
+                                                                        </button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="start" className="w-56 overflow-visible" sideOffset={5}>
+                                                                        <div className="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">{col.header}</div>
+                                                                        <div className="px-2 pb-2 flex flex-col gap-2">
+                                                                            <div className="relative" onKeyDown={(e) => e.stopPropagation()}>
+                                                                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
+                                                                                <Input
+                                                                                    value={colFilters[col.key] ?? ""}
+                                                                                    onChange={(e) => {
+                                                                                        setColFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
+                                                                                        setPage(1);
+                                                                                    }}
+                                                                                    className="h-8 pl-8 pr-7 text-xs bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-colors"
+                                                                                    placeholder={`Search ${col.header}...`}
+                                                                                    autoFocus
+                                                                                />
+                                                                                {colFilters[col.key] && (
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            setColFilters((prev) => {
+                                                                                                const updated = { ...prev };
+                                                                                                delete updated[col.key];
+                                                                                                return updated;
+                                                                                            });
+                                                                                            setPage(1);
+                                                                                        }}
+                                                                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                                                    >
+                                                                                        <X className="h-3 w-3" />
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="grid grid-cols-3 gap-1">
+                                                                                <Badge
+                                                                                    variant={(!colFilterModes[col.key] || colFilterModes[col.key] === "contains") ? "default" : "outline"}
+                                                                                    className="text-[9px] h-5 justify-center cursor-pointer hover:bg-muted font-normal rounded-sm"
+                                                                                    onClick={(e) => { e.stopPropagation(); setColFilterModes(p => ({ ...p, [col.key]: "contains" })); setPage(1); }}
+                                                                                >
+                                                                                    Contains
+                                                                                </Badge>
+                                                                                <Badge
+                                                                                    variant={colFilterModes[col.key] === "equals" ? "default" : "outline"}
+                                                                                    className="text-[9px] h-5 justify-center cursor-pointer hover:bg-muted font-normal rounded-sm"
+                                                                                    onClick={(e) => { e.stopPropagation(); setColFilterModes(p => ({ ...p, [col.key]: "equals" })); setPage(1); }}
+                                                                                >
+                                                                                    Equals
+                                                                                </Badge>
+                                                                                <Badge
+                                                                                    variant={colFilterModes[col.key] === "startsWith" ? "default" : "outline"}
+                                                                                    className="text-[9px] h-5 justify-center cursor-pointer hover:bg-muted font-normal rounded-sm"
+                                                                                    onClick={(e) => { e.stopPropagation(); setColFilterModes(p => ({ ...p, [col.key]: "startsWith" })); setPage(1); }}
+                                                                                >
+                                                                                    Starts With
+                                                                                </Badge>
+                                                                            </div>
+                                                                        </div>
+                                                                        <DropdownMenuSeparator />
+
+                                                                        {/* Sort options direct in menu */}
+                                                                        {col.sortable !== false && (
+                                                                            <>
+                                                                                <DropdownMenuItem className="text-xs" onClick={() => { setSorts([{ key: col.key, dir: "asc" }]); setPage(1); }}>
+                                                                                    <ArrowUp className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Sort Ascending
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem className="text-xs" onClick={() => { setSorts([{ key: col.key, dir: "desc" }]); setPage(1); }}>
+                                                                                    <ArrowDown className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Sort Descending
+                                                                                </DropdownMenuItem>
+                                                                                {sorts.some(s => s.key === col.key) && (
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => { setSorts(prev => prev.filter(s => s.key !== col.key)); setPage(1); }}>
+                                                                                        <X className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Clear Sort
+                                                                                    </DropdownMenuItem>
+                                                                                )}
+                                                                                <DropdownMenuSeparator />
+                                                                            </>
+                                                                        )}
+
+                                                                        {/* Column Options */}
+                                                                        <DropdownMenuSub>
+                                                                            <DropdownMenuSubTrigger className="text-xs">
+                                                                                <Settings2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                                                Column
+                                                                            </DropdownMenuSubTrigger>
+                                                                            <DropdownMenuPortal>
+                                                                                <DropdownMenuSubContent>
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                        setColumns(prev => prev.map(c => c.key === col.key ? { ...c, hidden: true } : c));
+                                                                                        toast.success("Column hidden");
+                                                                                    }}>
+                                                                                        <EyeOff className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Hide Column
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuSeparator />
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                        setColumns(prev => prev.map(c => c.key === col.key ? { ...c, pinned: "left" } : c));
+                                                                                    }}>
+                                                                                        <Pin className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Pin Left
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                        setColumns(prev => prev.map(c => c.key === col.key ? { ...c, pinned: "right" } : c));
+                                                                                    }}>
+                                                                                        <Pin className="mr-2 h-3.5 w-3.5 text-muted-foreground rotate-180" /> Pin Right
+                                                                                    </DropdownMenuItem>
+                                                                                    {col.pinned && (
+                                                                                        <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                            setColumns(prev => prev.map(c => c.key === col.key ? { ...c, pinned: undefined } : c));
+                                                                                        }}>
+                                                                                            <PinOff className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Unpin
+                                                                                        </DropdownMenuItem>
+                                                                                    )}
+                                                                                </DropdownMenuSubContent>
+                                                                            </DropdownMenuPortal>
+                                                                        </DropdownMenuSub>
+
+                                                                        {/* Statistics */}
+                                                                        <DropdownMenuSub>
+                                                                            <DropdownMenuSubTrigger className="text-xs">
+                                                                                <BarChart2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                                                Statistics
+                                                                            </DropdownMenuSubTrigger>
+                                                                            <DropdownMenuPortal>
+                                                                                <DropdownMenuSubContent className="w-48 p-2 text-xs">
+                                                                                    <div className="font-semibold text-muted-foreground mb-2 leading-none uppercase text-[10px]">Column Statistics</div>
+                                                                                    <div className="flex justify-between items-center py-1">
+                                                                                        <span className="text-muted-foreground">Total:</span>
+                                                                                        <span className="font-medium">{processed.length}</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center py-1 border-t border-border/50">
+                                                                                        <span className="text-muted-foreground">Unique:</span>
+                                                                                        <span className="font-medium">{new Set(processed.map((r: any) => String(getNested(r, col.key)))).size}</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center py-1 border-t border-border/50">
+                                                                                        <span className="text-muted-foreground">Null/Empty:</span>
+                                                                                        <span className="font-medium">{processed.filter((r: any) => !getNested(r, col.key)).length}</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center pt-2 mt-1 border-t border-border/50">
+                                                                                        <span className="text-muted-foreground">Type:</span>
+                                                                                        <Badge variant="secondary" className="text-[9px] h-4 font-normal px-1 capitalize">{col.type || typeof getNested(processed[0] || {}, col.key)}</Badge>
+                                                                                    </div>
+                                                                                </DropdownMenuSubContent>
+                                                                            </DropdownMenuPortal>
+                                                                        </DropdownMenuSub>
+
+                                                                        {/* Copy */}
+                                                                        <DropdownMenuSub>
+                                                                            <DropdownMenuSubTrigger className="text-xs">
+                                                                                <Copy className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                                                Copy
+                                                                            </DropdownMenuSubTrigger>
+                                                                            <DropdownMenuPortal>
+                                                                                <DropdownMenuSubContent>
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                        const vals = processed.map((r: any) => getNested(r, col.key));
+                                                                                        navigator.clipboard.writeText(vals.join("\n"));
+                                                                                        toast.success(`Copied ${vals.length} values`);
+                                                                                    }}>
+                                                                                        <Copy className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Copy All Values
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                        const vals = Array.from(new Set(processed.map((r: any) => getNested(r, col.key))));
+                                                                                        navigator.clipboard.writeText(vals.join("\n"));
+                                                                                        toast.success(`Copied ${vals.length} unique values`);
+                                                                                    }}>
+                                                                                        <Copy className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Copy Unique Values
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuSeparator />
+                                                                                    <DropdownMenuItem className="text-xs" onClick={() => {
+                                                                                        navigator.clipboard.writeText(col.header);
+                                                                                        toast.success("Header copied");
+                                                                                    }}>
+                                                                                        <Copy className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Copy Header
+                                                                                    </DropdownMenuItem>
+                                                                                </DropdownMenuSubContent>
+                                                                            </DropdownMenuPortal>
+                                                                        </DropdownMenuSub>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            )}
+
+                                                            {col.pinned && (
+                                                                <Pin className={cn("h-3 w-3 text-primary", col.pinned === "right" && "rotate-180")} />
+                                                            )}
+                                                        </div>
                                                     )}
                                                     <div
                                                         className="absolute -right-1 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1820,7 +2088,7 @@ export function DataGrid<T extends object>({
                                             const isPinned = pinnedRows.has(id);
                                             const actions = rowActions ? (typeof rowActions === "function" ? rowActions(row) : rowActions) : [];
                                             return (
-                                                <React.Fragment key={id ?? ri}>
+                                                <React.Fragment key={id ? `${id}-${ri}` : ri}>
                                                     <tr
                                                         className={cn(
                                                             "border-b border-border/40 transition-all duration-200 group",

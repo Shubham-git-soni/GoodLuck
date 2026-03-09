@@ -18,14 +18,16 @@ import {
   CalendarCheck,
   BarChart3,
   List,
-  Plus,
   Edit,
+  Wallet,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
-import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
 import {
   BarChart,
@@ -44,14 +46,10 @@ import {
 import salesmenData from "@/lib/mock-data/salesmen.json";
 import schoolsData from "@/lib/mock-data/schools.json";
 
-const COLORS = {
-  primary: "#3b82f6",
-  success: "#10b981",
-  warning: "#f59e0b",
-  danger: "#ef4444",
-  purple: "#8b5cf6",
-  cyan: "#06b6d4",
-};
+const ORANGE = "#f97316";
+const GREEN = "#10b981";
+const GREY = "#9ca3af";
+const AMBER = "#f59e0b";
 
 export default function SalesmanDashboard() {
   const params = useParams();
@@ -63,38 +61,23 @@ export default function SalesmanDashboard() {
 
   useEffect(() => {
     setTimeout(() => {
-      const foundSalesman = salesmenData.find((s) => s.id === salesmanId);
-      if (foundSalesman) {
-        setSalesman(foundSalesman);
-
-        // Get assigned schools
-        const schools = schoolsData.filter((s) => s.assignedTo === foundSalesman.name);
-        setAssignedSchools(schools);
+      const found = salesmenData.find((s) => s.id === salesmanId);
+      if (found) {
+        setSalesman(found);
+        setAssignedSchools(schoolsData.filter((s) => s.assignedTo === found.name));
       }
       setIsLoading(false);
-    }, 800);
+    }, 600);
   }, [salesmanId]);
 
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <PageSkeleton />
-      </PageContainer>
-    );
-  }
+  if (isLoading) return <PageContainer><PageSkeleton /></PageContainer>;
 
   if (!salesman) {
     return (
       <PageContainer>
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-2">Salesman Not Found</h2>
-          <p className="text-muted-foreground mb-4">The requested salesman does not exist.</p>
-          <Link href="/admin/users">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to User Master
-            </Button>
-          </Link>
+        <div className="text-center py-16">
+          <h2 className="text-xl font-bold mb-2">Salesman Not Found</h2>
+          <Link href="/admin/users"><Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4 mr-1.5" />Back</Button></Link>
         </div>
       </PageContainer>
     );
@@ -104,8 +87,7 @@ export default function SalesmanDashboard() {
   const specimenUtilization = Math.round((salesman.specimenUsed / salesman.specimenBudget) * 100);
   const remainingBudget = salesman.specimenBudget - salesman.specimenUsed;
 
-  // Mock data for charts
-  const monthlyPerformance = [
+  const monthlyData = [
     { month: "Jan", achieved: 450000, target: 500000 },
     { month: "Feb", achieved: 520000, target: 550000 },
     { month: "Mar", achieved: 580000, target: 600000 },
@@ -114,428 +96,232 @@ export default function SalesmanDashboard() {
     { month: "Jun", achieved: salesman.salesAchieved, target: salesman.salesTarget },
   ];
 
-  const specimenBudgetData = [
-    { name: "Used Budget", value: salesman.specimenUsed, color: COLORS.primary },
-    { name: "Remaining Budget", value: remainingBudget, color: COLORS.success },
+  const specimenPie = [
+    { name: "Used", value: salesman.specimenUsed, fill: ORANGE },
+    { name: "Remaining", value: remainingBudget, fill: GREEN },
   ];
 
-  // Sales Policy Compliance (School Wise) - Mock data
-  const policyComplianceData = assignedSchools.slice(0, 10).map((school) => ({
-    school: school.name,
-    compliance: Math.floor(Math.random() * 40) + 60, // 60-100%
-  }));
+  const reportLinks = [
+    { label: "Manual Report", icon: FileText, href: `manual-report` },
+    { label: "School Sales Plan", icon: School, href: `school-sales-plan` },
+    { label: "Sales Plan Visit", icon: CalendarCheck, href: `sales-plan-visit` },
+    { label: "School List", icon: List, href: `school-list` },
+    { label: "Book Seller List", icon: Store, href: `bookseller-list` },
+    { label: "Attendance Report", icon: CalendarCheck, href: `attendance-report` },
+    { label: "School Visit Report", icon: BarChart3, href: `school-visit-report` },
+    { label: "Multiple Visit Report", icon: BarChart3, href: `multiple-visit-report` },
+    { label: "Book Seller Visit Report", icon: Store, href: `bookseller-visit-report` },
+    { label: "Delete School List", icon: List, href: null },
+    { label: "School List with IP", icon: List, href: null },
+    { label: "Summary Report", icon: FileText, href: null },
+    { label: "Merge Report", icon: FileText, href: null },
+    { label: "IP Report", icon: FileText, href: null },
+    { label: "Drop List", icon: List, href: null },
+  ];
 
-  // Try to Prescribe vs Specimen Given (School Wise) - Mock data
-  const prescribeVsSpecimenData = assignedSchools.slice(0, 8).map((school) => ({
-    school: school.name,
-    tryToPrescribe: Math.floor(Math.random() * 50) + 20,
-    specimenGiven: Math.floor(Math.random() * 40) + 10,
-  }));
+  const infoItems = [
+    { label: "ID", value: salesman.id, icon: User },
+    { label: "Email", value: salesman.email, icon: Mail },
+    { label: "Phone", value: salesman.phone || "N/A", icon: Phone },
+    { label: "State", value: salesman.state, icon: MapPin },
+    { label: "Working Cities", value: salesman.region, icon: MapPin },
+    { label: "Sales Target", value: `₹${(salesman.salesTarget / 100000).toFixed(2)}L`, icon: Target },
+    { label: "Specimen %", value: `${salesman.specimenTargetPercent || 15}%`, icon: BookOpen },
+    { label: "Specimen Budget", value: `₹${(salesman.specimenBudget / 100000).toFixed(2)}L`, icon: Wallet },
+  ];
 
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="mb-4 md:mb-6">
-        <Link href="/admin/users">
-          <Button variant="ghost" size="sm" className="mb-2 md:mb-4 text-xs md:text-sm">
-            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
-            <span className="hidden md:inline">Back to User Master</span>
-            <span className="md:hidden">Back</span>
+
+      {/* ── Top bar ──────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/users">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-lg font-bold leading-none">{salesman.name}</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">{salesman.id} · {salesman.state}</p>
+          </div>
+        </div>
+        <Link href={`/admin/team/${salesmanId}/edit`}>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8">
+            <Edit className="h-3.5 w-3.5" /> Edit
           </Button>
         </Link>
-        <h1 className="text-lg md:text-2xl font-bold tracking-tight">{salesman.name}&apos;s Dashboard</h1>
-        <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Comprehensive view of salesman performance and activities</p>
       </div>
 
-      {/* Profile Section */}
-      <Card className="mb-4 md:mb-6">
-        <CardHeader className="px-4 md:px-6 py-3 md:py-4">
-          <CardTitle className="text-sm md:text-lg flex items-center gap-2">
-            <User className="h-4 w-4 md:h-5 md:w-5" />
-            Profile Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-6 md:pb-6">
-          {/* Mobile: compact 2-col grid with grouped sections */}
-          <div className="md:hidden space-y-3">
-            {/* Identity group */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-muted/40 rounded-lg px-3 py-2.5 border-l-2 border-primary">
-                <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">ID</p>
-                <p className="text-[13px] font-bold text-primary mt-0.5 truncate">{salesman.id}</p>
+      {/* ── KPI strip ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Sales Target", value: `₹${(salesman.salesTarget / 100000).toFixed(1)}L`, sub: `Achieved ₹${(salesman.salesAchieved / 100000).toFixed(1)}L`, progress: salesAchievement, icon: Target, cls: "gradient-card-orange", color: "text-orange-500" },
+          { label: "Specimen Budget", value: `₹${(salesman.specimenBudget / 100000).toFixed(1)}L`, sub: `${salesman.specimenTargetPercent || 15}% of sales`, progress: null, icon: BookOpen, cls: "gradient-card-amber", color: "text-amber-500" },
+          { label: "Used Budget", value: `₹${(salesman.specimenUsed / 100000).toFixed(1)}L`, sub: `${specimenUtilization}% utilized`, progress: specimenUtilization, icon: TrendingUp, cls: "gradient-card-orange", color: "text-blue-500" },
+          { label: "Remaining", value: `₹${(remainingBudget / 100000).toFixed(1)}L`, sub: "Available for specimens", progress: null, icon: Wallet, cls: "gradient-card-neutral", color: "text-emerald-500" },
+        ].map((kpi) => (
+          <Card key={kpi.label} className={`border shadow-sm ${kpi.cls}`}>
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between mb-2">
+                <p className="text-[11px] text-muted-foreground font-medium">{kpi.label}</p>
+                <div className="p-1 rounded-md bg-background/60">
+                  <kpi.icon className={`h-3.5 w-3.5 ${kpi.color}`} />
+                </div>
               </div>
-              <div className="bg-muted/40 rounded-lg px-3 py-2.5 border-l-2 border-primary">
-                <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Name</p>
-                <p className="text-[13px] font-bold text-foreground mt-0.5 truncate">{salesman.name}</p>
-              </div>
-            </div>
-            {/* Contact group */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-muted/40 rounded-lg px-3 py-2.5 border-l-2 border-sky-400 col-span-2">
-                <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Email</p>
-                <p className="text-[13px] font-bold text-foreground mt-0.5 truncate">{salesman.email}</p>
-              </div>
-              <div className="bg-muted/40 rounded-lg px-3 py-2.5 border-l-2 border-sky-400">
-                <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Phone</p>
-                <p className="text-[13px] font-bold text-foreground mt-0.5">{salesman.phone || "N/A"}</p>
-              </div>
-              <div className="bg-muted/40 rounded-lg px-3 py-2.5 border-l-2 border-teal-400">
-                <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">State</p>
-                <p className="text-[13px] font-bold text-foreground mt-0.5 truncate">{salesman.state}</p>
-              </div>
-            </div>
-            {/* Targets group */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-emerald-50 rounded-lg px-3 py-2.5 border-l-2 border-emerald-500">
-                <p className="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Sales</p>
-                <p className="text-[13px] font-bold text-emerald-800 mt-0.5">₹{(salesman.salesTarget / 100000).toFixed(1)}L</p>
-              </div>
-              <div className="bg-amber-50 rounded-lg px-3 py-2.5 border-l-2 border-amber-400">
-                <p className="text-[9px] text-amber-600 font-semibold uppercase tracking-wider">Spec %</p>
-                <p className="text-[13px] font-bold text-amber-800 mt-0.5">{salesman.specimenTargetPercent || 15}%</p>
-              </div>
-              <div className="bg-amber-50 rounded-lg px-3 py-2.5 border-l-2 border-amber-400">
-                <p className="text-[9px] text-amber-600 font-semibold uppercase tracking-wider">Spec</p>
-                <p className="text-[13px] font-bold text-amber-800 mt-0.5">₹{(salesman.specimenBudget / 100000).toFixed(1)}L</p>
-              </div>
-            </div>
-            {/* Region */}
-            <div className="bg-muted/40 rounded-lg px-3 py-2.5 border-l-2 border-teal-400">
-              <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Working Cities</p>
-              <p className="text-[13px] font-bold text-foreground mt-0.5">{salesman.region}</p>
-            </div>
-          </div>
-          {/* Desktop: grid tiles */}
-          <div className="hidden md:grid md:grid-cols-3 gap-4">
-            <div className="bg-muted/30 p-3.5 rounded-xl border border-border/50">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Salesman ID</p>
-              <p className="text-base font-medium">{salesman.id}</p>
-            </div>
-            <div className="bg-muted/30 p-3.5 rounded-xl border border-border/50">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Salesman Name</p>
-              <p className="text-base font-medium">{salesman.name}</p>
-            </div>
-            <div className="bg-muted/30 p-3.5 rounded-xl border border-border/50">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Email</p>
-              <p className="text-base font-medium flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="truncate">{salesman.email}</span>
-              </p>
-            </div>
-            <div className="bg-muted/30 p-3.5 rounded-xl border border-border/50">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Contact Number</p>
-              <p className="text-base font-medium flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                {salesman.phone || "N/A"}
-              </p>
-            </div>
-            <div className="bg-emerald-50 p-3.5 rounded-xl border border-emerald-100">
-              <p className="text-[11px] text-emerald-600 uppercase font-semibold tracking-wider mb-1">Sales Target</p>
-              <p className="text-base font-medium text-emerald-800">₹{(salesman.salesTarget / 100000).toFixed(2)}L</p>
-            </div>
-            <div className="bg-amber-50 p-3.5 rounded-xl border border-amber-100">
-              <p className="text-[11px] text-amber-600 uppercase font-semibold tracking-wider mb-1">Specimen Target %</p>
-              <p className="text-base font-medium text-amber-800">{salesman.specimenTargetPercent || 15}%</p>
-            </div>
-            <div className="bg-amber-50 p-3.5 rounded-xl border border-amber-100">
-              <p className="text-[11px] text-amber-600 uppercase font-semibold tracking-wider mb-1">Specimen Target</p>
-              <p className="text-base font-medium text-amber-800">₹{(salesman.specimenBudget / 100000).toFixed(2)}L</p>
-            </div>
-            <div className="bg-muted/30 p-3.5 rounded-xl border border-border/50">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Working State</p>
-              <p className="text-base font-medium flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                {salesman.state}
-              </p>
-            </div>
-            <div className="bg-muted/30 p-3.5 rounded-xl border border-border/50">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Working Cities</p>
-              <p className="text-base font-medium">{salesman.region}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4 mb-4 md:mb-6">
-        <Card className="border-0 shadow-sm gradient-card-orange">
-          <CardContent className="p-2.5 md:p-4">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
-              <div className="p-1 md:p-1.5 rounded-lg bg-emerald-100">
-                <Target className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />
-              </div>
-            </div>
-            <p className="text-base md:text-xl font-bold tracking-tight">₹{(salesman.salesTarget / 100000).toFixed(1)}L</p>
-            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Sales Target</p>
-            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
-              <p className="text-[10px] text-muted-foreground">Achieved: ₹{(salesman.salesAchieved / 100000).toFixed(1)}L</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm gradient-card-amber">
-          <CardContent className="p-2.5 md:p-4">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
-              <div className="p-1 md:p-1.5 rounded-lg bg-amber-100">
-                <BookOpen className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />
-              </div>
-            </div>
-            <p className="text-base md:text-xl font-bold tracking-tight">₹{(salesman.specimenBudget / 100000).toFixed(1)}L</p>
-            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Specimen Target</p>
-            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
-              <p className="text-[10px] text-muted-foreground">{salesman.specimenTargetPercent || 15}% of sales</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm gradient-card-orange">
-          <CardContent className="p-2.5 md:p-4">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
-              <div className="p-1 md:p-1.5 rounded-lg bg-blue-100">
-                <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />
-              </div>
-            </div>
-            <p className="text-base md:text-xl font-bold tracking-tight">₹{(salesman.specimenUsed / 100000).toFixed(1)}L</p>
-            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Used Budget</p>
-            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
-              <p className="text-[10px] text-muted-foreground">{specimenUtilization}% utilized</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm gradient-card-neutral">
-          <CardContent className="p-2.5 md:p-4">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
-              <div className="p-1 md:p-1.5 rounded-lg bg-primary/10">
-                <Target className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
-              </div>
-            </div>
-            <p className="text-base md:text-xl font-bold tracking-tight">₹{(remainingBudget / 100000).toFixed(1)}L</p>
-            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">Remaining</p>
-            <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
-              <p className="text-[10px] text-muted-foreground">Available for specimens</p>
-            </div>
-          </CardContent>
-        </Card>
+              <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.sub}</p>
+              {kpi.progress !== null && (
+                <Progress value={kpi.progress} className="h-1 mt-2" />
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Performance Charts */}
-      <div className="grid gap-4 md:gap-6 md:grid-cols-2 mb-4 md:mb-6">
-        {/* Sales Target Achievement */}
-        <Card>
-          <CardHeader className="px-4 md:px-6 py-3 md:py-4">
-            <CardTitle className="text-sm md:text-lg flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
-              Sales Target Achievement
+      {/* ── Profile + Charts ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+
+        {/* Profile card */}
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 py-3 border-b">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
+                {salesman.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+              </div>
+              {salesman.name}
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={monthlyPerformance}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} tick={{ fontSize: 10 }} width={45} />
-                <Tooltip formatter={(value: any) => `₹${(value / 100000).toFixed(2)}L`} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="achieved" fill={COLORS.success} name="Achieved" />
-                <Bar dataKey="target" fill={COLORS.primary} name="Target" />
+          <CardContent className="px-4 py-3 space-y-2">
+            {infoItems.map((item) => (
+              <div key={item.label} className="flex items-center gap-2 text-xs">
+                <item.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground min-w-[80px]">{item.label}</span>
+                <span className="font-medium text-foreground truncate">{item.value}</span>
+              </div>
+            ))}
+            <div className="pt-2 border-t mt-2">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-xs text-muted-foreground">Achievement</span>
+                <span className="text-xs font-bold text-emerald-500 ml-auto">{salesAchievement}%</span>
+              </div>
+              <Progress value={salesAchievement} className="h-1.5 mt-1.5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Monthly Performance Chart */}
+        <Card className="border shadow-sm lg:col-span-2">
+          <CardHeader className="px-4 py-3 border-b">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Monthly Sales Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 pt-3 pb-2">
+            <ResponsiveContainer width="100%" height={190}>
+              <BarChart data={monthlyData} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} tick={{ fontSize: 10 }} width={42} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v: any) => `₹${(v / 100000).toFixed(2)}L`} cursor={{ fill: "transparent" }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
+                <Bar dataKey="target" name="Target" fill={GREY} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="achieved" name="Achieved" fill={ORANGE} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-3 md:mt-4 flex items-center justify-between px-2 md:px-0">
-              <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Current Achievement</p>
-                <p className="text-base md:text-lg font-bold">{salesAchievement}%</p>
-              </div>
-              <Progress value={salesAchievement} className="h-2 w-24 md:w-48" />
-            </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Specimen Budget Utilization */}
-        <Card>
-          <CardHeader className="px-4 md:px-6 py-3 md:py-4">
-            <CardTitle className="text-sm md:text-lg flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />
-              Specimen Budget Utilization
+      {/* ── Specimen Utilization + Schools ──────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+
+        {/* Specimen Pie */}
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 py-3 border-b">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Specimen Budget
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={220}>
+          <CardContent className="px-3 py-2">
+            <ResponsiveContainer width="100%" height={180}>
               <PieChart>
-                <Pie
-                  data={specimenBudgetData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `₹${(value / 100000).toFixed(1)}L`}
-                  outerRadius={75}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {specimenBudgetData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={specimenPie} cx="50%" cy="50%" innerRadius={55} outerRadius={80}
+                  paddingAngle={3} dataKey="value"
+                  label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
+                  labelLine={false}>
+                  {specimenPie.map((e, i) => <Cell key={i} fill={e.fill} />)}
                 </Pie>
-                <Tooltip formatter={(value: any) => `₹${(value / 100000).toFixed(2)}L`} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => `₹${(v / 100000).toFixed(2)}L`} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="mt-3 md:mt-4 text-center">
-              <p className="text-xs md:text-sm text-muted-foreground">Utilization Rate</p>
-              <p className="text-xl md:text-2xl font-bold">{specimenUtilization}%</p>
+            <p className="text-center text-xs text-muted-foreground mt-1">{specimenUtilization}% Utilized</p>
+          </CardContent>
+        </Card>
+
+        {/* Schools summary */}
+        <Card className="border shadow-sm lg:col-span-2">
+          <CardHeader className="px-4 py-3 border-b">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <School className="h-4 w-4 text-primary" />
+              Assigned Schools
+              <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">{assignedSchools.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 py-2">
+            <div className="space-y-1.5 max-h-[170px] overflow-y-auto pr-1 no-scrollbar">
+              {assignedSchools.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">No schools assigned</p>
+              ) : assignedSchools.slice(0, 12).map((sc: any, i: number) => (
+                <div key={sc.id} className="flex items-center gap-2 text-xs py-1 border-b border-border/50 last:border-0">
+                  <span className="text-[10px] text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                  <span className="font-medium flex-1 truncate">{sc.name}</span>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">{sc.board}</Badge>
+                  <span className="text-muted-foreground text-[10px] shrink-0">{(sc.strength || 0).toLocaleString()}</span>
+                </div>
+              ))}
+              {assignedSchools.length > 12 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">+{assignedSchools.length - 12} more schools</p>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Additional Charts */}
-      <div className="grid gap-4 md:gap-6 md:grid-cols-2 mb-4 md:mb-6">
-        {/* Sales Policy Compliance School Wise */}
-        <Card>
-          <CardHeader className="px-4 md:px-6 py-3 md:py-4">
-            <CardTitle className="text-sm md:text-lg">Sales Policy Compliance (School Wise)</CardTitle>
-          </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={policyComplianceData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
-                <YAxis type="category" dataKey="school" width={70} tick={{ fontSize: 9 }} />
-                <Tooltip />
-                <Bar dataKey="compliance" fill={COLORS.purple} name="Compliance %" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Try to Prescribe vs Specimen Given */}
-        <Card>
-          <CardHeader className="px-4 md:px-6 py-3 md:py-4">
-            <CardTitle className="text-sm md:text-lg">Prescribe vs Specimen (School Wise)</CardTitle>
-          </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={prescribeVsSpecimenData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="school" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 8 }} />
-                <YAxis tick={{ fontSize: 10 }} width={30} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Bar dataKey="tryToPrescribe" fill={COLORS.cyan} name="Prescribe" />
-                <Bar dataKey="specimenGiven" fill={COLORS.warning} name="Specimen" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Report Sections */}
-      <Card className="mb-4 md:mb-6">
-        <CardHeader className="px-4 md:px-6 py-3 md:py-4">
-          <CardTitle className="text-sm md:text-lg flex items-center gap-2">
-            <FileText className="h-4 w-4 md:h-5 md:w-5" />
-            Reports & Management
+      {/* ── Reports & Management ─────────────────────────────────── */}
+      <Card className="border shadow-sm">
+        <CardHeader className="px-4 py-3 border-b">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Reports &amp; Management
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-4 md:px-6">
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-            <Link href={`/admin/team/${salesmanId}/manual-report`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <FileText className="h-4 w-4 mr-2" />
-                Manual Report
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/school-sales-plan`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <School className="h-4 w-4 mr-2" />
-                School Sales Plan
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/sales-plan-visit`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <CalendarCheck className="h-4 w-4 mr-2" />
-                Sales Plan Visit
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/school-list`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <List className="h-4 w-4 mr-2" />
-                School List
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/bookseller-list`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <Store className="h-4 w-4 mr-2" />
-                Book Seller List
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/attendance-report`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <CalendarCheck className="h-4 w-4 mr-2" />
-                Attendance Report
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/school-visit-report`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                School Visit Report
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/multiple-visit-report`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Multiple Visit Report
-              </Button>
-            </Link>
-            <Link href={`/admin/team/${salesmanId}/bookseller-visit-report`}>
-              <Button variant="outline" className="justify-start h-auto py-3 w-full">
-                <Store className="h-4 w-4 mr-2" />
-                Book Seller Visit Report
-              </Button>
-            </Link>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <List className="h-4 w-4 mr-2" />
-              Delete School List
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <Plus className="h-4 w-4 mr-2" />
-              Add QB Stock
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <List className="h-4 w-4 mr-2" />
-              QB School List
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <School className="h-4 w-4 mr-2" />
-              QB Visit ICSC
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <School className="h-4 w-4 mr-2" />
-              QB Visit CBSE
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <List className="h-4 w-4 mr-2" />
-              School List with IP
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <FileText className="h-4 w-4 mr-2" />
-              Summary Report
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <FileText className="h-4 w-4 mr-2" />
-              Merge Report
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <FileText className="h-4 w-4 mr-2" />
-              IP Report
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3">
-              <List className="h-4 w-4 mr-2" />
-              Drop List
-            </Button>
+        <CardContent className="px-4 py-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {reportLinks.map((r) => {
+              const Icon = r.icon;
+              const inner = (
+                <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all cursor-pointer
+                  hover:border-primary hover:bg-primary/5 hover:text-primary group border-border bg-muted/30`}>
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
+                  <span className="truncate leading-none">{r.label}</span>
+                </div>
+              );
+              return r.href ? (
+                <Link key={r.label} href={`/admin/team/${salesmanId}/${r.href}`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={r.label}>{inner}</div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
+
     </PageContainer>
   );
 }

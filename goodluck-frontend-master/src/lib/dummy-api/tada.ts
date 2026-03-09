@@ -56,7 +56,7 @@ export async function updateTadaClaim(id: string, patch: Partial<TadaClaim>): Pr
   const all = getAll();
   const idx = all.findIndex(t => t.id === id);
   if (idx === -1) return null;
-  all[idx] = { ...all[idx], ...patch };
+  all[idx] = { ...all[idx], ...patch } as TadaClaim;
   persist(TADA_KEY, all);
   return all[idx];
 }

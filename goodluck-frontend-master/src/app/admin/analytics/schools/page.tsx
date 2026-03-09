@@ -19,7 +19,7 @@ import contactsData from "@/lib/mock-data/contact-persons.json";
 export default function SchoolAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>({});
-
+ 
   useEffect(() => {
     setTimeout(() => {
       const total = schoolsData.length;

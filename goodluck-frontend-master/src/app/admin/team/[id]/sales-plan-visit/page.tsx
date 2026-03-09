@@ -209,7 +209,7 @@ export default function SalesPlanVisitPage() {
     }, 400);
   }, [salesmanId]);
 
-  if (isLoading) return <PageContainer><PageSkeleton /></PageContainer>; LOADING_CHECK
+  if (isLoading) return <PageContainer><PageSkeleton /></PageContainer>;
 
   if (!salesman) {
     return (

@@ -1319,63 +1319,61 @@ export function DataGrid<T extends object>({
 
                                 <DropdownMenuSeparator />
 
-                                {/* Layout & View Submenu (desktop only) */}
-                                {!isMobile && (
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger>
-                                            <LayoutGrid className="h-4 w-4 mr-2" />
-                                            Layout & View
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuPortal>
-                                            <DropdownMenuSubContent className="w-56">
-                                                {/* View Options */}
-                                                <div className="px-2 py-1.5">
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
-                                                    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${3 + extraViews.length}, 1fr)` }}>
-                                                        <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                            <List className="h-3.5 w-3.5" /> List
+                                {/* Layout & View Submenu */}
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                        <LayoutGrid className="h-4 w-4 mr-2" />
+                                        Layout & View
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                        <DropdownMenuSubContent className="w-56">
+                                            {/* View Options */}
+                                            <div className="px-2 py-1.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
+                                                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${3 + extraViews.length}, 1fr)` }}>
+                                                    <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                        <List className="h-3.5 w-3.5" /> List
+                                                    </button>
+                                                    <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                        <LayoutGrid className="h-3.5 w-3.5" /> Card
+                                                    </button>
+                                                    <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                        <TableIcon className="h-3.5 w-3.5" /> Grid
+                                                    </button>
+                                                    {extraViews.map(ev => (
+                                                        <button key={ev.key} onClick={() => setViewMode(ev.key)} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === ev.key ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            {ev.icon} {ev.label}
                                                         </button>
-                                                        <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                            <LayoutGrid className="h-3.5 w-3.5" /> Card
-                                                        </button>
-                                                        <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                            <TableIcon className="h-3.5 w-3.5" /> Grid
-                                                        </button>
-                                                        {extraViews.map(ev => (
-                                                            <button key={ev.key} onClick={() => setViewMode(ev.key)} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === ev.key ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                                {ev.icon} {ev.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                    ))}
                                                 </div>
-                                                <DropdownMenuSeparator />
-                                                {/* Density Options */}
-                                                <div className="px-2 py-1.5">
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Density</p>
-                                                    <div className="flex flex-col gap-1">
-                                                        <button onClick={() => setDensity("compact")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "compact" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                            <Minus className="h-3.5 w-3.5" /> Compact
-                                                            {density === "compact" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                        </button>
-                                                        <button onClick={() => setDensity("normal")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "normal" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                            <Rows3 className="h-3.5 w-3.5" /> Normal
-                                                            {density === "normal" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                        </button>
-                                                        <button onClick={() => setDensity("comfortable")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "comfortable" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                            <SquareStack className="h-3.5 w-3.5" /> Comfortable
-                                                            {density === "comfortable" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                        </button>
-                                                    </div>
+                                            </div>
+                                            <DropdownMenuSeparator />
+                                            {/* Density Options */}
+                                            <div className="px-2 py-1.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Density</p>
+                                                <div className="flex flex-col gap-1">
+                                                    <button onClick={() => setDensity("compact")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "compact" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                        <Minus className="h-3.5 w-3.5" /> Compact
+                                                        {density === "compact" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                    </button>
+                                                    <button onClick={() => setDensity("normal")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "normal" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                        <Rows3 className="h-3.5 w-3.5" /> Normal
+                                                        {density === "normal" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                    </button>
+                                                    <button onClick={() => setDensity("comfortable")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "comfortable" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                        <SquareStack className="h-3.5 w-3.5" /> Comfortable
+                                                        {density === "comfortable" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                    </button>
                                                 </div>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)} className="text-xs">
-                                                    {fullscreen ? <Minimize2 className="h-3.5 w-3.5 mr-2" /> : <Maximize2 className="h-3.5 w-3.5 mr-2" />}
-                                                    {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                                                </DropdownMenuItem>
-                                            </DropdownMenuSubContent>
-                                        </DropdownMenuPortal>
-                                    </DropdownMenuSub>
-                                )}
+                                            </div>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)} className="text-xs">
+                                                {fullscreen ? <Minimize2 className="h-3.5 w-3.5 mr-2" /> : <Maximize2 className="h-3.5 w-3.5 mr-2" />}
+                                                {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                </DropdownMenuSub>
 
                                 {/* Export / Import Submenu */}
                                 <DropdownMenuSub>
@@ -1635,16 +1633,16 @@ export function DataGrid<T extends object>({
             {/* ── Loading State ── */}
             {loading && <Skeleton rows={6} cols={visibleCols.length} />}
 
-            {/* ── Desktop Extra View (chart or custom) ── */}
+            {/* ── Extra View (chart or custom) ── */}
             {!loading && extraViews.some(ev => ev.key === viewMode) && (
-                <div className="hidden md:block p-4">
+                <div className="p-4">
                     {extraViews.find(ev => ev.key === viewMode)?.render(processed)}
                 </div>
             )}
 
-            {/* ── Desktop Card / Grid View ── */}
+            {/* ── Card / Grid View ── */}
             {!loading && (viewMode === "card" || viewMode === "grid") && (
-                <div className="hidden md:block">
+                <div className="block">
                     {cardRender ? (
                         <div
                             className="overflow-auto p-4"
@@ -2298,7 +2296,7 @@ export function DataGrid<T extends object>({
 
             {/* ── Mobile Cards ── */}
             {
-                !loading && (
+                !loading && viewMode === "list" && (
                     <div
                         className="md:hidden overflow-y-auto p-3 space-y-3"
                         style={{ maxHeight: fullscreen ? "calc(100vh - 260px)" : `${maxHeight}px` }}

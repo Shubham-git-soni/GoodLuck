@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   Settings, Plus, Trash2, Pencil, Check, X,
   Search, BookOpen, User, Target, Layers,
@@ -17,6 +17,23 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 import rawData from "@/lib/mock-data/dropdown-options.json";
+
+const DROPDOWN_KEY = "db_dropdown_options";
+
+function loadDropdownData(): Record<string, string[]> {
+  if (typeof window === "undefined") return rawData as any;
+  const stored = localStorage.getItem(DROPDOWN_KEY);
+  if (stored) {
+    try { return JSON.parse(stored); } catch {}
+  }
+  const initial = rawData as any;
+  localStorage.setItem(DROPDOWN_KEY, JSON.stringify(initial));
+  return initial;
+}
+
+function persistDropdownData(data: Record<string, string[]>) {
+  if (typeof window !== "undefined") localStorage.setItem(DROPDOWN_KEY, JSON.stringify(data));
+}
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -169,6 +186,12 @@ function MobileItemsList({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function DropdownManagerPage() {
   const [data, setData] = useState<Record<string, string[]>>(rawData as any);
+
+  // Load from localStorage on mount
+  useEffect(() => { setData(loadDropdownData()); }, []);
+
+  // Persist to localStorage whenever data changes
+  useEffect(() => { persistDropdownData(data); }, [data]);
   const [activeCat, setActiveCat] = useState(CATEGORIES[0].key as string);
   const [sideSearch, setSideSearch] = useState("");
   // Mobile: null = category list, string = detail view for that category

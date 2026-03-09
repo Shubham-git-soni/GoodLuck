@@ -17,6 +17,7 @@
 import { mockTourPlans } from "@/lib/mock-data/tour-plans";
 import type { TourPlan, TourPlanStatus } from "@/lib/mock-data/tour-plans";
 import tadaClaimsData from "@/lib/mock-data/tada-claims.json";
+import notificationsJson from "@/lib/mock-data/notifications.json";
 
 const DELAY = 500;
 
@@ -456,11 +457,13 @@ export interface SalesmanNotification {
 }
 
 function seedSalesmanNotifs(): SalesmanNotification[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return notificationsJson as SalesmanNotification[];
   const stored = localStorage.getItem(SALESMAN_NOTIFICATIONS_KEY);
   if (stored) return JSON.parse(stored) as SalesmanNotification[];
-  // On first load, seed from the static notifications.json structure
-  return [];
+  // Seed from notifications.json on first load
+  const seeded = notificationsJson as SalesmanNotification[];
+  localStorage.setItem(SALESMAN_NOTIFICATIONS_KEY, JSON.stringify(seeded));
+  return seeded;
 }
 
 function persistSalesmanNotifs(data: SalesmanNotification[]) {

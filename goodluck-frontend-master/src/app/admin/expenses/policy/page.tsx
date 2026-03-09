@@ -63,8 +63,9 @@ export default function AdminExpensePolicyPage() {
   const [showCustomType, setShowCustomType] = useState(false);
 
   useEffect(() => {
-    const policiesData = require("@/lib/mock-data/expense-policies.json");
-    setPolicies(policiesData);
+    import("@/lib/dummy-api").then(({ getExpensePolicies }) =>
+      getExpensePolicies().then(setPolicies)
+    );
   }, []);
 
   const resetForm = () => {
@@ -92,19 +93,33 @@ export default function AdminExpensePolicyPage() {
     setDeleteDialog({ open: true, policyId, expenseType });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
+    const { deleteExpensePolicy } = await import("@/lib/dummy-api");
+    await deleteExpensePolicy(deleteDialog.policyId);
+    setPolicies(prev => prev.filter(p => p.id !== deleteDialog.policyId));
     toast.error(`"${deleteDialog.expenseType}" policy has been removed`);
     setDeleteDialog({ open: false, policyId: "", expenseType: "" });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.expenseType || !formData.dailyLimit) {
       toast.error("Please fill in all required fields");
       return;
     }
+    const { addExpensePolicy, updateExpensePolicy } = await import("@/lib/dummy-api");
+    const payload = {
+      expenseType: formData.expenseType,
+      dailyLimit: Number(formData.dailyLimit),
+      description: formData.description,
+      receiptRequired: formData.receiptRequired,
+    };
     if (editingPolicy) {
+      const updated = await updateExpensePolicy(editingPolicy.id, payload);
+      if (updated) setPolicies(prev => prev.map(p => p.id === updated.id ? updated : p));
       toast.success(`"${formData.expenseType}" policy has been updated`);
     } else {
+      const created = await addExpensePolicy(payload);
+      setPolicies(prev => [...prev, created]);
       toast.success(`"${formData.expenseType}" policy has been created`);
     }
     resetForm();

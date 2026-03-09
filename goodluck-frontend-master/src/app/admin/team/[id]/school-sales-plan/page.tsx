@@ -3,62 +3,289 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  School as SchoolIcon,
-  Download,
-  Filter,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, BarChart2 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
+import { DataGrid } from "@/components/ui/data-grid";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 import salesmenData from "@/lib/mock-data/salesmen.json";
 import schoolsData from "@/lib/mock-data/schools.json";
 
-// Mock school sales plan data
-const generateSchoolSalesPlan = (schools: any[]) => {
-  const purposes = [
-    "New Adoption",
-    "Renewal",
-    "Specimen Distribution",
-    "Relationship Building",
-    "Follow-up",
-    "Introduction",
+// ─── Structured Mock Data ────────────────────────────────────────────────────
+const MOCK_PLANS = [
+  {
+    schoolName: "Public School",
+    purposes: ["1. Marketing Brochures"],
+    specimen: [],
+    tryToPrescribe: 0,
+    target: 0,
+    achieved: 0,
+  },
+  {
+    schoolName: "Abc Public School",
+    purposes: ["1.", "2. Marketing Brochures", "3. Marketing Brochures", "4. Marketing Brochures", "5. Given Specimen"],
+    specimen: ["1 set Artificial Intelligence and Coding 1-8"],
+    tryToPrescribe: 5,
+    target: 80000,
+    achieved: 0,
+  },
+  {
+    schoolName: "Academic Heights Public School",
+    purposes: ["1.", "2. Product Demo", "3. Marketing Brochures", "4. Marketing Brochures", "5. Marketing Brochures", "6. Given Specimen", "7. Given Specimen", "8. Feedback"],
+    specimen: [
+      "1 set Happy Faces (With Hindi) A",
+      "1 set Happy Faces (With Hindi) B",
+      "1 set Happy Faces (With Hindi) C",
+      "1 set Basic English Grammar and Composition 1-8",
+      "1 set Modern Science and Technology 3",
+      "1 set Modern Science and Technology 4",
+      "1 set Modern Science and Technology 5",
+      "1 set Go for Social Studies 3",
+      "1 set Go for Social Studies 4",
+      "1 set Go for Social Studies 5",
+      "1 set Our Green World 1",
+      "1 set Our Green World 2",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 1",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 2",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 3",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 4",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 5",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 6",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 7",
+      "1 set Nai Mil Hindi Vyakaran & Rachna 8",
+    ],
+    tryToPrescribe: 20,
+    target: 350000,
+    achieved: 0,
+  },
+  {
+    schoolName: "Academic World School",
+    purposes: ["1."],
+    specimen: [],
+    tryToPrescribe: 0,
+    target: 0,
+    achieved: 0,
+  },
+  {
+    schoolName: "Aditya Public School",
+    purposes: ["1.", "2. Marketing Brochures", "3. Marketing Brochures", "4. Given Specimen"],
+    specimen: [
+      "1 set Happy Faces (With Hindi) C",
+      "1 set A Book of Moral Science (Activity) 1-8",
+    ],
+    tryToPrescribe: 8,
+    target: 120000,
+    achieved: 0,
+  },
+  {
+    schoolName: "Bright Future School",
+    purposes: ["1. Marketing Brochures", "2. Product Demo", "3. Given Specimen"],
+    specimen: [
+      "1 set Creative Hands A-8",
+      "1 set Speak & Write 1-8",
+      "1 set Know It Now GK 1-8",
+    ],
+    tryToPrescribe: 12,
+    target: 200000,
+    achieved: 145000,
+  },
+  {
+    schoolName: "Delhi Public School",
+    purposes: ["1. Marketing Brochures", "2. Given Specimen", "3. Feedback"],
+    specimen: [
+      "1 set Innovative Biology 6-8",
+      "1 set Innovative Chemistry 6-8",
+      "1 set Innovative Physics 6-8",
+      "1 set Lab Manual 9-10",
+    ],
+    tryToPrescribe: 15,
+    target: 450000,
+    achieved: 380000,
+  },
+  {
+    schoolName: "Greenwood International School",
+    purposes: ["1. Product Demo", "2. Marketing Brochures", "3. Given Specimen"],
+    specimen: [
+      "1 set Happy Faces A",
+      "1 set Happy Faces B",
+      "1 set Candy Cursive 1-8",
+    ],
+    tryToPrescribe: 10,
+    target: 175000,
+    achieved: 90000,
+  },
+  {
+    schoolName: "Holy Cross Convent School",
+    purposes: ["1. Marketing Brochures", "2. Given Specimen"],
+    specimen: [
+      "1 set Rashmi Hindi 1-8",
+      "1 set Nai Kiran Hindi 1-8",
+      "1 set Chhavi Sulekh Mala 0-7",
+    ],
+    tryToPrescribe: 18,
+    target: 280000,
+    achieved: 210000,
+  },
+  {
+    schoolName: "St. Mary's Public School",
+    purposes: ["1. Product Demo", "2. Marketing Brochures", "3. Marketing Brochures", "4. Given Specimen", "5. Feedback"],
+    specimen: [
+      "1 set Conquer English CB 1-8",
+      "1 set Conquer English WB 1-8",
+      "1 set Smart English 6-8",
+      "1 set BEG 1-8",
+    ],
+    tryToPrescribe: 22,
+    target: 520000,
+    achieved: 420000,
+  },
+  {
+    schoolName: "Modern Academy",
+    purposes: ["1. Marketing Brochures"],
+    specimen: ["1 set Colour Canvas A-8"],
+    tryToPrescribe: 6,
+    target: 95000,
+    achieved: 40000,
+  },
+  {
+    schoolName: "Sunrise Public School",
+    purposes: ["1. Marketing Brochures", "2. Given Specimen"],
+    specimen: [
+      "1 set Patterns Semester 1-5",
+      "1 set Sunshine Semester LKG-5",
+    ],
+    tryToPrescribe: 9,
+    target: 150000,
+    achieved: 0,
+  },
+];
+
+// ─── Chart View Component ────────────────────────────────────────────────────
+const CHART_COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4"];
+
+function SalesPlanChartView({ data }: { data: any[] }) {
+  const chartData = data
+    .filter((r) => r.target > 0)
+    .map((r) => ({
+      name: r.schoolName.length > 18 ? r.schoolName.slice(0, 18) + "…" : r.schoolName,
+      target: Math.round(r.target / 1000),
+      achieved: Math.round(r.achieved / 1000),
+    }))
+    .sort((a, b) => b.target - a.target)
+    .slice(0, 10);
+
+  const totalTarget = data.reduce((s, r) => s + r.target, 0);
+  const totalAchieved = data.reduce((s, r) => s + r.achieved, 0);
+  const totalPending = totalTarget - totalAchieved;
+
+  const achievementPieData = [
+    { name: "Achieved", value: totalAchieved, fill: "#10b981" },
+    { name: "Pending", value: totalPending > 0 ? totalPending : 0, fill: "#f97316" },
   ];
 
-  return schools.map((school, index) => ({
-    sno: index + 1,
-    schoolId: school.id,
-    schoolName: school.name,
-    purpose: purposes[Math.floor(Math.random() * purposes.length)],
-    tryToPrescribe: Math.floor(Math.random() * 50) + 10,
-    specimenGiven: Math.floor(Math.random() * 40) + 5,
-    target: Math.floor(Math.random() * 200000) + 50000,
-    achieved: Math.floor(Math.random() * 150000) + 20000,
-  }));
-};
+  const purposeCount: Record<string, number> = {};
+  data.forEach((r) => {
+    r.purposeList?.forEach((p: string) => {
+      const key = p.replace(/^\d+\.\s*/, "").trim();
+      if (key) purposeCount[key] = (purposeCount[key] || 0) + 1;
+    });
+  });
+  const purposeData = Object.entries(purposeCount)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
 
+  return (
+    <div className="space-y-6 p-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Target vs Achieved Bar Chart */}
+        <div className="bg-card border rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3">Top Schools — Target vs Achieved (₹K)</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData} layout="vertical" barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${v}K`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
+              <Tooltip formatter={(v: number) => `₹${v}K`} cursor={{ fill: "transparent" }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="target" name="Target" fill="#f97316" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="achieved" name="Achieved" fill="#10b981" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Overall Achievement Pie */}
+        <div className="bg-card border rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3">Overall Achievement</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie
+                data={achievementPieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={3}
+                dataKey="value"
+                label={({ name, percent }) =>
+                  `${name} ${Math.round((percent ?? 0) * 100)}%`
+                }
+                labelLine={false}
+              >
+                {achievementPieData.map((entry, i) => (
+                  <Cell key={i} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v: number) => `₹${(v / 100000).toFixed(2)}L`} />
+              <Legend wrapperStyle={{ paddingTop: 10, fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="text-center mt-2">
+            <p className="text-xs text-muted-foreground">Total Target</p>
+            <p className="text-lg font-bold text-orange-500">₹{(totalTarget / 100000).toFixed(2)}L</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Purpose Distribution */}
+      {purposeData.length > 0 && (
+        <div className="bg-card border rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3">Purpose Distribution (Top Activities)</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={purposeData} barCategoryGap="30%">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={30} />
+              <Tooltip cursor={{ fill: "transparent" }} />
+              <Bar dataKey="value" name="Schools" radius={[4, 4, 0, 0]}>
+                {purposeData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function SchoolSalesPlanPage() {
   const params = useParams();
   const salesmanId = params.id as string;
@@ -66,11 +293,6 @@ export default function SchoolSalesPlanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [salesman, setSalesman] = useState<any>(null);
   const [salesPlanData, setSalesPlanData] = useState<any[]>([]);
-  const [filteredData, setFilteredData] = useState<any[]>([]);
-
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [purposeFilter, setPurposeFilter] = useState("all");
 
   useEffect(() => {
     setTimeout(() => {
@@ -78,36 +300,32 @@ export default function SchoolSalesPlanPage() {
       if (foundSalesman) {
         setSalesman(foundSalesman);
 
-        // Get assigned schools and generate sales plan
+        // Merge mock plans with assigned schools
         const assignedSchools = schoolsData.filter(
-          (s) => s.assignedTo === foundSalesman.name
+          (s: any) => s.assignedTo === foundSalesman.name
         );
-        const planData = generateSchoolSalesPlan(assignedSchools);
-        setSalesPlanData(planData);
-        setFilteredData(planData);
+
+        const mapped = MOCK_PLANS.map((plan, idx) => {
+          const school = assignedSchools[idx] || {};
+          return {
+            id: school.id || `PLAN-${idx + 1}`,
+            sno: idx + 1,
+            schoolName: plan.schoolName,
+            board: (school as any).board || "CBSE",
+            purposeList: plan.purposes,
+            purpose: plan.purposes.join("\n"),
+            tryToPrescribe: plan.tryToPrescribe,
+            specimenGiven: plan.specimen.join("\n"),
+            target: plan.target,
+            achieved: plan.achieved,
+          };
+        });
+
+        setSalesPlanData(mapped);
       }
       setIsLoading(false);
     }, 500);
   }, [salesmanId]);
-
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...salesPlanData];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter((item) =>
-        item.schoolName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Purpose filter
-    if (purposeFilter !== "all") {
-      filtered = filtered.filter((item) => item.purpose === purposeFilter);
-    }
-
-    setFilteredData(filtered);
-  }, [searchQuery, purposeFilter, salesPlanData]);
 
   if (isLoading) {
     return (
@@ -133,31 +351,112 @@ export default function SchoolSalesPlanPage() {
     );
   }
 
-  // Calculate summary statistics
-  const totalTarget = filteredData.reduce((sum, item) => sum + item.target, 0);
-  const totalAchieved = filteredData.reduce((sum, item) => sum + item.achieved, 0);
-  const totalTryToPrescribe = filteredData.reduce(
-    (sum, item) => sum + item.tryToPrescribe,
-    0
-  );
-  const totalSpecimenGiven = filteredData.reduce(
-    (sum, item) => sum + item.specimenGiven,
-    0
-  );
-  const achievementPercentage = totalTarget > 0
-    ? Math.round((totalAchieved / totalTarget) * 100)
-    : 0;
+  const columns = [
+    {
+      key: "sno",
+      header: "#",
+      width: 55,
+      sortable: false,
+    },
+    {
+      key: "schoolName",
+      header: "School Name",
+      sortable: true,
+      filterable: true,
+      minWidth: 200,
+      render: (value: string) => (
+        <span className="font-semibold text-primary">{value}</span>
+      ),
+    },
+    {
+      key: "purpose",
+      header: "Purpose",
+      minWidth: 200,
+      render: (value: string) => (
+        <div className="space-y-0.5 py-1">
+          {value.split("\n").filter(Boolean).map((p, i) => (
+            <p key={i} className="text-xs text-muted-foreground leading-snug">{p}</p>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "tryToPrescribe",
+      header: "Try to Prescribe",
+      type: "number" as const,
+      sortable: true,
+      width: 140,
+      render: (value: number) => (
+        <span className="font-semibold">{value || "—"}</span>
+      ),
+    },
+    {
+      key: "specimenGiven",
+      header: "Specimen Given",
+      minWidth: 270,
+      render: (value: string) =>
+        value ? (
+          <div className="space-y-0.5 py-1">
+            {value.split("\n").map((s, i) => (
+              <p key={i} className="text-xs text-muted-foreground leading-snug">{s}</p>
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground/40 text-xs">—</span>
+        ),
+    },
+    {
+      key: "target",
+      header: "Target",
+      type: "number" as const,
+      sortable: true,
+      width: 110,
+      render: (value: number) => (
+        <span className="font-semibold text-orange-500">
+          {value > 0 ? `₹${(value / 1000).toFixed(0)}K` : "0"}
+        </span>
+      ),
+    },
+    {
+      key: "achieved",
+      header: "Achieved",
+      type: "number" as const,
+      sortable: true,
+      width: 110,
+      render: (value: number, row: any) => {
+        if (!row.target) return <span className="text-muted-foreground">0</span>;
+        const pct = Math.round((value / row.target) * 100);
+        const color =
+          pct >= 80 ? "text-emerald-600" : pct >= 40 ? "text-amber-500" : "text-rose-500";
+        return (
+          <div>
+            <span className={`font-semibold ${color}`}>
+              {value > 0 ? `₹${(value / 1000).toFixed(0)}K` : "0"}
+            </span>
+            {value > 0 && (
+              <p className={`text-[10px] ${color}`}>{pct}%</p>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
 
-  // Get unique purposes for filter
-  const purposes = Array.from(new Set(salesPlanData.map((item) => item.purpose))).sort();
+  const extraViews = [
+    {
+      key: "chart",
+      icon: <BarChart2 className="h-4 w-4" />,
+      label: "Chart",
+      render: (data: any[]) => <SalesPlanChartView data={data} />,
+    },
+  ];
 
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <Link href={`/admin/team/${salesmanId}`}>
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <Button variant="ghost" size="sm" className="mb-2 md:mb-4 text-xs md:text-sm">
+            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
             Back to Dashboard
           </Button>
         </Link>
@@ -167,197 +466,17 @@ export default function SchoolSalesPlanPage() {
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Schools</p>
-              <SchoolIcon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold">{filteredData.length}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Target</p>
-            </div>
-            <p className="text-2xl font-bold">₹{(totalTarget / 100000).toFixed(1)}L</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Achieved: ₹{(totalAchieved / 100000).toFixed(1)}L
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Achievement</p>
-            </div>
-            <p className="text-2xl font-bold">{achievementPercentage}%</p>
-            <div className="w-full bg-muted rounded-full h-2 mt-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Specimens</p>
-            </div>
-            <p className="text-2xl font-bold">{totalSpecimenGiven}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Try to Prescribe: {totalTryToPrescribe}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Actions */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters & Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by school name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by purpose" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Purposes</SelectItem>
-                {purposes.map((purpose) => (
-                  <SelectItem key={purpose} value={purpose}>
-                    {purpose}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* School Sales Plan Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <SchoolIcon className="h-5 w-5" />
-            School Sales Plan ({filteredData.length} schools)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60px]">S.No</TableHead>
-                  <TableHead className="min-w-[200px]">School Name</TableHead>
-                  <TableHead className="min-w-[150px]">Purpose</TableHead>
-                  <TableHead className="text-right">Try to Prescribe</TableHead>
-                  <TableHead className="text-right">Specimen Given</TableHead>
-                  <TableHead className="text-right">Target (₹)</TableHead>
-                  <TableHead className="text-right">Achieved (₹)</TableHead>
-                  <TableHead className="text-center">Achievement %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      No schools found matching your criteria
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((item) => {
-                    const achievementPercent = Math.round(
-                      (item.achieved / item.target) * 100
-                    );
-
-                    return (
-                      <TableRow key={item.sno}>
-                        <TableCell className="font-medium">{item.sno}</TableCell>
-                        <TableCell className="font-medium">{item.schoolName}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.purpose}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{item.tryToPrescribe}</TableCell>
-                        <TableCell className="text-right">{item.specimenGiven}</TableCell>
-                        <TableCell className="text-right">
-                          ₹{(item.target / 1000).toFixed(1)}K
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ₹{(item.achieved / 1000).toFixed(1)}K
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              achievementPercent >= 80
-                                ? "default"
-                                : achievementPercent >= 50
-                                ? "secondary"
-                                : "destructive"
-                            }
-                          >
-                            {achievementPercent}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Table Footer Summary */}
-          {filteredData.length > 0 && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Total Schools</p>
-                  <p className="font-bold text-lg">{filteredData.length}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Try to Prescribe</p>
-                  <p className="font-bold text-lg">{totalTryToPrescribe}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Specimen Given</p>
-                  <p className="font-bold text-lg">{totalSpecimenGiven}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Overall Achievement</p>
-                  <p className="font-bold text-lg">{achievementPercentage}%</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <DataGrid
+        data={salesPlanData}
+        columns={columns}
+        rowKey="id"
+        title={`${salesman.name} — School Sales Plan`}
+        description={`${salesPlanData.length} schools`}
+        showStats
+        density="comfortable"
+        extraViews={extraViews}
+        onExport={(data, format) => console.log("Export", format, data)}
+      />
     </PageContainer>
   );
 }

@@ -5,38 +5,16 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  School as SchoolIcon,
-  Download,
-  Filter,
-  Search,
+  BarChart2,
   Eye,
   Edit,
   Trash2,
-  Phone,
-  Mail,
-  MapPin,
 } from "lucide-react";
 import PageContainer from "@/components/layouts/PageContainer";
 import PageHeader from "@/components/layouts/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PageSkeleton } from "@/components/ui/skeleton-loaders";
+import { DataGrid } from "@/components/ui/data-grid";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,389 +23,249 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PageSkeleton } from "@/components/ui/skeleton-loaders";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 import salesmenData from "@/lib/mock-data/salesmen.json";
-import schoolsData from "@/lib/mock-data/schools.json";
-import visitsData from "@/lib/mock-data/visits.json";
 
-// Generate enhanced school data with additional fields
-const generateEnhancedSchoolData = (schools: any[], salesmanId: string) => {
-  return schools.map((school, index) => {
-    // Count visits for this school by this salesman
-    const schoolVisits = visitsData.filter(
-      (v) => v.salesmanId === salesmanId && v.schoolId === school.id && v.type === "school"
-    );
+// ─── Mock Data exactly matching screenshot ────────────────────────────────────
+const MOCK_SCHOOLS = [
+  { schoolName: "Public School", id: "3701", board: "CBSE", strength: 800, contact: "", email: "contact@gorakhpurpublicschool.in", visits: 1, address: "Rustampur", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Abc Public School", id: "27008", board: "CBSE", strength: 2000, contact: "8833170149", email: "schoolabcpublic@gmail.com", visits: 5, address: "Divya nagar", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Academic Hights Public School", id: "37093", board: "CBSE", strength: 2000, contact: "", email: "support@academicheights.in", visits: 8, address: "Pipraich Road", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Academic World School", id: "43393", board: "CBSE", strength: 800, contact: "0", email: "", visits: 1, address: "Jughu", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Aditya Public School", id: "2700", board: "CBSE", strength: 1000, contact: "", email: "adityapublicschool@gmail.com", visits: 8, address: "Jughu", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Alma Mater The School", id: "27000", board: "CBSE", strength: 600, contact: "9792530417", email: "almamaterthschool@gmail.com", visits: 4, address: "Maaniram", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Amar Singh Public School", id: "49039", board: "CBSE", strength: 500, contact: "0", email: "", visits: 1, address: "Arya Nagar", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Apex Public School", id: "27018", board: "ICSE", strength: 300, contact: "9986051747", email: "apexschool@gmail.com", visits: 5, address: "Guhatiya", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "B N Public School", id: "2710", board: "CBSE", strength: 1200, contact: "", email: "bnsgpko@gmail.com", visits: 11, address: "Shahjanawa", state: "Uttar Pradesh", city: "Gorakhpur", station: "Gorakhpur" },
+  { schoolName: "Bishop Academy", id: "37093", board: "CBSE", strength: 2500, contact: "", email: "info@bishopacademy.in", visits: 0, address: "Near Kachahari", state: "Uttar Pradesh", city: "Maharajganj", station: "Maharajganj" },
+  { schoolName: "Blooming Buds Convent School", id: "27043", board: "CBSE", strength: 1000, contact: "9838477751", email: "bbdshastrig@gmail.com", visits: 1, address: "Gandhigali", state: "Uttar Pradesh", city: "Basti", station: "Basti" },
+];
 
+function buildRows() {
+  return MOCK_SCHOOLS.map((s, i) => {
+    // Generate random target just to have data (screenshot showed blank but we need it for charts/stats)
+    const target = Math.floor(Math.random() * 200000) + 50000;
     return {
-      srNo: index + 1,
-      schoolId: school.id,
-      schoolName: school.name,
-      board: school.board,
-      strength: school.strength,
-      contact: school.phone || `+91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      email: school.email || `${school.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@school.com`,
-      visits: schoolVisits.length,
-      address: school.address,
-      state: school.state,
-      city: school.city,
-      station: school.station || school.city,
-      salesTarget: Math.floor(Math.random() * 500000) + 100000,
-      tryToPrescribe: Math.floor(Math.random() * 50) + 10,
+      rowId: `SCH-${i + 1}`,
+      sno: i + 1,
+      ...s,
+      salesTarget: target,
     };
   });
-};
+}
 
+// ─── Chart View ──────────────────────────────────────────────────────────────
+const CHART_PALETTE = ["#f97316", "#9ca3af", "#10b981", "#3b82f6", "#f59e0b"];
+
+function SchoolListChartView({ data }: { data: any[] }) {
+  // Board Distribution
+  const boardMap: Record<string, number> = {};
+  data.forEach((r) => {
+    boardMap[r.board] = (boardMap[r.board] || 0) + 1;
+  });
+  const boardPie = Object.entries(boardMap).map(([name, value]) => ({ name, value }));
+
+  // Top Schools by Strength
+  const strengthBar = [...data]
+    .sort((a, b) => b.strength - a.strength)
+    .slice(0, 8)
+    .map((r) => ({
+      name: r.schoolName.length > 15 ? r.schoolName.slice(0, 15) + "…" : r.schoolName,
+      strength: r.strength,
+    }));
+
+  // Schools by Station
+  const stationMap: Record<string, number> = {};
+  data.forEach((r) => {
+    stationMap[r.station] = (stationMap[r.station] || 0) + 1;
+  });
+  const stationBar = Object.entries(stationMap)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  return (
+    <div className="space-y-6 p-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* Top Schools by Strength */}
+        <div className="bg-card border rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3">Top Schools by Student Strength</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={strengthBar} barCategoryGap="30%">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" height={60} />
+              <YAxis tick={{ fontSize: 10 }} width={35} />
+              <Tooltip cursor={{ fill: "transparent" }} />
+              <Bar dataKey="strength" name="Strength" radius={[4, 4, 0, 0]}>
+                {strengthBar.map((_, i) => (
+                  <Cell key={i} fill={CHART_PALETTE[i % 2 === 0 ? 0 : 1]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Board & Station Stats */}
+        <div className="flex flex-col gap-5">
+          {/* Board Pie */}
+          <div className="bg-card border rounded-xl p-4 shadow-sm flex-1 flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-semibold mb-1">Board Distribution</p>
+              <p className="text-xs text-muted-foreground mb-4">Total {data.length} schools</p>
+              <div className="space-y-2">
+                {boardPie.map((e, i) => (
+                  <div key={e.name} className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-sm" style={{ background: CHART_PALETTE[i] }} />
+                    <span className="text-xs font-medium">{e.name}: {e.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="w-[140px] h-[140px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={boardPie} cx="50%" cy="50%" innerRadius={40} outerRadius={60}
+                    paddingAngle={3} dataKey="value" stroke="none">
+                    {boardPie.map((_, i) => <Cell key={i} fill={CHART_PALETTE[i]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Station Bar */}
+          <div className="bg-card border rounded-xl p-4 shadow-sm flex-[1.5]">
+            <p className="text-sm font-semibold mb-3">Schools by Station</p>
+            <ResponsiveContainer width="100%" height={100}>
+              <BarChart data={stationBar} layout="vertical" barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={80} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: "transparent" }} />
+                <Bar dataKey="value" name="Schools" fill="#f97316" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ─── Actions Cell ─────────────────────────────────────────────────────────────
+function ActionsCell() {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-500 hover:bg-blue-50/50">
+        <Edit className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:bg-red-50/50">
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SchoolListPage() {
   const params = useParams();
   const salesmanId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
   const [salesman, setSalesman] = useState<any>(null);
-  const [schoolListData, setSchoolListData] = useState<any[]>([]);
-  const [filteredData, setFilteredData] = useState<any[]>([]);
-
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [boardFilter, setBoardFilter] = useState("all");
-  const [cityFilter, setCityFilter] = useState("all");
+  const [rows] = useState(() => buildRows());
 
   useEffect(() => {
     setTimeout(() => {
-      const foundSalesman = salesmenData.find((s) => s.id === salesmanId);
-      if (foundSalesman) {
-        setSalesman(foundSalesman);
-
-        // Get assigned schools and enhance with additional data
-        const assignedSchools = schoolsData.filter(
-          (s) => s.assignedTo === foundSalesman.name
-        );
-        const enhancedData = generateEnhancedSchoolData(assignedSchools, salesmanId);
-        setSchoolListData(enhancedData);
-        setFilteredData(enhancedData);
-      }
+      const found = salesmenData.find((s) => s.id === salesmanId);
+      if (found) setSalesman(found);
       setIsLoading(false);
-    }, 500);
+    }, 400);
   }, [salesmanId]);
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...schoolListData];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (item) =>
-          item.schoolName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.schoolId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.city.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Board filter
-    if (boardFilter !== "all") {
-      filtered = filtered.filter((item) => item.board === boardFilter);
-    }
-
-    // City filter
-    if (cityFilter !== "all") {
-      filtered = filtered.filter((item) => item.city === cityFilter);
-    }
-
-    setFilteredData(filtered);
-  }, [searchQuery, boardFilter, cityFilter, schoolListData]);
-
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <PageSkeleton />
-      </PageContainer>
-    );
-  }
+  if (isLoading) return <PageContainer><PageSkeleton /></PageContainer>;
 
   if (!salesman) {
     return (
       <PageContainer>
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-2">Salesman Not Found</h2>
+          <h2 className="text-xl font-bold mb-2">Salesman Not Found</h2>
           <Link href="/admin/team">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Team
-            </Button>
+            <Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4 mr-1.5" />Back</Button>
           </Link>
         </div>
       </PageContainer>
     );
   }
 
-  // Calculate summary statistics
-  const totalSchools = filteredData.length;
-  const totalVisits = filteredData.reduce((sum, item) => sum + item.visits, 0);
-  const totalTarget = filteredData.reduce((sum, item) => sum + item.salesTarget, 0);
-  const totalTryToPrescribe = filteredData.reduce(
-    (sum, item) => sum + item.tryToPrescribe,
-    0
-  );
+  // screenshot columns: #, School Name, ID, Board, Strength, Contact, Email, Visits, Address, State, City, Station, Sales Target, Action
+  const columns = [
+    { key: "sno", header: "#", width: 50, sortable: false },
+    { key: "schoolName", header: "School Name", minWidth: 180, sortable: true, filterable: true, render: (v: string) => <span className="font-medium text-xs">{v}</span> },
+    { key: "id", header: "ID", width: 70, sortable: true, render: (v: string) => <span className="text-muted-foreground">{v}</span> },
+    { key: "board", header: "Board", width: 70, sortable: true },
+    { key: "strength", header: "Strength", width: 80, sortable: true, type: "number" as const },
+    { key: "contact", header: "Contact", width: 100, sortable: false, render: (v: string) => <span className="text-muted-foreground">{v || "—"}</span> },
+    { key: "email", header: "Email", minWidth: 180, sortable: false, render: (v: string) => <span className="text-muted-foreground truncate" title={v}>{v || "—"}</span> },
+    { key: "visits", header: "Visits", width: 70, sortable: true, type: "number" as const, render: (v: number) => <span className="font-semibold text-orange-600">{v}</span> },
+    { key: "address", header: "Address", minWidth: 120, sortable: false, render: (v: string) => <span className="text-muted-foreground truncate" title={v}>{v}</span> },
+    { key: "state", header: "State", width: 120, sortable: true },
+    { key: "city", header: "City", width: 100, sortable: true },
+    { key: "station", header: "Station", width: 100, sortable: true },
+    { key: "salesTarget", header: "Sales Target", width: 100, sortable: true, type: "number" as const, render: (v: number) => `₹${(v / 1000).toFixed(0)}K` },
+    { key: "actions", header: "Action", width: 80, sortable: false, render: () => <ActionsCell /> },
+  ];
 
-  // Get unique boards and cities for filters
-  const boards = Array.from(new Set(schoolListData.map((item) => item.board))).sort();
-  const cities = Array.from(new Set(schoolListData.map((item) => item.city))).sort();
+  const extraViews = [
+    {
+      key: "chart",
+      icon: <BarChart2 className="h-4 w-4" />,
+      label: "Chart View",
+      render: (data: any[]) => <SchoolListChartView data={data} />,
+    },
+  ];
 
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <Link href={`/admin/team/${salesmanId}`}>
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <Button variant="ghost" size="sm" className="mb-2 md:mb-4 text-xs md:text-sm">
+            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
             Back to Dashboard
           </Button>
         </Link>
         <PageHeader
           title={`School List of ${salesman.name}`}
-          description={`Complete list of schools assigned to ${salesman.name}`}
+          description={`Detailed portfolio of ${rows.length} assigned schools`}
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Schools</p>
-              <SchoolIcon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold">{totalSchools}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Visits</p>
-            </div>
-            <p className="text-2xl font-bold">{totalVisits}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Avg: {totalSchools > 0 ? (totalVisits / totalSchools).toFixed(1) : 0} per school
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Sales Target</p>
-            </div>
-            <p className="text-2xl font-bold">₹{(totalTarget / 100000).toFixed(1)}L</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Try to Prescribe</p>
-            </div>
-            <p className="text-2xl font-bold">{totalTryToPrescribe}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Actions */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters & Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by school name, ID, or city..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <Select value={boardFilter} onValueChange={setBoardFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by board" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Boards</SelectItem>
-                  {boards.map((board) => (
-                    <SelectItem key={board} value={board}>
-                      {board}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by city" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* School List Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <SchoolIcon className="h-5 w-5" />
-            School List ({filteredData.length} schools)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60px]">Sr. No.</TableHead>
-                  <TableHead className="min-w-[200px]">School Name</TableHead>
-                  <TableHead className="min-w-[120px]">School ID</TableHead>
-                  <TableHead>Board</TableHead>
-                  <TableHead className="text-right">Strength</TableHead>
-                  <TableHead className="min-w-[130px]">Contact</TableHead>
-                  <TableHead className="min-w-[200px]">Email</TableHead>
-                  <TableHead className="text-center">Visits</TableHead>
-                  <TableHead className="min-w-[200px]">Address</TableHead>
-                  <TableHead>State</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Station</TableHead>
-                  <TableHead className="text-right min-w-[120px]">Sales Target</TableHead>
-                  <TableHead className="text-right">Try to Prescribe</TableHead>
-                  <TableHead className="text-center min-w-[100px]">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
-                      No schools found matching your criteria
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((item) => (
-                    <TableRow key={item.schoolId}>
-                      <TableCell className="font-medium">{item.srNo}</TableCell>
-                      <TableCell className="font-medium">{item.schoolName}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.schoolId}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{item.board}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{item.strength}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          {item.contact}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          {item.email}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={item.visits > 0 ? "default" : "secondary"}>
-                          {item.visits}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={item.address}>
-                        <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{item.address}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{item.state}</TableCell>
-                      <TableCell>{item.city}</TableCell>
-                      <TableCell>{item.station}</TableCell>
-                      <TableCell className="text-right">
-                        ₹{(item.salesTarget / 1000).toFixed(0)}K
-                      </TableCell>
-                      <TableCell className="text-right">{item.tryToPrescribe}</TableCell>
-                      <TableCell className="text-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              Actions
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit School
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Remove School
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Table Footer Summary */}
-          {filteredData.length > 0 && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Total Schools</p>
-                  <p className="font-bold text-lg">{totalSchools}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Visits</p>
-                  <p className="font-bold text-lg">{totalVisits}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Sales Target</p>
-                  <p className="font-bold text-lg">₹{(totalTarget / 100000).toFixed(1)}L</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Try to Prescribe</p>
-                  <p className="font-bold text-lg">{totalTryToPrescribe}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <DataGrid
+        data={rows}
+        columns={columns}
+        rowKey="rowId"
+        title="School Portfolio"
+        description={`${rows.length} entries`}
+        showStats
+        density="compact"
+        extraViews={extraViews}
+        onExport={(data, format) => console.log("Export", format, data)}
+      />
     </PageContainer>
   );
 }

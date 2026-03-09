@@ -50,9 +50,9 @@ const navGroups = [
 
       { href: "/admin/reports/visits", label: "Visit Analytics", icon: BarChart3 },
       { href: "/admin/analytics/year-comparison", label: "Year-wise Report", icon: TrendingUp },
-      // { href: "/admin/reports/compliance", label: "Policy Compliance", icon: Award },
-      // { href: "/admin/reports/loyalty", label: "Loyalty Reports", icon: TrendingUp },
-      // { href: "/admin/reports/gap-analysis", label: "Gap Analysis", icon: BarChart3 },
+      { href: "/admin/analytics/schools", label: "School Analytics", icon: School },
+      { href: "/admin/reports/prescribed-books", label: "Prescribed Books", icon: FileText },
+      { href: "/admin/reports/specimen", label: "Specimen Tracking", icon: BookOpen },
     ],
   },
   {
@@ -81,19 +81,6 @@ const navGroups = [
       { href: "/admin/expenses", label: "Expenses Reports", icon: Receipt },
       { href: "/admin/expenses/policy", label: "Expense Policies", icon: ClipboardList },
       { href: "/admin/expenses/reports", label: "Expense Analytics", icon: TrendingUp },
-    ],
-  },
-  {
-    label: "Analytics",
-    items: [
-      { href: "/admin/analytics/schools", label: "School Analytics", icon: School },
-      { href: "/admin/analytics/prescribed-books", label: "Prescribed Books", icon: FileText },
-    ],
-  },
-  {
-    label: "Resources",
-    items: [
-      { href: "/admin/specimen", label: "Specimen Tracking", icon: BookOpen },
     ],
   },
 ];
@@ -252,11 +239,11 @@ function SideDrawer({
 
 // ─── Mobile Bottom Tab Bar ────────────────────────────────────────────────────
 const adminBottomTabs = [
-  { href: "/admin/dashboard",    label: "Home",      icon: LayoutDashboard },
-  { href: "/admin/approvals",    label: "Approvals", icon: ClipboardList   },
-  { href: "/admin/expenses",     label: "Expenses",  icon: Receipt, isFab: true },
-  { href: "/admin/expenses/reports", label: "Reports", icon: BarChart2    },
-  { href: "/admin/notifications", label: "Alerts",   icon: Bell            },
+  { href: "/admin/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/admin/approvals", label: "Approvals", icon: ClipboardList },
+  { href: "/admin/expenses", label: "Expenses", icon: Receipt, isFab: true },
+  { href: "/admin/expenses/reports", label: "Reports", icon: BarChart2 },
+  { href: "/admin/notifications", label: "Alerts", icon: Bell },
 ] as const;
 
 function AdminBottomNav({ notifCount }: { notifCount: number }) {

@@ -13,8 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { toast } from "@/hooks/use-toast";
 
-// Import mock data
-import schoolsData from "@/lib/mock-data/schools.json";
 
 interface ContactPerson {
   id: string;
@@ -40,30 +38,30 @@ export default function ContactPersonListPage() {
   const [cityFilter, setCityFilter] = useState("all");
 
   useEffect(() => {
-    // Extract all contacts from schools
-    const allContacts: ContactPerson[] = [];
-
-    schoolsData.forEach((school: any) => {
-      school.contacts.forEach((contact: any) => {
-        allContacts.push({
-          id: contact.id,
-          name: contact.name,
-          role: contact.role,
-          phone: contact.phone,
-          email: contact.email,
-          schoolId: school.id,
-          schoolName: school.name,
-          city: school.city,
-          state: school.state,
-          board: school.board,
-          strength: school.strength,
-          address: school.address,
+    import("@/lib/dummy-api").then(({ getAllSchools }) => {
+      const schools = getAllSchools();
+      const allContacts: ContactPerson[] = [];
+      schools.forEach((school: any) => {
+        (school.contacts || []).forEach((contact: any) => {
+          allContacts.push({
+            id: contact.id,
+            name: contact.name,
+            role: contact.role,
+            phone: contact.phone,
+            email: contact.email,
+            schoolId: school.id,
+            schoolName: school.name,
+            city: school.city,
+            state: school.state,
+            board: school.board,
+            strength: school.strength,
+            address: school.address,
+          });
         });
       });
+      setContacts(allContacts);
+      setFilteredContacts(allContacts);
     });
-
-    setContacts(allContacts);
-    setFilteredContacts(allContacts);
   }, []);
 
   useEffect(() => {

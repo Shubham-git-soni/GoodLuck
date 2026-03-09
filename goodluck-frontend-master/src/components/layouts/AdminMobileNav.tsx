@@ -45,6 +45,9 @@ const adminNavGroups = [
       { href: "/admin/reports/date-wise", label: "Date-wise Report", icon: TrendingUp },
       { href: "/admin/reports/visits", label: "Visit Reports", icon: BarChart3 },
       { href: "/admin/reports/loyalty", label: "Loyalty Reports", icon: TrendingUp },
+      { href: "/admin/analytics/schools", label: "School Analytics", icon: School },
+      { href: "/admin/reports/prescribed-books", label: "Prescribed Books", icon: FileText },
+      { href: "/admin/reports/specimen", label: "Specimen Tracking", icon: BookOpen },
     ],
   },
   {
@@ -71,17 +74,9 @@ const adminNavGroups = [
     ],
   },
   {
-    label: "Analytics",
-    items: [
-      { href: "/admin/analytics/schools", label: "School Analytics", icon: School },
-      { href: "/admin/analytics/prescribed-books", label: "Prescribed Books", icon: FileText },
-    ],
-  },
-  {
-    label: "Books & Resources",
+    label: "Books",
     items: [
       { href: "/admin/books", label: "Books", icon: BookOpen },
-      { href: "/admin/specimen", label: "Specimen Tracking", icon: BookOpen },
     ],
   },
   {
@@ -108,7 +103,7 @@ export default function AdminMobileNav() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
-  <SheetHeader className="border-b p-4">
+              <SheetHeader className="border-b p-4">
                 <Link href="/admin/dashboard" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
                   <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                     <span className="text-primary-foreground font-bold text-sm">CRM</span>

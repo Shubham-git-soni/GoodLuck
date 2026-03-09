@@ -13,17 +13,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
 import { toast } from "sonner";
 
-import feedbackData from "@/lib/mock-data/feedback.json";
 
 export default function FeedbackManagerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState<any[]>([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      setFeedback(feedbackData);
-      setIsLoading(false);
-    }, 800);
+    import("@/lib/dummy-api").then(({ getFeedback }) =>
+      getFeedback().then((data) => { setFeedback(data); setIsLoading(false); })
+    );
   }, []);
 
   const handleUpdateStatus = (id: string, newStatus: string) => {

@@ -25,13 +25,11 @@ export default function AdminExpenseAnalyticsPage() {
   const [selectedMonth, setSelectedMonth] = useState("2025-12");
 
   useEffect(() => {
-    const reportsData = require("@/lib/mock-data/expense-reports.json");
-    const expensesData = require("@/lib/mock-data/expenses.json");
-    const salesmenData = require("@/lib/mock-data/salesmen.json");
-
-    setReports(reportsData);
-    setExpenses(expensesData);
-    setSalesmen(salesmenData);
+    import("@/lib/dummy-api").then(({ getExpenseReports, getExpenses, getSalesmen }) =>
+      Promise.all([getExpenseReports(), getExpenses(), getSalesmen()]).then(
+        ([r, e, s]) => { setReports(r); setExpenses(e); setSalesmen(s); }
+      )
+    );
   }, []);
 
   // Calculate analytics

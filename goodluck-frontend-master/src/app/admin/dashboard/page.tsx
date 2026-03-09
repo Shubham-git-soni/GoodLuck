@@ -26,12 +26,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Import mock data
-import salesmenData from "@/lib/mock-data/salesmen.json";
-import schoolsData from "@/lib/mock-data/schools.json";
-import visitsData from "@/lib/mock-data/visits.json";
-import tadaClaimsData from "@/lib/mock-data/tada-claims.json";
-import feedbackData from "@/lib/mock-data/feedback.json";
 
 // Enterprise chart palette — matches salesman dashboard
 const COLORS = {
@@ -121,6 +115,13 @@ export default function AdminDashboard() {
     pendingFeedback: 0,
   });
 
+  // Raw data states (from dummy-api)
+  const [salesmenData, setSalesmenData] = useState<any[]>([]);
+  const [schoolsData, setSchoolsData] = useState<any[]>([]);
+  const [visitsData, setVisitsData] = useState<any[]>([]);
+  const [tadaClaimsData, setTadaClaimsData] = useState<any[]>([]);
+  const [feedbackData, setFeedbackData] = useState<any[]>([]);
+
   // Chart data states
   const [teamPerformance, setTeamPerformance] = useState<any[]>([]);
   const [visitTrends, setVisitTrends] = useState<any[]>([]);
@@ -129,6 +130,24 @@ export default function AdminDashboard() {
   const [specimenDetailData, setSpecimenDetailData] = useState<any[]>([]);
 
   useEffect(() => {
+    import("@/lib/dummy-api").then(({ getSalesmen, getTadaClaims, getFeedback, getAllSchools, getAllBookSellers }) => {
+      const schools = getAllSchools();
+      Promise.all([getSalesmen(), getTadaClaims(), getFeedback()]).then(([salesmen, tada, fb]) => {
+        setSalesmenData(salesmen);
+        setSchoolsData(schools);
+        setTadaClaimsData(tada);
+        setFeedbackData(fb);
+        // visits from localStorage via dummy-api visits
+        import("@/lib/mock-data/visits.json").then((mod) => {
+          const visits = mod.default as any[];
+          setVisitsData(visits);
+        });
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!salesmenData.length) return;
     setTimeout(() => {
       const todayVisits = visitsData.filter((v) => v.date.startsWith("2025-11"));
 
@@ -192,7 +211,7 @@ export default function AdminDashboard() {
 
       setIsLoading(false);
     }, 1000);
-  }, []);
+  }, [salesmenData, schoolsData, visitsData, tadaClaimsData, feedbackData]);
 
   useEffect(() => {
     if (!isLoading) updateVisitsData();

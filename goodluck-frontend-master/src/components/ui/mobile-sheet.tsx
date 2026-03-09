@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 
 interface MobileSheetProps {
   open: boolean;
@@ -13,6 +13,25 @@ interface MobileSheetProps {
 }
 
 export function MobileSheet({ open, onClose, title, description, children, footer }: MobileSheetProps) {
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const backdrop = backdropRef.current;
+    if (!backdrop) return;
+
+    const handleTouch = (e: TouchEvent) => {
+      // Only close if the touch target is the backdrop itself, not the sheet
+      if (sheetRef.current && sheetRef.current.contains(e.target as Node)) return;
+      e.stopPropagation();
+      onClose();
+    };
+
+    backdrop.addEventListener("touchend", handleTouch, { passive: true });
+    return () => backdrop.removeEventListener("touchend", handleTouch);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -21,10 +40,14 @@ export function MobileSheet({ open, onClose, title, description, children, foote
       style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div
+        ref={backdropRef}
+        className="absolute inset-0 bg-black/60"
+      />
 
       {/* Sheet */}
       <div
+        ref={sheetRef}
         className="relative bg-background rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300"
         style={{ maxHeight: "85dvh", display: "flex", flexDirection: "column" }}
       >

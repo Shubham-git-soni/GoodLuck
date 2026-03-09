@@ -12,17 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageSkeleton } from "@/components/ui/skeleton-loaders";
 import { toast } from "sonner";
 
-import tadaClaimsData from "@/lib/mock-data/tada-claims.json";
 
 export default function TadaAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [claims, setClaims] = useState<any[]>([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      setClaims(tadaClaimsData);
-      setIsLoading(false);
-    }, 800);
+    import("@/lib/dummy-api").then(({ getTadaClaims }) =>
+      getTadaClaims().then((data) => { setClaims(data); setIsLoading(false); })
+    );
   }, []);
 
   const handleApprove = (id: string) => {

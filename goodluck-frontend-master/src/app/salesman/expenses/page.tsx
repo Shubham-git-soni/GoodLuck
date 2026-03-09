@@ -25,15 +25,12 @@ export default function MyExpensesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    const expensesData = require("@/lib/mock-data/expenses.json");
-    const reportsData = require("@/lib/mock-data/expense-reports.json");
-
-    // Filter for current salesman (SM001 for demo)
-    const myExpenses = expensesData.filter((e: any) => e.salesmanId === "SM001");
-    const myReports = reportsData.filter((r: any) => r.salesmanId === "SM001");
-
-    setExpenses(myExpenses);
-    setReports(myReports);
+    import("@/lib/dummy-api").then(({ getExpenses, getExpenseReports }) =>
+      Promise.all([
+        getExpenses({ salesmanId: "SM001" }),
+        getExpenseReports({ salesmanId: "SM001" }),
+      ]).then(([e, r]) => { setExpenses(e); setReports(r); })
+    );
   }, []);
 
   const draftExpenses = expenses.filter((e) => e.status === "draft");

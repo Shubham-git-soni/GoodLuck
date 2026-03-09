@@ -22,7 +22,7 @@ export default function GapAnalysisPage() {
         return sum + (v.specimensGiven?.length || 0);
       }, 0);
 
-      const targetBooks = school.salesPlan.subjects.length * 2; // Assume 2 books per subject
+      const targetBooks = ((school as any).salesPlan?.subjects?.length || 0) * 2; // Assume 2 books per subject
       const gap = targetBooks - totalSpecimensGiven;
       const gapPercentage = targetBooks > 0 ? Math.round((gap / targetBooks) * 100) : 0;
 
@@ -38,10 +38,10 @@ export default function GapAnalysisPage() {
           gap <= 0
             ? "On Track"
             : gapPercentage > 50
-            ? "Critical"
-            : gapPercentage > 25
-            ? "Warning"
-            : "Minor Gap",
+              ? "Critical"
+              : gapPercentage > 25
+                ? "Warning"
+                : "Minor Gap",
       };
     })
     .filter((a) => a.gap > 0)
@@ -99,8 +99,8 @@ export default function GapAnalysisPage() {
                   analysis.status === "Critical"
                     ? "border-destructive/50"
                     : analysis.status === "Warning"
-                    ? "border-orange-500/50"
-                    : ""
+                      ? "border-orange-500/50"
+                      : ""
                 }
               >
                 <CardContent className="p-4">
@@ -113,8 +113,8 @@ export default function GapAnalysisPage() {
                             analysis.status === "Critical"
                               ? "destructive"
                               : analysis.status === "Warning"
-                              ? "secondary"
-                              : "outline"
+                                ? "secondary"
+                                : "outline"
                           }
                         >
                           {analysis.status}

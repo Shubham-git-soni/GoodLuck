@@ -1302,7 +1302,7 @@ export function DataGrid<T extends object>({
                                     <MoreVertical className="h-3.5 w-3.5" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuContent align="end" className={cn("w-52", isMobile && "w-64")}>
                                 {/* Refresh */}
                                 {onRefresh && (
                                     <DropdownMenuItem onClick={() => { onRefresh(); toast.success("Data refreshed"); }}>
@@ -1319,90 +1319,159 @@ export function DataGrid<T extends object>({
 
                                 <DropdownMenuSeparator />
 
-                                {/* Layout & View Submenu */}
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>
-                                        <LayoutGrid className="h-4 w-4 mr-2" />
-                                        Layout & View
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal>
-                                        <DropdownMenuSubContent className="w-56">
-                                            {/* View Options */}
-                                            <div className="px-2 py-1.5">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
-                                                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${3 + extraViews.length}, 1fr)` }}>
-                                                    <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                        <List className="h-3.5 w-3.5" /> List
-                                                    </button>
-                                                    <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                        <LayoutGrid className="h-3.5 w-3.5" /> Card
-                                                    </button>
-                                                    <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                        <TableIcon className="h-3.5 w-3.5" /> Grid
-                                                    </button>
-                                                    {extraViews.map(ev => (
-                                                        <button key={ev.key} onClick={() => setViewMode(ev.key)} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === ev.key ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                                                            {ev.icon} {ev.label}
+                                {/* Layout & View — inline on mobile, submenu on desktop */}
+                                {isMobile ? (
+                                    <div className="px-2 py-1.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                                            <LayoutGrid className="h-3.5 w-3.5" /> Layout & View
+                                        </p>
+                                        {/* View Mode */}
+                                        <p className="text-[10px] text-muted-foreground mb-1.5 mt-1">View Mode</p>
+                                        <div className="grid gap-1 mb-3" style={{ gridTemplateColumns: `repeat(${3 + extraViews.length}, 1fr)` }}>
+                                            <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                <List className="h-4 w-4" /> List
+                                            </button>
+                                            <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                <LayoutGrid className="h-4 w-4" /> Card
+                                            </button>
+                                            <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                <TableIcon className="h-4 w-4" /> Grid
+                                            </button>
+                                            {extraViews.map(ev => (
+                                                <button key={ev.key} onClick={() => setViewMode(ev.key)} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg transition-colors text-[10px]", viewMode === ev.key ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                    {ev.icon} {ev.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {/* Density */}
+                                        <p className="text-[10px] text-muted-foreground mb-1.5">Density</p>
+                                        <div className="grid grid-cols-3 gap-1 mb-1">
+                                            <button onClick={() => setDensity("compact")} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] transition-colors", density === "compact" ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                <Minus className="h-4 w-4" /> Compact
+                                                {density === "compact" && <Check className="h-3 w-3" />}
+                                            </button>
+                                            <button onClick={() => setDensity("normal")} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] transition-colors", density === "normal" ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                <Rows3 className="h-4 w-4" /> Normal
+                                                {density === "normal" && <Check className="h-3 w-3" />}
+                                            </button>
+                                            <button onClick={() => setDensity("comfortable")} className={cn("flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] transition-colors", density === "comfortable" ? "bg-primary text-primary-foreground" : "bg-muted/60")}>
+                                                <SquareStack className="h-4 w-4" /> Cozy
+                                                {density === "comfortable" && <Check className="h-3 w-3" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                            <LayoutGrid className="h-4 w-4 mr-2" />
+                                            Layout & View
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent className="w-56">
+                                                {/* View Options */}
+                                                <div className="px-2 py-1.5">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">View Mode</p>
+                                                    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${3 + extraViews.length}, 1fr)` }}>
+                                                        <button onClick={() => setViewMode("list")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            <List className="h-3.5 w-3.5" /> List
                                                         </button>
-                                                    ))}
+                                                        <button onClick={() => setViewMode("card")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            <LayoutGrid className="h-3.5 w-3.5" /> Card
+                                                        </button>
+                                                        <button onClick={() => setViewMode("grid")} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                            <TableIcon className="h-3.5 w-3.5" /> Grid
+                                                        </button>
+                                                        {extraViews.map(ev => (
+                                                            <button key={ev.key} onClick={() => setViewMode(ev.key)} className={cn("flex flex-col items-center gap-1 py-1.5 rounded-lg transition-colors text-[10px]", viewMode === ev.key ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                                                                {ev.icon} {ev.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <DropdownMenuSeparator />
-                                            {/* Density Options */}
-                                            <div className="px-2 py-1.5">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Density</p>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => setDensity("compact")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "compact" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                        <Minus className="h-3.5 w-3.5" /> Compact
-                                                        {density === "compact" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                    </button>
-                                                    <button onClick={() => setDensity("normal")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "normal" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                        <Rows3 className="h-3.5 w-3.5" /> Normal
-                                                        {density === "normal" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                    </button>
-                                                    <button onClick={() => setDensity("comfortable")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "comfortable" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
-                                                        <SquareStack className="h-3.5 w-3.5" /> Comfortable
-                                                        {density === "comfortable" && <Check className="h-3.5 w-3.5 ml-auto" />}
-                                                    </button>
+                                                <DropdownMenuSeparator />
+                                                {/* Density Options */}
+                                                <div className="px-2 py-1.5">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Density</p>
+                                                    <div className="flex flex-col gap-1">
+                                                        <button onClick={() => setDensity("compact")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "compact" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                            <Minus className="h-3.5 w-3.5" /> Compact
+                                                            {density === "compact" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                        </button>
+                                                        <button onClick={() => setDensity("normal")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "normal" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                            <Rows3 className="h-3.5 w-3.5" /> Normal
+                                                            {density === "normal" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                        </button>
+                                                        <button onClick={() => setDensity("comfortable")} className={cn("flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left", density === "comfortable" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted")}>
+                                                            <SquareStack className="h-3.5 w-3.5" /> Comfortable
+                                                            {density === "comfortable" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)} className="text-xs">
-                                                {fullscreen ? <Minimize2 className="h-3.5 w-3.5 mr-2" /> : <Maximize2 className="h-3.5 w-3.5 mr-2" />}
-                                                {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                </DropdownMenuSub>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => setFullscreen(!fullscreen)} className="text-xs">
+                                                    {fullscreen ? <Minimize2 className="h-3.5 w-3.5 mr-2" /> : <Maximize2 className="h-3.5 w-3.5 mr-2" />}
+                                                    {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                )}
 
-                                {/* Export / Import Submenu */}
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Export & Data
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal>
-                                        <DropdownMenuSubContent className="w-48">
-                                            <DropdownMenuItem onClick={() => (onExport ? onExport(processed, "csv") : csvExport(processed, visibleCols))} className="text-xs">
-                                                <Download className="h-3.5 w-3.5 mr-2" /> Export CSV
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => (onExport ? onExport(processed, "json") : jsonExport(processed, visibleCols))} className="text-xs">
-                                                <FileJson className="h-3.5 w-3.5 mr-2" /> Export JSON
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={handlePrint} className="text-xs">
-                                                <Printer className="h-3.5 w-3.5 mr-2" /> Print
-                                            </DropdownMenuItem>
-                                            {onImport && (
-                                                <>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => importRef.current?.click()} className="text-xs">
-                                                        <Upload className="h-3.5 w-3.5 mr-2" /> Import CSV
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                </DropdownMenuSub>
+                                {/* Export / Import — inline on mobile, submenu on desktop */}
+                                {isMobile ? (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <div className="px-2 py-1">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                                                <Download className="h-3.5 w-3.5" /> Export & Data
+                                            </p>
+                                            <div className="flex flex-col gap-0.5">
+                                                <button onClick={() => (onExport ? onExport(processed, "csv") : csvExport(processed, visibleCols))} className="flex items-center gap-2 px-2 py-2 rounded text-xs text-left hover:bg-muted transition-colors w-full">
+                                                    <Download className="h-3.5 w-3.5 text-muted-foreground" /> Export CSV
+                                                </button>
+                                                <button onClick={() => (onExport ? onExport(processed, "json") : jsonExport(processed, visibleCols))} className="flex items-center gap-2 px-2 py-2 rounded text-xs text-left hover:bg-muted transition-colors w-full">
+                                                    <FileJson className="h-3.5 w-3.5 text-muted-foreground" /> Export JSON
+                                                </button>
+                                                <button onClick={handlePrint} className="flex items-center gap-2 px-2 py-2 rounded text-xs text-left hover:bg-muted transition-colors w-full">
+                                                    <Printer className="h-3.5 w-3.5 text-muted-foreground" /> Print
+                                                </button>
+                                                {onImport && (
+                                                    <button onClick={() => importRef.current?.click()} className="flex items-center gap-2 px-2 py-2 rounded text-xs text-left hover:bg-muted transition-colors w-full">
+                                                        <Upload className="h-3.5 w-3.5 text-muted-foreground" /> Import CSV
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Export & Data
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent className="w-48">
+                                                <DropdownMenuItem onClick={() => (onExport ? onExport(processed, "csv") : csvExport(processed, visibleCols))} className="text-xs">
+                                                    <Download className="h-3.5 w-3.5 mr-2" /> Export CSV
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => (onExport ? onExport(processed, "json") : jsonExport(processed, visibleCols))} className="text-xs">
+                                                    <FileJson className="h-3.5 w-3.5 mr-2" /> Export JSON
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={handlePrint} className="text-xs">
+                                                    <Printer className="h-3.5 w-3.5 mr-2" /> Print
+                                                </DropdownMenuItem>
+                                                {onImport && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => importRef.current?.click()} className="text-xs">
+                                                            <Upload className="h-3.5 w-3.5 mr-2" /> Import CSV
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                )}
 
                                 {!isMobile && (
                                     <>

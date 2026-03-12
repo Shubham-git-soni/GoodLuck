@@ -29,6 +29,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { MobileSheet } from "@/components/ui/mobile-sheet";
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend, CartesianGrid
@@ -101,6 +102,15 @@ export default function PMSchedulePage() {
   const [activeTab, setActiveTab] = useState<"all" | ApprovalStatus>("all");
   const [schools, setSchools] = useState<any[]>([]);
   const [salesmen, setSalesmen] = useState<any[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
 
   // ── New Schedule dialog ──
   const [newScheduleOpen, setNewScheduleOpen] = useState(false);
@@ -506,133 +516,163 @@ export default function PMSchedulePage() {
     { value: "rejected", label: "Rejected", dot: "bg-rose-500", count: tabCounts.rejected },
   ] as const;
 
+  // ── Shared form fields JSX ───────────────────────────────────────────────────
+  const scheduleFormFields = (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid gap-2">
+        <Label>Product Manager *</Label>
+        <Select value={newScheduleForm.pmId} onValueChange={v => setNewScheduleForm(f => ({ ...f, pmId: v }))}>
+          <SelectTrigger><SelectValue placeholder="Select product manager" /></SelectTrigger>
+          <SelectContent>{productManagers.map(pm => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Date *</Label>
+        <DatePicker
+          value={newScheduleForm.date}
+          onChange={v => setNewScheduleForm(f => ({ ...f, date: v }))}
+          min={new Date().toISOString().split("T")[0]}
+          placeholder="dd-mm-yyyy"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label>Type *</Label>
+        <Select value={newScheduleForm.type} onValueChange={v => setNewScheduleForm(f => ({ ...f, type: v }))}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="workshop">Workshop</SelectItem>
+            <SelectItem value="meeting">Meeting</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Start Time *</Label>
+        <TimePicker value={newScheduleForm.startTime} onChange={(t: string) => setNewScheduleForm(f => ({ ...f, startTime: t }))} />
+      </div>
+      <div className="grid gap-2">
+        <Label>End Time *</Label>
+        <TimePicker value={newScheduleForm.endTime} onChange={(t: string) => setNewScheduleForm(f => ({ ...f, endTime: t }))} />
+      </div>
+      <div className="grid gap-2">
+        <Label>School *</Label>
+        <Select value={newScheduleForm.schoolId} onValueChange={v => setNewScheduleForm(f => ({ ...f, schoolId: v }))}>
+          <SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger>
+          <SelectContent>{schools.map(s => <SelectItem key={s.id} value={s.id}>{s.name} – {s.city}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Salesman *</Label>
+        <Select value={newScheduleForm.salesmanId} onValueChange={v => setNewScheduleForm(f => ({ ...f, salesmanId: v }))}>
+          <SelectTrigger><SelectValue placeholder="Select salesman" /></SelectTrigger>
+          <SelectContent>{salesmen.map(s => <SelectItem key={s.id} value={s.id}>{s.name} – {s.territory}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2 md:col-span-2">
+        <Label>Activity Description *</Label>
+        <Textarea placeholder="e.g., Book Promotion Workshop - Class 9-10 Science Series"
+          value={newScheduleForm.activity}
+          onChange={e => setNewScheduleForm(f => ({ ...f, activity: e.target.value }))}
+          rows={3} />
+      </div>
+    </div>
+  );
+
+  const scheduleFormFooter = (
+    <div className="flex gap-3">
+      <Button variant="outline" className="flex-1" onClick={() => setNewScheduleOpen(false)}>Cancel</Button>
+      <Button onClick={handleNewSchedule} className="flex-1 gap-2">
+        <Plus className="h-4 w-4" /> Schedule Visit
+      </Button>
+    </div>
+  );
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <PageContainer>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-3 mb-6">
         <PageHeader
           title="Product Manager Schedules"
           description="Manage PM visit requests, approvals, and scheduling"
         />
-        <Dialog open={newScheduleOpen} onOpenChange={setNewScheduleOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> New Schedule
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[900px] max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Schedule New Visit</DialogTitle>
-              <DialogDescription>Schedule a new workshop or meeting for a product manager</DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 py-4">
-              <div className="grid gap-2">
-                <Label>Product Manager *</Label>
-                <Select value={newScheduleForm.pmId} onValueChange={v => setNewScheduleForm(f => ({ ...f, pmId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select product manager" /></SelectTrigger>
-                  <SelectContent>{productManagers.map(pm => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Date *</Label>
-                <DatePicker
-                  value={newScheduleForm.date}
-                  onChange={v => setNewScheduleForm(f => ({ ...f, date: v }))}
-                  min={new Date().toISOString().split("T")[0]}
-                  placeholder="dd-mm-yyyy"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Type *</Label>
-                <Select value={newScheduleForm.type} onValueChange={v => setNewScheduleForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="workshop">Workshop</SelectItem>
-                    <SelectItem value="meeting">Meeting</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Start Time *</Label>
-                <TimePicker value={newScheduleForm.startTime} onChange={(t: string) => setNewScheduleForm(f => ({ ...f, startTime: t }))} />
-              </div>
-              <div className="grid gap-2">
-                <Label>End Time *</Label>
-                <TimePicker value={newScheduleForm.endTime} onChange={(t: string) => setNewScheduleForm(f => ({ ...f, endTime: t }))} />
-              </div>
-              <div className="grid gap-2">
-                <Label>School *</Label>
-                <Select value={newScheduleForm.schoolId} onValueChange={v => setNewScheduleForm(f => ({ ...f, schoolId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger>
-                  <SelectContent>{schools.map(s => <SelectItem key={s.id} value={s.id}>{s.name} – {s.city}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Salesman *</Label>
-                <Select value={newScheduleForm.salesmanId} onValueChange={v => setNewScheduleForm(f => ({ ...f, salesmanId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select salesman" /></SelectTrigger>
-                  <SelectContent>{salesmen.map(s => <SelectItem key={s.id} value={s.id}>{s.name} – {s.territory}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2 md:col-span-2">
-                <Label>Activity Description *</Label>
-                <Textarea placeholder="e.g., Book Promotion Workshop - Class 9-10 Science Series"
-                  value={newScheduleForm.activity}
-                  onChange={e => setNewScheduleForm(f => ({ ...f, activity: e.target.value }))}
-                  rows={2} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setNewScheduleOpen(false)}>Cancel</Button>
-              <Button onClick={handleNewSchedule} className="bg-orange-600 hover:bg-orange-700 text-white border-0">Schedule Visit</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button className="gap-2 shrink-0" onClick={() => setNewScheduleOpen(true)}>
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">New Schedule</span>
+          <span className="sm:hidden">New</span>
+        </Button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-6">
         {[
-          { label: "Total Managers", value: productManagers.length, sub: "Active managers", icon: <User className="h-4 w-4 text-blue-600" />, bg: "bg-blue-100", card: "gradient-card-neutral" },
-          { label: "Currently Busy", value: totalBusy, sub: `${totalFree} managers free`, icon: <Briefcase className="h-4 w-4 text-orange-600" />, bg: "bg-orange-100", card: "gradient-card-orange" },
-          { label: "Today's Visits", value: todaySchedules, sub: "Booked for today", icon: <Calendar className="h-4 w-4 text-blue-600" />, bg: "bg-blue-100", card: "gradient-card-amber" },
-          { label: "Pending Requests", value: tabCounts.requested, sub: "Awaiting approval", icon: <AlertTriangle className="h-4 w-4 text-amber-600" />, bg: "bg-amber-100", card: "gradient-card-amber" },
+          { label: "Total Managers", value: productManagers.length, sub: "Active managers", icon: <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />, bg: "bg-blue-100", card: "gradient-card-neutral" },
+          { label: "Currently Busy", value: totalBusy, sub: `${totalFree} managers free`, icon: <Briefcase className="h-3.5 w-3.5 md:h-4 md:w-4 text-orange-600" />, bg: "bg-orange-100", card: "gradient-card-orange" },
+          { label: "Today's Visits", value: todaySchedules, sub: "Booked for today", icon: <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />, bg: "bg-blue-100", card: "gradient-card-amber" },
+          { label: "Pending Requests", value: tabCounts.requested, sub: "Awaiting approval", icon: <AlertTriangle className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />, bg: "bg-amber-100", card: "gradient-card-amber" },
         ].map(({ label, value, sub, icon, bg, card }) => (
           <Card key={label} className={cn("border-0 shadow-sm", card)}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className={cn("p-1.5 rounded-lg", bg)}>{icon}</div>
+            <CardContent className="p-2.5 md:p-4">
+              <div className="flex items-center justify-between mb-2 md:mb-3">
+                <div className={cn("p-1 md:p-1.5 rounded-lg", bg)}>{icon}</div>
               </div>
-              <p className="text-xl font-bold tracking-tight">{value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-              <div className="mt-2 pt-2 border-t border-border/50">
-                <p className="text-xs text-muted-foreground">{sub}</p>
+              <p className="text-base md:text-xl font-bold tracking-tight">{value}</p>
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">{label}</p>
+              <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
+                <p className="text-[10px] md:text-xs text-muted-foreground">{sub}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Mobile bottom sheet */}
+      {/* Mobile bottom sheet — only on mobile */}
+      <MobileSheet
+        open={isMobile && newScheduleOpen}
+        onClose={() => setNewScheduleOpen(false)}
+        title="Schedule New Visit"
+        description="Schedule a new workshop or meeting for a product manager"
+        footer={scheduleFormFooter}
+      >
+        {scheduleFormFields}
+      </MobileSheet>
 
+      {/* Desktop dialog — only on desktop */}
+      <Dialog open={!isMobile && newScheduleOpen} onOpenChange={setNewScheduleOpen}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Schedule New Visit</DialogTitle>
+            <DialogDescription>Schedule a new workshop or meeting for a product manager</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">{scheduleFormFields}</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewScheduleOpen(false)}>Cancel</Button>
+            <Button onClick={handleNewSchedule} className="gap-2">
+              <Plus className="h-4 w-4" /> Schedule Visit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-muted rounded-xl p-1 mb-4 w-fit flex-wrap">
-        {TABS.map(({ value, label, dot, count }) => (
-          <button
-            key={value}
-            onClick={() => setActiveTab(value as typeof activeTab)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-              activeTab === value ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {dot && <span className={cn("h-2 w-2 rounded-full shrink-0", dot)} />}
-            {label}
-            <span className={cn("ml-0.5 text-[11px] font-bold tabular-nums",
-              activeTab === value ? "text-primary" : "text-muted-foreground")}>({count})</span>
-          </button>
-        ))}
+      <div className="w-full overflow-x-auto mb-4 -mx-0 scrollbar-none">
+        <div className="flex items-center gap-1 bg-muted rounded-xl p-1 w-max min-w-full md:w-fit">
+          {TABS.map(({ value, label, dot, count }) => (
+            <button
+              key={value}
+              onClick={() => setActiveTab(value as typeof activeTab)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-all whitespace-nowrap shrink-0",
+                activeTab === value ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {dot && <span className={cn("h-2 w-2 rounded-full shrink-0", dot)} />}
+              {label}
+              <span className={cn("ml-0.5 text-[10px] md:text-[11px] font-bold tabular-nums",
+                activeTab === value ? "text-primary" : "text-muted-foreground")}>({count})</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tab hint banners */}
@@ -729,57 +769,35 @@ export default function PMSchedulePage() {
         />
       </div>
 
-      {/* ── Approve & Book Dialog ── */}
-      <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
-        <DialogContent className="sm:max-w-xl w-full">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarCheck className="h-5 w-5 text-primary" /> Approve & Book Visit
-            </DialogTitle>
-            <DialogDescription>
-              Assign a PM, confirm date and time. This will directly book the visit and update the PM's calendar.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedSchedule && (
-            <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1 border border-border/50">
-              <div className="font-semibold text-base">{selectedSchedule.schoolName} <span className="text-muted-foreground font-normal text-sm">• {selectedSchedule.city}</span></div>
-              <div className="text-muted-foreground">{selectedSchedule.salesmanName} → <span className="capitalize">{selectedSchedule.type}</span></div>
-              <div className="text-xs text-foreground/70 line-clamp-2">{selectedSchedule.activity}</div>
-              {selectedSchedule.preferredDateFrom && (
-                <div className="text-xs text-primary font-medium">
-                  Preferred date: {selectedSchedule.preferredDateFrom}{selectedSchedule.preferredDateTo ? ` → ${selectedSchedule.preferredDateTo}` : ""}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4 py-1">
-            {/* PM Select – full width */}
-            <div className="col-span-2 grid gap-2">
+      {/* ── Approve & Book — shared form fields ── */}
+      {(() => {
+        const approveFields = (
+          <div className="space-y-4">
+            {selectedSchedule && (
+              <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1 border border-border/50">
+                <div className="font-semibold">{selectedSchedule.schoolName} <span className="text-muted-foreground font-normal text-sm">• {selectedSchedule.city}</span></div>
+                <div className="text-muted-foreground text-xs">{selectedSchedule.salesmanName} → <span className="capitalize">{selectedSchedule.type}</span></div>
+                <div className="text-xs text-foreground/70 line-clamp-2">{selectedSchedule.activity}</div>
+                {selectedSchedule.preferredDateFrom && (
+                  <div className="text-xs text-primary font-medium">
+                    Preferred: {selectedSchedule.preferredDateFrom}{selectedSchedule.preferredDateTo ? ` → ${selectedSchedule.preferredDateTo}` : ""}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="grid gap-2">
               <Label className="font-semibold">Assign Product Manager *</Label>
               <Select value={approveForm.pmId} onValueChange={v => setApproveForm(f => ({ ...f, pmId: v }))}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select a Product Manager..." />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  className="max-h-56 overflow-y-auto z-[200]"
-                  sideOffset={4}
-                >
+                <SelectTrigger className="h-10"><SelectValue placeholder="Select a Product Manager..." /></SelectTrigger>
+                <SelectContent position="popper" className="max-h-56 overflow-y-auto" sideOffset={4}>
                   {productManagers.map(pm => {
-                    const conflict = approveForm.date
-                      ? allSchedules.some(s => s.pmId === pm.id && s.date === approveForm.date && s.approvalStatus === "booked")
-                      : false;
+                    const conflict = approveForm.date ? allSchedules.some(s => s.pmId === pm.id && s.date === approveForm.date && s.approvalStatus === "booked") : false;
                     return (
                       <SelectItem key={pm.id} value={pm.id} className="py-2">
                         <span className="flex items-center gap-2">
                           <span className="font-medium">{pm.name}</span>
                           <span className="text-muted-foreground text-xs">– {pm.state}</span>
-                          {conflict
-                            ? <span className="text-xs text-orange-600 font-semibold">⚠️ Already Busy</span>
-                            : <span className={`text-xs font-medium ${pm.currentStatus === "Free" ? "text-primary" : "text-muted-foreground"}`}>({pm.currentStatus})</span>
-                          }
+                          {conflict ? <span className="text-xs text-orange-600 font-semibold">⚠️ Busy</span> : <span className={`text-xs font-medium ${pm.currentStatus === "Free" ? "text-primary" : "text-muted-foreground"}`}>({pm.currentStatus})</span>}
                         </span>
                       </SelectItem>
                     );
@@ -787,102 +805,138 @@ export default function PMSchedulePage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Visit Date – full width */}
-            <div className="col-span-2 grid gap-2">
+            <div className="grid gap-2">
               <Label className="font-semibold">Visit Date *</Label>
-              <DatePicker
-                value={approveForm.date}
-                onChange={v => setApproveForm(f => ({ ...f, date: v }))}
-                min={new Date().toISOString().split("T")[0]}
-                placeholder="Select visit date"
-              />
+              <DatePicker value={approveForm.date} onChange={v => setApproveForm(f => ({ ...f, date: v }))} min={new Date().toISOString().split("T")[0]} placeholder="Select visit date" />
             </div>
-
-            {/* Start / End Time – side by side */}
-            <div className="grid gap-2">
-              <Label className="font-semibold">Start Time *</Label>
-              <TimePicker
-                value={approveForm.startTime}
-                onChange={v => setApproveForm(f => ({ ...f, startTime: v }))}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label className="font-semibold">End Time *</Label>
-              <TimePicker
-                value={approveForm.endTime}
-                onChange={v => setApproveForm(f => ({ ...f, endTime: v }))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label className="font-semibold">Start Time *</Label>
+                <TimePicker value={approveForm.startTime} onChange={v => setApproveForm(f => ({ ...f, startTime: v }))} />
+              </div>
+              <div className="grid gap-2">
+                <Label className="font-semibold">End Time *</Label>
+                <TimePicker value={approveForm.endTime} onChange={v => setApproveForm(f => ({ ...f, endTime: v }))} />
+              </div>
             </div>
           </div>
-
-          <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setApproveOpen(false)}>Cancel</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2" onClick={handleApproveAndBook}>
+        );
+        const approveFooter = (
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={() => setApproveOpen(false)}>Cancel</Button>
+            <Button className="flex-1 gap-2" onClick={handleApproveAndBook}>
               <CalendarCheck className="h-4 w-4" /> Confirm Booking
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Reject Dialog ── */}
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-rose-500" /> Reject Request
-            </DialogTitle>
-            <DialogDescription>
-              Provide a reason for rejection. This will be visible to the salesman.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSchedule && (
-            <div className="p-3 bg-muted/50 rounded-lg text-sm mb-2">
-              <span className="font-semibold">{selectedSchedule.schoolName}</span> – {selectedSchedule.salesmanName}
-            </div>
-          )}
-          <div className="grid gap-2 py-2">
-            <Label>Rejection Reason *</Label>
-            <Textarea
-              placeholder="e.g., No PM available in this region for the requested dates. Please reschedule..."
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              rows={3} />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject}>
-              <Ban className="h-4 w-4 mr-2" /> Reject Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        );
+        return (
+          <>
+            <MobileSheet open={isMobile && approveOpen} onClose={() => setApproveOpen(false)} title="Approve & Book Visit" description="Assign a PM, confirm date and time." footer={approveFooter}>
+              {approveFields}
+            </MobileSheet>
+            <Dialog open={!isMobile && approveOpen} onOpenChange={setApproveOpen}>
+              <DialogContent className="sm:max-w-xl w-full">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-primary" /> Approve & Book Visit</DialogTitle>
+                  <DialogDescription>Assign a PM, confirm date and time. This will directly book the visit and update the PM's calendar.</DialogDescription>
+                </DialogHeader>
+                <div className="py-2">{approveFields}</div>
+                <DialogFooter className="pt-2">
+                  <Button variant="outline" onClick={() => setApproveOpen(false)}>Cancel</Button>
+                  <Button className="gap-2" onClick={handleApproveAndBook}><CalendarCheck className="h-4 w-4" /> Confirm Booking</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        );
+      })()}
 
-      {/* ── Mark Complete Confirm Dialog ── */}
-      <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCheck className="h-5 w-5 text-emerald-600" /> Mark Visit as Complete
-            </DialogTitle>
-            <DialogDescription>
-              Confirm that this visit/workshop has been completed successfully.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSchedule && (
+      {/* ── Reject ── */}
+      {(() => {
+        const rejectFields = (
+          <div className="space-y-3">
+            {selectedSchedule && (
+              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                <span className="font-semibold">{selectedSchedule.schoolName}</span> – {selectedSchedule.salesmanName}
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label>Rejection Reason *</Label>
+              <Textarea placeholder="e.g., No PM available in this region for the requested dates. Please reschedule..." value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3} />
+            </div>
+          </div>
+        );
+        const rejectFooter = (
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={() => setRejectOpen(false)}>Cancel</Button>
+            <Button variant="destructive" className="flex-1 gap-2" onClick={handleReject}><Ban className="h-4 w-4" /> Reject Request</Button>
+          </div>
+        );
+        return (
+          <>
+            <MobileSheet open={isMobile && rejectOpen} onClose={() => setRejectOpen(false)} title="Reject Request" description="Provide a reason for rejection." footer={rejectFooter}>
+              {rejectFields}
+            </MobileSheet>
+            <Dialog open={!isMobile && rejectOpen} onOpenChange={setRejectOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><XCircle className="h-5 w-5 text-rose-500" /> Reject Request</DialogTitle>
+                  <DialogDescription>Provide a reason for rejection. This will be visible to the salesman.</DialogDescription>
+                </DialogHeader>
+                <div className="py-2">{rejectFields}</div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
+                  <Button variant="destructive" onClick={handleReject}><Ban className="h-4 w-4 mr-2" /> Reject Request</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        );
+      })()}
+
+      {/* ── Mark Complete ── */}
+      {(() => {
+        const completeFields = (
+          selectedSchedule ? (
             <div className="p-3 bg-muted/50 rounded-lg text-sm">
               <div className="font-semibold">{selectedSchedule.schoolName}</div>
               <div className="text-muted-foreground text-xs mt-1">{selectedSchedule.date} · {selectedSchedule.startTime} – {selectedSchedule.endTime}</div>
+              <p className="text-xs text-muted-foreground mt-2">Confirm that this visit/workshop has been completed successfully.</p>
             </div>
-          )}
-          <DialogFooter className="mt-2">
-            <Button variant="outline" onClick={() => setCompleteOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkComplete}>
-              <CheckCheck className="h-4 w-4 mr-2" /> Mark Complete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          ) : null
+        );
+        const completeFooter = (
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={() => setCompleteOpen(false)}>Cancel</Button>
+            <Button className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkComplete}><CheckCheck className="h-4 w-4" /> Mark Complete</Button>
+          </div>
+        );
+        return (
+          <>
+            <MobileSheet open={isMobile && completeOpen} onClose={() => setCompleteOpen(false)} title="Mark Visit as Complete" footer={completeFooter}>
+              {completeFields}
+            </MobileSheet>
+            <Dialog open={!isMobile && completeOpen} onOpenChange={setCompleteOpen}>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><CheckCheck className="h-5 w-5 text-emerald-600" /> Mark Visit as Complete</DialogTitle>
+                  <DialogDescription>Confirm that this visit/workshop has been completed successfully.</DialogDescription>
+                </DialogHeader>
+                {selectedSchedule && (
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm my-2">
+                    <div className="font-semibold">{selectedSchedule.schoolName}</div>
+                    <div className="text-muted-foreground text-xs mt-1">{selectedSchedule.date} · {selectedSchedule.startTime} – {selectedSchedule.endTime}</div>
+                  </div>
+                )}
+                <DialogFooter className="mt-2">
+                  <Button variant="outline" onClick={() => setCompleteOpen(false)}>Cancel</Button>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkComplete}><CheckCheck className="h-4 w-4 mr-2" /> Mark Complete</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        );
+      })()}
     </PageContainer>
   );
 }
@@ -1011,43 +1065,52 @@ function PMScheduleChartView({ data }: { data: FlattenedSchedule[] }) {
 
   return (
     <div className="space-y-6">
-      {/* Summary pills */}
-      <div className="flex flex-wrap gap-3">
-        {statusData.map(s => (
-          <div key={s.name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card shadow-sm">
-            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.fill }} />
-            <span className="text-sm font-semibold">{s.name}</span>
-            <span className="text-xs text-muted-foreground">{s.value} ({total ? Math.round(s.value / total * 100) : 0}%)</span>
-          </div>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Donut – Status Distribution */}
         <div className="bg-card border rounded-xl p-4 shadow-sm">
           <p className="text-sm font-semibold mb-3">Status Distribution</p>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={200}>
             <PieChart>
-              <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value"
-                label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`} labelLine={false}>
+              <Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
                 {statusData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
               </Pie>
               <Tooltip formatter={(v) => [`${v} visits`, ""]} />
-              <Legend />
             </PieChart>
           </ResponsiveContainer>
+          {/* Custom legend — 2-col grid, no overlap */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
+            {statusData.map(s => (
+              <div key={s.name} className="flex items-center gap-2 min-w-0">
+                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.fill }} />
+                <span className="text-xs text-muted-foreground truncate">{s.name}</span>
+                <span className="text-xs font-semibold ml-auto shrink-0">{total ? Math.round(s.value / total * 100) : 0}%</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Bar – Visit Type Breakdown */}
         <div className="bg-card border rounded-xl p-4 shadow-sm">
-          <p className="text-sm font-semibold mb-3">Visit Type Breakdown</p>
-          <ResponsiveContainer width="100%" height={240}>
+          <p className="text-sm font-semibold mb-1">Visit Type Breakdown</p>
+          {/* Custom legend row */}
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+            {[
+              { key: "requested", label: "Requested", color: STATUS_COLORS.requested },
+              { key: "booked", label: "Booked", color: STATUS_COLORS.booked },
+              { key: "completed", label: "Completed", color: STATUS_COLORS.completed },
+            ].map(l => (
+              <div key={l.key} className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm shrink-0" style={{ background: l.color }} />
+                <span className="text-[11px] text-muted-foreground">{l.label}</span>
+              </div>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={typeData} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="type" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <XAxis dataKey="type" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} width={24} />
               <Tooltip />
-              <Legend />
               <Bar dataKey="requested" name="Requested" fill={STATUS_COLORS.requested} radius={[4, 4, 0, 0]} />
               <Bar dataKey="booked" name="Booked" fill={STATUS_COLORS.booked} radius={[4, 4, 0, 0]} />
               <Bar dataKey="completed" name="Completed" fill={STATUS_COLORS.completed} radius={[4, 4, 0, 0]} />
@@ -1058,14 +1121,25 @@ function PMScheduleChartView({ data }: { data: FlattenedSchedule[] }) {
 
       {/* Horizontal Bar – PM Workload */}
       <div className="bg-card border rounded-xl p-4 shadow-sm">
-        <p className="text-sm font-semibold mb-3">PM Workload (Top 8)</p>
+        <p className="text-sm font-semibold mb-1">PM Workload (Top 8)</p>
+        {/* Custom legend row */}
+        <div className="flex gap-4 mb-3">
+          {[
+            { key: "booked", label: "Booked", color: STATUS_COLORS.booked },
+            { key: "completed", label: "Completed", color: STATUS_COLORS.completed },
+          ].map(l => (
+            <div key={l.key} className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-sm shrink-0" style={{ background: l.color }} />
+              <span className="text-[11px] text-muted-foreground">{l.label}</span>
+            </div>
+          ))}
+        </div>
         <ResponsiveContainer width="100%" height={Math.max(200, pmData.length * 44)}>
           <BarChart data={pmData} layout="vertical" barCategoryGap="25%">
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
+            <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
             <Tooltip />
-            <Legend />
             <Bar dataKey="booked" name="Booked" fill={STATUS_COLORS.booked} radius={[0, 4, 4, 0]} />
             <Bar dataKey="completed" name="Completed" fill={STATUS_COLORS.completed} radius={[0, 4, 4, 0]} />
           </BarChart>

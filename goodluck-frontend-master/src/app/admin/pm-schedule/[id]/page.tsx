@@ -425,56 +425,52 @@ export default function PMDetailPage() {
       </Card>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 mb-5">
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 mb-5">
         {[
           {
-            label: "Total Schedules", value: schedules.length,
-            sub: `${uniqueSchools} unique schools`,
-            icon: <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-orange-600" />,
+            label: "Total", value: schedules.length,
+            sub: `${uniqueSchools} schools`,
+            icon: <Calendar className="h-3 w-3 md:h-4 md:w-4 text-orange-600" />,
             bg: "bg-orange-100", card: "gradient-card-orange",
           },
           {
             label: "Workshops", value: totalWorkshops,
-            sub: "Book promotions",
-            icon: <Briefcase className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />,
+            sub: "Book promos",
+            icon: <Briefcase className="h-3 w-3 md:h-4 md:w-4 text-amber-600" />,
             bg: "bg-amber-100", card: "gradient-card-amber",
           },
           {
             label: "Meetings", value: totalMeetings,
-            sub: "School discussions",
-            icon: <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />,
+            sub: "Discussions",
+            icon: <User className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />,
             bg: "bg-blue-100", card: "gradient-card-blue",
           },
           {
             label: "Booked", value: bookedCount,
-            sub: "Confirmed visits",
-            icon: <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />,
+            sub: "Confirmed",
+            icon: <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" />,
             bg: "bg-emerald-100", card: "gradient-card-emerald",
           },
           {
             label: "Completed", value: completedCount,
             sub: "Done visits",
-            icon: <CheckCheck className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-600" />,
+            icon: <CheckCheck className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" />,
             bg: "bg-emerald-100", card: "gradient-card-emerald",
           },
           {
             label: "Today", value: todayCount,
-            sub: "Scheduled today",
-            icon: <Clock className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />,
+            sub: "Scheduled",
+            icon: <Clock className="h-3 w-3 md:h-4 md:w-4 text-primary" />,
             bg: "bg-primary/10", card: "gradient-card-neutral",
           },
         ].map(({ label, value, sub, icon, bg, card }) => (
           <Card key={label} className={cn("border-0 shadow-sm", card)}>
-            <CardContent className="p-2.5 md:p-4">
-              <div className="flex items-center justify-between mb-2 md:mb-3">
-                <div className={cn("p-1 md:p-1.5 rounded-lg", bg)}>
-                  {icon}
-                </div>
-              </div>
-              <p className="text-base md:text-xl font-bold tracking-tight">{value}</p>
-              <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">{label}</p>
-              <div className="mt-1.5 pt-1.5 md:mt-2 md:pt-2 border-t border-border/50">
-                <p className="text-[10px] text-muted-foreground mt-1">{sub}</p>
+            <CardContent className="p-2 md:p-4">
+              <div className={cn("p-1 rounded-md w-fit mb-1.5 md:mb-2", bg)}>{icon}</div>
+              <p className="text-sm md:text-xl font-bold tracking-tight leading-none">{value}</p>
+              <p className="text-[9px] md:text-xs text-muted-foreground mt-0.5 font-medium leading-tight">{label}</p>
+              <div className="mt-1 pt-1 border-t border-border/50">
+                <p className="text-[9px] md:text-[10px] text-muted-foreground leading-tight">{sub}</p>
               </div>
             </CardContent>
           </Card>

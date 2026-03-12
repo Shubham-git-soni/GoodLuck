@@ -89,7 +89,7 @@ function SelectContent({
           // Base
           "bg-popover text-popover-foreground",
           // Shape & shadow — enterprise card style
-          "relative z-[200] rounded-xl border border-border shadow-lg",
+          "relative z-[650] rounded-xl border border-border shadow-lg",
           // Sizing
           "max-h-[--radix-select-content-available-height] min-w-[8rem]",
           "origin-[--radix-select-content-transform-origin]",

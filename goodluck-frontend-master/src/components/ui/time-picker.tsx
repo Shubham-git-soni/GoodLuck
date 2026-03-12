@@ -4,7 +4,6 @@ import * as React from "react";
 import { Clock, X, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface TimePickerProps {
     value?: string;          // "HH:MM" in 24h format
@@ -53,20 +52,29 @@ function ScrollColumn<T extends string | number>({
     display?: (v: T) => string;
 }) {
     const scrollRef = React.useRef<HTMLDivElement>(null);
+    const isProgrammaticRef = React.useRef(false);
     const itemHeight = 44;
-
     const fmt = display ?? ((v: T) => String(v));
 
-    // Scroll to selected on mount / change
+    // Scroll to selected on mount only (not on every change — buttons handle their own scroll)
     React.useEffect(() => {
         const idx = items.indexOf(selected);
         if (idx >= 0 && scrollRef.current) {
             scrollRef.current.scrollTop = idx * itemHeight;
         }
-    }, [selected, items]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const scrollToIndex = (idx: number, smooth = true) => {
+        if (!scrollRef.current) return;
+        isProgrammaticRef.current = true;
+        scrollRef.current.scrollTo({ top: idx * itemHeight, behavior: smooth ? "smooth" : "instant" });
+        // Release lock after animation completes
+        setTimeout(() => { isProgrammaticRef.current = false; }, 350);
+    };
 
     const handleScroll = React.useCallback(() => {
-        if (!scrollRef.current) return;
+        if (isProgrammaticRef.current || !scrollRef.current) return;
         const idx = Math.round(scrollRef.current.scrollTop / itemHeight);
         const clamped = Math.max(0, Math.min(idx, items.length - 1));
         if (items[clamped] !== selected) onSelect(items[clamped]);
@@ -75,10 +83,9 @@ function ScrollColumn<T extends string | number>({
     const step = (dir: 1 | -1) => {
         const idx = items.indexOf(selected);
         const next = Math.max(0, Math.min(idx + dir, items.length - 1));
+        if (next === idx) return;
         onSelect(items[next]);
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = next * itemHeight;
-        }
+        scrollToIndex(next);
     };
 
     return (
@@ -88,7 +95,7 @@ function ScrollColumn<T extends string | number>({
             <button
                 type="button"
                 onClick={() => step(-1)}
-                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground"
+                className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-95 transition-all text-muted-foreground"
             >
                 <ChevronUp className="h-4 w-4" />
             </button>
@@ -101,7 +108,7 @@ function ScrollColumn<T extends string | number>({
                 <div
                     ref={scrollRef}
                     onScroll={handleScroll}
-                    className="overflow-y-auto scroll-smooth h-[132px] snap-y snap-mandatory no-scrollbar"
+                    className="overflow-y-auto h-[132px] no-scrollbar"
                     style={{ scrollbarWidth: "none" }}
                 >
                     {/* top padding spacer */}
@@ -111,12 +118,12 @@ function ScrollColumn<T extends string | number>({
                             key={String(item)}
                             type="button"
                             onClick={() => {
-                                onSelect(item);
                                 const idx = items.indexOf(item);
-                                if (scrollRef.current) scrollRef.current.scrollTop = idx * itemHeight;
+                                onSelect(item);
+                                scrollToIndex(idx);
                             }}
                             className={cn(
-                                "w-full h-[44px] snap-center flex items-center justify-center rounded-lg transition-all font-mono text-lg font-semibold",
+                                "w-full h-[44px] flex items-center justify-center rounded-lg transition-all font-mono text-lg font-semibold",
                                 item === selected
                                     ? "text-primary scale-110"
                                     : "text-muted-foreground/50 hover:text-muted-foreground hover:scale-105"
@@ -133,7 +140,7 @@ function ScrollColumn<T extends string | number>({
             <button
                 type="button"
                 onClick={() => step(1)}
-                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground"
+                className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-95 transition-all text-muted-foreground"
             >
                 <ChevronDown className="h-4 w-4" />
             </button>
@@ -272,6 +279,15 @@ export function TimePicker({
     className,
 }: TimePickerProps) {
     const [open, setOpen] = React.useState(false);
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        const mql = window.matchMedia("(max-width: 767px)");
+        setIsMobile(mql.matches);
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        mql.addEventListener("change", handler);
+        return () => mql.removeEventListener("change", handler);
+    }, []);
 
     const displayValue = React.useMemo(() => {
         if (!value) return null;
@@ -280,32 +296,39 @@ export function TimePicker({
     }, [value]);
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <button
-                    type="button"
-                    disabled={disabled}
-                    className={cn(
-                        "flex h-10 w-full items-center justify-start text-left rounded-md border border-input bg-background px-3 text-sm",
-                        "ring-offset-background transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        "disabled:cursor-not-allowed disabled:opacity-50",
-                        displayValue ? "text-foreground" : "text-muted-foreground",
-                        className
-                    )}
-                >
-                    <Clock className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 text-left">{displayValue ?? placeholder}</span>
-                </button>
-            </PopoverTrigger>
+        <>
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={() => setOpen(true)}
+                className={cn(
+                    "flex h-10 w-full items-center justify-start text-left rounded-md border border-input bg-background px-3 text-sm",
+                    "ring-offset-background transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                    displayValue ? "text-foreground" : "text-muted-foreground",
+                    className
+                )}
+            >
+                <Clock className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 text-left">{displayValue ?? placeholder}</span>
+            </button>
 
-            <PopoverContent className="w-auto p-0 border-0 rounded-3xl shadow-2xl bg-transparent" align="start">
-                <TimePickerModal
-                    value={value}
-                    onChange={onChange}
-                    onClose={() => setOpen(false)}
-                />
-            </PopoverContent>
-        </Popover>
+            {open && (
+                <div
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4"
+                    style={{ background: "rgba(0,0,0,0.6)" }}
+                    onClick={() => setOpen(false)}
+                >
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <TimePickerModal
+                            value={value}
+                            onChange={onChange}
+                            onClose={() => setOpen(false)}
+                        />
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

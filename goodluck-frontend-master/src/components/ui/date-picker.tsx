@@ -9,7 +9,6 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, X, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DatePickerProps {
   value?: string;            // "YYYY-MM-DD"
@@ -276,37 +275,43 @@ export function DatePicker({
   const isSelectedValid = selected && isValid(selected);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        {/* Trigger — same height/border as shadcn Input */}
-        <button
-          type="button"
-          disabled={disabled}
-          className={cn(
-            "flex h-10 w-full items-center justify-start text-left rounded-md border border-input bg-background px-3 text-sm",
-            "ring-offset-background transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            isSelectedValid ? "text-foreground" : "text-muted-foreground",
-            className
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="flex-1 truncate">
-            {isSelectedValid ? format(selected!, "dd MMM yyyy") : placeholder}
-          </span>
-        </button>
-      </PopoverTrigger>
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className={cn(
+          "flex h-10 w-full items-center justify-start text-left rounded-md border border-input bg-background px-3 text-sm",
+          "ring-offset-background transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          isSelectedValid ? "text-foreground" : "text-muted-foreground",
+          className
+        )}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="flex-1 truncate">
+          {isSelectedValid ? format(selected!, "dd MMM yyyy") : placeholder}
+        </span>
+      </button>
 
-      <PopoverContent className="w-auto p-0 border-0 rounded-3xl shadow-2xl bg-transparent" align="start">
-        <CalendarModal
-          value={value}
-          onChange={onChange}
-          onClose={() => setOpen(false)}
-          min={min}
-          max={max}
-        />
-      </PopoverContent>
-    </Popover>
+      {open && (
+        <div
+          className="fixed inset-0 z-[600] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setOpen(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <CalendarModal
+              value={value}
+              onChange={onChange}
+              onClose={() => setOpen(false)}
+              min={min}
+              max={max}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

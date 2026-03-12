@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Calendar, ChevronLeft, ChevronRight, Clock, MapPin, User,
+  Calendar, ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, User,
   Building2, Briefcase, Phone, Filter, AlertTriangle, CheckCircle2,
   Search, Download, Plus, TrendingUp, CalendarDays, List, X, Mail,
   MoreVertical, Check, Trash2, Edit2, Copy, PlayCircle
@@ -12,11 +12,12 @@ import PageHeader from "@/components/layouts/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select"; // kept for potential future use
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -65,13 +66,25 @@ export default function PMCalendarPage() {
   const [stateFilter, setStateFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"day" | "week" | "list">("day");
+  const [viewMode, setViewMode] = useState<"day" | "week" | "list">("list");
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
 
   // Modal State
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [newScheduleData, setNewScheduleData] = useState({
     managerId: "", date: "", startTime: "", endTime: "", schoolName: "", topic: ""
   });
+  const [managerPickerOpen, setManagerPickerOpen] = useState(false);
+
+  // Detail Sheet for mobile (replaces Popover on touch screens)
+  const [detailSheet, setDetailSheet] = useState<{ schedule: Schedule; pm: ProductManager } | null>(null);
 
   // --- Initial Data Load ---
   useEffect(() => {
@@ -202,6 +215,7 @@ export default function PMCalendarPage() {
       description: `Assigned ${newScheduleData.topic} to manager ID ${newScheduleData.managerId}.`
     });
     setNewScheduleData({ managerId: "", date: "", startTime: "", endTime: "", schoolName: "", topic: "" });
+    setManagerPickerOpen(true);
   };
 
 
@@ -258,51 +272,153 @@ export default function PMCalendarPage() {
     ? checkAvailability(productManagers.find(m => m.id === newScheduleData.managerId) || { schedules: [] } as any)
     : null;
 
+  // Shared form body for both mobile Sheet and desktop Dialog
+  const scheduleFormBody = (
+    <>
+      <div className="bg-muted/30 p-4 -mt-2 border-b rounded-xl border">
+        <div className="grid gap-4 flex-1">
+          <div className="space-y-2">
+            <Label className="text-primary font-bold">1. Select Appointment Window</Label>
+            <DatePicker value={newScheduleData.date} onChange={(date) => setNewScheduleData(p => ({ ...p, date }))} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="space-y-2">
+            <Label className="text-xs">Start Time</Label>
+            <TimePicker value={newScheduleData.startTime} onChange={(time) => setNewScheduleData(p => ({ ...p, startTime: time }))} />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">End Time</Label>
+            <TimePicker value={newScheduleData.endTime} onChange={(time) => setNewScheduleData(p => ({ ...p, endTime: time }))} />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="font-bold">2. Assign Available Manager</Label>
+        <button
+          type="button"
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-colors ${
+            selectedManagerConflict
+              ? 'border-destructive/50 bg-destructive/5'
+              : newScheduleData.managerId
+              ? 'border-input bg-primary/5'
+              : 'border-input bg-background'
+          }`}
+          onClick={() => setManagerPickerOpen(o => !o)}
+        >
+          {newScheduleData.managerId ? (
+            <div className="flex items-center gap-2">
+              <Check className={`h-3.5 w-3.5 ${selectedManagerConflict ? 'text-destructive' : 'text-primary'}`} />
+              <span className={`font-semibold ${selectedManagerConflict ? 'text-destructive' : 'text-primary'}`}>
+                {[...availablePMs, ...busyPMs.map(b => b.pm)].find(m => m.id === newScheduleData.managerId)?.name ?? "Selected Manager"}
+              </span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">Select a manager…</span>
+          )}
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${managerPickerOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {managerPickerOpen && (
+          <div className={`rounded-xl border overflow-hidden ${selectedManagerConflict ? 'border-destructive/50' : 'border-input'}`}>
+            <div className="max-h-[200px] overflow-y-auto">
+              {availablePMs.length > 0 && (
+                <div className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 border-b border-emerald-100 flex items-center gap-1.5 sticky top-0">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Available for this slot
+                </div>
+              )}
+              {availablePMs.map(pm => (
+                <button
+                  key={pm.id}
+                  type="button"
+                  className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between border-b border-border/40 last:border-0 transition-colors ${newScheduleData.managerId === pm.id ? 'bg-primary/8 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+                  onClick={() => { setNewScheduleData(p => ({ ...p, managerId: pm.id })); setManagerPickerOpen(false); }}
+                >
+                  <span>{pm.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-[9px] py-0 h-4 bg-muted/30">{pm.state}</Badge>
+                    {newScheduleData.managerId === pm.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </div>
+                </button>
+              ))}
+              {busyPMs.length > 0 && (
+                <>
+                  <div className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-destructive bg-destructive/10 border-b border-destructive/20 flex items-center gap-1.5 sticky top-[29px]">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Busy — Has Conflicts
+                  </div>
+                  {busyPMs.map(({ pm, conflict }) => (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between border-b border-border/40 last:border-0 transition-colors text-muted-foreground ${newScheduleData.managerId === pm.id ? 'bg-destructive/10 text-destructive font-semibold' : 'hover:bg-destructive/5'}`}
+                      onClick={() => { setNewScheduleData(p => ({ ...p, managerId: pm.id })); setManagerPickerOpen(false); }}
+                    >
+                      <span className="line-through">{pm.name}</span>
+                      <span className="text-[10px] bg-background border px-1 rounded">{conflict.startTime}-{conflict.endTime}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {!newScheduleData.managerId && !managerPickerOpen && <p className="text-[11px] text-muted-foreground">Tap above to select a manager.</p>}
+        {selectedManagerConflict && (
+          <div className="text-[11.5px] font-bold text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg flex items-start gap-2 shadow-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <p className="leading-tight">
+              <span className="uppercase tracking-wide">Warning: Double Booking Overlap.</span> <br />
+              Already scheduled for '<span className="italic">{selectedManagerConflict.topic}</span>' from <span className="underline">{selectedManagerConflict.startTime} to {selectedManagerConflict.endTime}</span>.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2 pt-4 border-t">
+        <Label className="font-bold">3. Target School / Client Info</Label>
+        <Input placeholder="E.g., DPS RK Puram" value={newScheduleData.schoolName} onChange={(e) => setNewScheduleData(p => ({ ...p, schoolName: e.target.value }))} required className="shadow-sm" />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-xs">Topic / Agenda</Label>
+        <Input placeholder="E.g., Science Workshop Demo" value={newScheduleData.topic} onChange={(e) => setNewScheduleData(p => ({ ...p, topic: e.target.value }))} required className="shadow-sm" />
+      </div>
+    </>
+  );
+
   // Day View specific grid constants
   const DAY_START_HOUR = 8; // 8 AM
   const DAY_END_HOUR = 20; // 8 PM
-  const ROW_HEIGHT_PX = 80; // pixels per hour
+  const ROW_HEIGHT_PX = 50; // pixels per hour — 12 hours * 50 = 600px fits in card
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => i + DAY_START_HOUR);
 
   // --- Render Components ---
   const HeaderControls = () => (
-    <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => navDate("prev")}>
+    <div className="flex items-center justify-between gap-2 w-full">
+      <div className="flex items-center gap-1.5">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navDate("prev")}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={goToToday} className="px-3">
+        <Button variant="outline" size="sm" onClick={goToToday} className="px-2.5 h-8 text-xs">
           Today
         </Button>
-        <Button variant="outline" size="icon" onClick={() => navDate("next")}>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navDate("next")}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <div className="ml-2 font-semibold text-lg flex items-center gap-2">
-          <DatePicker
-            value={formatDateStr(currentDate)}
-            onChange={(val) => {
-              if (val) setCurrentDate(new Date(val + "T12:00:00"));
-            }}
-            className="w-auto min-w-[160px] border-none shadow-none text-foreground font-bold text-lg hover:bg-muted/50 focus-visible:ring-0 bg-transparent h-10 px-2"
-          />
-          {viewMode !== "day" && (
-            <span className="text-sm text-muted-foreground font-medium hidden sm:block border-l pl-3">
-              {weekDatesLocal[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              {" - "}
-              {weekDatesLocal[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </span>
-          )}
-        </div>
+        <DatePicker
+          value={formatDateStr(currentDate)}
+          onChange={(val) => { if (val) setCurrentDate(new Date(val + "T12:00:00")); }}
+          className="w-auto min-w-[110px] md:min-w-[160px] border-none shadow-none text-foreground font-bold text-sm md:text-lg hover:bg-muted/50 focus-visible:ring-0 bg-transparent h-8 px-1.5"
+        />
       </div>
-      <div className="flex gap-1.5 p-1 bg-muted/30 border rounded-lg">
-        <Button variant={viewMode === "day" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("day")} className="text-xs h-8">
-          <Clock className="mr-1.5 h-3.5 w-3.5" /> Day View
+      <div className="flex gap-1 p-1 bg-muted/30 border rounded-lg shrink-0">
+        <Button variant={viewMode === "day" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("day")} className="h-7 px-2 md:px-3">
+          <Clock className="h-3.5 w-3.5 md:mr-1.5" /><span className="hidden md:inline text-xs">Day</span>
         </Button>
-        <Button variant={viewMode === "week" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("week")} className="text-xs h-8">
-          <Calendar className="mr-1.5 h-3.5 w-3.5" /> Week View
+        <Button variant={viewMode === "week" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("week")} className="h-7 px-2 md:px-3">
+          <Calendar className="h-3.5 w-3.5 md:mr-1.5" /><span className="hidden md:inline text-xs">Week</span>
         </Button>
-        <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="text-xs h-8">
-          <List className="mr-1.5 h-3.5 w-3.5" /> List
+        <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="h-7 px-2 md:px-3">
+          <List className="h-3.5 w-3.5 md:mr-1.5" /><span className="hidden md:inline text-xs">List</span>
         </Button>
       </div>
     </div>
@@ -310,6 +426,55 @@ export default function PMCalendarPage() {
 
   return (
     <PageContainer>
+      {/* Mobile Schedule Detail Sheet */}
+      <Sheet open={!!detailSheet} onOpenChange={(open) => !open && setDetailSheet(null)}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85dvh] overflow-y-auto pb-8">
+          {detailSheet && (
+            <>
+              <SheetHeader className="mb-4">
+                <SheetTitle className="text-left pr-8">{detailSheet.schedule.topic}</SheetTitle>
+                <SheetDescription className="text-left">
+                  <Badge className="uppercase text-[10px] mr-2">{detailSheet.schedule.approvalStatus}</Badge>
+                  {detailSheet.schedule.date}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Clock className="h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">Time</div>
+                    <div className="text-sm font-semibold">{detailSheet.schedule.startTime} – {detailSheet.schedule.endTime}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Building2 className="h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">School / Location</div>
+                    <div className="text-sm font-semibold">{detailSheet.schedule.schoolName}</div>
+                    <div className="text-xs text-muted-foreground">{detailSheet.schedule.city}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <User className="h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">Product Manager</div>
+                    <div className="text-sm font-semibold">{detailSheet.pm.name}</div>
+                    <div className="text-xs text-muted-foreground">{detailSheet.pm.state} • {detailSheet.pm.email}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <MapPin className="h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5">Activity</div>
+                    <div className="text-sm font-semibold">{detailSheet.schedule.activity}</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex items-start justify-between mb-4">
@@ -318,105 +483,51 @@ export default function PMCalendarPage() {
             description="Manage Product Manager itineraries and resolve assignment conflicts."
           />
           <div className="flex gap-2.5">
-            {/* Slide-out Panel for New Schedule */}
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetTrigger asChild>
-                <Button size="sm" className="shadow-md">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Schedule
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[100vw] sm:w-[540px] sm:max-w-[540px] border-l shadow-2xl overflow-y-auto px-6">
-                <SheetHeader className="mb-6">
-                  <SheetTitle className="text-2xl font-bold">Assign a Manager</SheetTitle>
-                  <SheetDescription>
-                    Create a new block on a Product Manager's calendar.
-                  </SheetDescription>
-                </SheetHeader>
-                <form onSubmit={handleScheduleSubmit} className="space-y-5">
-                  <div className="bg-muted/30 p-4 -mx-6 -mt-2 border-b">
-                    <div className="grid gap-4 flex-1">
-                      <div className="space-y-2">
-                        <Label className="text-primary font-bold">1. Select Appointment Window</Label>
-                        <DatePicker value={newScheduleData.date} onChange={(date) => setNewScheduleData(p => ({ ...p, date }))} />
-                      </div>
+            {/* New Schedule button — opens sheet programmatically */}
+            <Button size="sm" className="shadow-md" onClick={() => setIsSheetOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Schedule
+            </Button>
+            {/* Slide-out Panel for New Schedule — fully controlled, no SheetTrigger */}
+            {/* Mobile: bottom sheet */}
+            {isMobile ? (
+              <Sheet open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) { setManagerPickerOpen(false); } }}>
+                <SheetContent side="bottom" className="rounded-t-3xl max-h-[92dvh] pb-8 px-5 flex flex-col overflow-x-hidden">
+                  <SheetHeader className="mb-6">
+                    <SheetTitle className="text-2xl font-bold">Assign a Manager</SheetTitle>
+                    <SheetDescription>Create a new block on a Product Manager's calendar.</SheetDescription>
+                  </SheetHeader>
+                  <form onSubmit={handleScheduleSubmit} className="space-y-5 overflow-y-auto flex-1">
+                    {scheduleFormBody}
+                    <div className="pt-6 border-t mt-6 flex gap-3">
+                      <Button type="button" variant="outline" className="flex-1 h-11 text-base" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
+                      <Button type="submit" variant={selectedManagerConflict ? "destructive" : "default"} className="flex-1 h-11 text-base shadow-sm">
+                        {selectedManagerConflict ? "Override & Confirm" : "Confirm Schedule"}
+                      </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Start Time</Label>
-                        <TimePicker value={newScheduleData.startTime} onChange={(time) => setNewScheduleData(p => ({ ...p, startTime: time }))} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">End Time</Label>
-                        <TimePicker value={newScheduleData.endTime} onChange={(time) => setNewScheduleData(p => ({ ...p, endTime: time }))} />
-                      </div>
+                  </form>
+                </SheetContent>
+              </Sheet>
+            ) : (
+              /* Desktop: right-side sheet */
+              <Sheet open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) { setManagerPickerOpen(false); } }}>
+                <SheetContent side="right" className="w-[440px] max-h-screen pb-8 px-6 flex flex-col overflow-hidden">
+                  <SheetHeader className="mb-6 border-b pb-4">
+                    <SheetTitle className="text-xl font-bold">Assign a Manager</SheetTitle>
+                    <SheetDescription>Create a new block on a Product Manager's calendar.</SheetDescription>
+                  </SheetHeader>
+                  <form onSubmit={handleScheduleSubmit} className="space-y-5 overflow-y-auto flex-1">
+                    {scheduleFormBody}
+                    <div className="pt-4 border-t flex gap-3 justify-end">
+                      <Button type="button" variant="outline" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
+                      <Button type="submit" variant={selectedManagerConflict ? "destructive" : "default"} className="shadow-sm">
+                        {selectedManagerConflict ? "Override & Confirm" : "Confirm Schedule"}
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="font-bold">2. Assign Available Manager</Label>
-                    <Select value={newScheduleData.managerId} onValueChange={(v) => setNewScheduleData(p => ({ ...p, managerId: v }))} required>
-                      <SelectTrigger className={selectedManagerConflict ? "border-destructive/50 bg-destructive/5 text-destructive font-semibold shadow-sm shadow-destructive/10" : "shadow-sm"}>
-                        <SelectValue placeholder="Select PM from available list..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        <SelectGroup>
-                          <SelectLabel className="text-emerald-700 bg-emerald-50 sticky top-0 font-bold border-b border-emerald-100 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Available for this slot</SelectLabel>
-                          {availablePMs.map(pm => (
-                            <SelectItem key={pm.id} value={pm.id}>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{pm.name}</span>
-                                <Badge variant="outline" className="text-[9px] py-0 h-4 bg-muted/30">{pm.state}</Badge>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        {busyPMs.length > 0 && (
-                          <SelectGroup>
-                            <SelectLabel className="text-destructive bg-destructive/10 sticky top-0 font-bold border-b border-destructive/20 mt-2 flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Busy (Has Conflicts)</SelectLabel>
-                            {busyPMs.map(({ pm, conflict }) => (
-                              <SelectItem key={pm.id} value={pm.id} className="text-muted-foreground focus:bg-destructive/10 focus:text-destructive">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium line-through decoration-destructive/50">{pm.name}</span>
-                                  <span className="text-[10px] bg-background border px-1 rounded truncate max-w-[120px]">
-                                    {conflict.startTime}-{conflict.endTime}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {selectedManagerConflict && (
-                      <div className="text-[11.5px] font-bold text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg flex items-start gap-2 shadow-sm animate-in slide-in-from-top-2">
-                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                        <p className="leading-tight">
-                          <span className="uppercase tracking-wide">Warning: Double Booking Overlap.</span> <br />
-                          This manager is already scheduled for '<span className="italic">{selectedManagerConflict.topic}</span>' at {selectedManagerConflict.schoolName} from <span className="underline">{selectedManagerConflict.startTime} to {selectedManagerConflict.endTime}</span>.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 pt-4 border-t">
-                    <Label className="font-bold">3. Target School / Client Info</Label>
-                    <Input placeholder="E.g., DPS RK Puram" value={newScheduleData.schoolName} onChange={(e) => setNewScheduleData(p => ({ ...p, schoolName: e.target.value }))} required className="shadow-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">Topic / Agenda</Label>
-                    <Input placeholder="E.g., Science Workshop Demo" value={newScheduleData.topic} onChange={(e) => setNewScheduleData(p => ({ ...p, topic: e.target.value }))} required className="shadow-sm" />
-                  </div>
-
-                  <div className="pt-6 border-t mt-6 gap-3 flex justify-end">
-                    <Button type="button" variant="outline" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
-                    <Button type="submit" variant={selectedManagerConflict ? "destructive" : "default"} className="shadow-sm">
-                      {selectedManagerConflict ? "Override and Confirm" : "Confirm Schedule"}
-                    </Button>
-                  </div>
-                </form>
-              </SheetContent>
-            </Sheet>
+                  </form>
+                </SheetContent>
+              </Sheet>
+            )}
 
           </div>
         </div>
@@ -424,7 +535,7 @@ export default function PMCalendarPage() {
       </div>
 
       {/* Analytics KPI Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
         <Card className="border bg-gradient-to-br from-background to-muted/30 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
             <User className="h-16 w-16" />
@@ -436,7 +547,7 @@ export default function PMCalendarPage() {
               </div>
             </div>
             <div>
-              <p className="text-2xl font-black tracking-tighter text-foreground drop-shadow-sm leading-none">{filteredManagers.length}</p>
+              <p className="text-xl md:text-2xl font-black tracking-tighter text-foreground drop-shadow-sm leading-none">{filteredManagers.length}</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Total Staff</p>
             </div>
             <div className="mt-2 text-[10px] font-semibold text-muted-foreground/80 flex items-center gap-1.5 bg-background border px-2 py-0.5 w-max rounded-md shadow-sm">
@@ -456,7 +567,7 @@ export default function PMCalendarPage() {
               </div>
             </div>
             <div>
-              <p className="text-2xl font-black tracking-tighter text-foreground drop-shadow-sm leading-none">{totalSchedulesThisWeek}</p>
+              <p className="text-xl md:text-2xl font-black tracking-tighter text-foreground drop-shadow-sm leading-none">{totalSchedulesThisWeek}</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 text-blue-600/80">Week Workload</p>
             </div>
             <div className="mt-2 text-[10px] font-bold text-blue-600/80 flex items-center gap-1.5 border border-blue-200 bg-blue-50/50 px-2 py-0.5 w-max rounded-md shadow-sm dark:bg-blue-900/20 dark:border-blue-800">
@@ -474,7 +585,7 @@ export default function PMCalendarPage() {
               </div>
             </div>
             <div>
-              <p className="text-2xl font-black tracking-tighter text-foreground drop-shadow-sm leading-none">{busyTodayCount}</p>
+              <p className="text-xl md:text-2xl font-black tracking-tighter text-foreground drop-shadow-sm leading-none">{busyTodayCount}</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 text-amber-600/80">Busy Today</p>
             </div>
             <div className="mt-2 bg-background/50 p-1.5 rounded-lg border shadow-sm backdrop-blur-sm">
@@ -495,7 +606,7 @@ export default function PMCalendarPage() {
               </div>
             </div>
             <div>
-              <p className="text-2xl font-black tracking-tighter text-destructive drop-shadow-sm leading-none">{totalConflicts}</p>
+              <p className="text-xl md:text-2xl font-black tracking-tighter text-destructive drop-shadow-sm leading-none">{totalConflicts}</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Conflicts</p>
             </div>
             <div className={`mt-2 text-[10px] font-bold flex items-center gap-1 border px-2 py-0.5 w-max rounded-md shadow-sm ${totalConflicts === 0 ? 'text-emerald-600 bg-emerald-50/50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'text-destructive bg-destructive/10 border-destructive/20'}`}>
@@ -511,14 +622,15 @@ export default function PMCalendarPage() {
 
       {/* ======================= DAY VIEW (GRID TIMELINE) ======================= */}
       {viewMode === "day" && (
-        <Card className="border overflow-hidden flex flex-col h-[650px] shadow-sm bg-background">
+        <>
+        <Card className="flex border overflow-hidden flex-col h-[650px] shadow-sm bg-background">
           <div className="flex flex-1 overflow-hidden relative">
             {/* Y-Axis: Time Headers Fixed Left */}
             <div className="w-16 flex-shrink-0 border-r bg-muted/20 sticky left-0 z-30 shadow-[1px_0_5px_rgba(0,0,0,0.05)]">
               <div className="h-14 border-b bg-muted/40" /> {/* Corner Top Left */}
               <div className="relative">
                 {hours.map(hour => (
-                  <div key={hour} className="absolute w-full text-right pr-2 text-[10px] font-medium text-muted-foreground -mt-2" style={{ top: (hour - DAY_START_HOUR) * ROW_HEIGHT_PX }}>
+                  <div key={hour} className="absolute w-full text-right pr-2 text-[10px] font-medium text-muted-foreground" style={{ top: (hour - DAY_START_HOUR) * ROW_HEIGHT_PX + 2 }}>
                     {hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}
                   </div>
                 ))}
@@ -592,27 +704,27 @@ export default function PMCalendarPage() {
 
                           const colors = getApprovalColors(sch.approvalStatus);
 
-                          return (
-                            <Popover key={sch.id}>
-                              <PopoverTrigger asChild>
-                                <div
-                                  className={`absolute left-1 right-1 rounded-md sm:rounded-lg border-l-4 p-1.5 sm:p-2 overflow-hidden shadow-sm hover:shadow-md hover:ring-1 cursor-pointer transition-all hover:z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm group/event ${colors.border}`}
-                                  style={{
-                                    top: topPx + 1, // +1 for aesthetics 
-                                    height: Math.max(heightPx - 2, 24), // min-height text 
-                                  }}
-                                >
-                                  <div className={`absolute inset-0 opacity-60 dark:opacity-100 ${colors.bg}`} />
-                                  <div className="relative h-full flex flex-col z-10">
-                                    <div className="flex items-start justify-between gap-1 mb-0.5">
-                                      <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap bg-background/80 rounded px-1">{sch.startTime}</span>
-                                      {heightPx >= ROW_HEIGHT_PX && <Badge className={`h-3 px-1 text-[8px] rounded-sm uppercase ${colors.badge} text-white font-bold tracking-wider opacity-80 border-none`}>{sch.approvalStatus.slice(0, 4)}</Badge>}
-                                    </div>
-                                    <div className={`text-[11px] font-bold leading-none line-clamp-1 group-hover/event:line-clamp-none group-hover/event:mb-1 ${colors.text}`}>{sch.topic}</div>
-                                    {heightPx >= 45 && <div className="text-[10px] text-muted-foreground line-clamp-1 mt-1 font-medium">{sch.schoolName}</div>}
-                                  </div>
+                          const eventCard = (
+                            <div
+                              className={`absolute left-1 right-1 rounded-md border-l-4 p-1.5 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:z-10 group/event ${colors.border} ${colors.bg}`}
+                              style={{ top: topPx + 1, height: Math.max(heightPx - 2, 24) }}
+                              onClick={isMobile ? (e) => { e.stopPropagation(); setDetailSheet({ schedule: sch, pm }); } : undefined}
+                            >
+                              <div className="h-full flex flex-col">
+                                <div className="flex items-start justify-between gap-1 mb-0.5">
+                                  <span className={`text-[9px] font-bold whitespace-nowrap ${colors.text}`}>{sch.startTime} – {sch.endTime}</span>
+                                  {heightPx >= ROW_HEIGHT_PX && <Badge className={`h-3.5 px-1 text-[8px] rounded-sm uppercase ${colors.badge} text-white font-bold border-none shrink-0`}>{sch.approvalStatus.slice(0, 4)}</Badge>}
                                 </div>
-                              </PopoverTrigger>
+                                <div className={`text-[11px] font-bold leading-tight line-clamp-2 ${colors.text}`}>{sch.topic}</div>
+                                {heightPx >= 45 && <div className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5 font-medium">{sch.schoolName}</div>}
+                              </div>
+                            </div>
+                          );
+                          return isMobile ? (
+                            <React.Fragment key={sch.id}>{eventCard}</React.Fragment>
+                          ) : (
+                            <Popover key={sch.id}>
+                              <PopoverTrigger asChild>{eventCard}</PopoverTrigger>
                               <PopoverContent side="right" align="start" className="w-[320px] p-0 overflow-hidden shadow-xl border-t-4 border-t-primary fade-in slide-in-from-left-2">
                                 <div className="bg-muted/20 p-4 border-b relative">
                                   <Badge className="absolute right-4 top-4 uppercase tracking-widest text-[9px] shadow-sm">{sch.approvalStatus}</Badge>
@@ -668,90 +780,102 @@ export default function PMCalendarPage() {
             </div>
           </div>
         </Card>
+        </>
       )}
 
       {/* ======================= WEEK VIEW (GANNT TIMELINE) ======================= */}
       {viewMode === "week" && (
-        <Card className="border shadow-sm overflow-hidden flex flex-col bg-background h-[650px]">
-          {/* Header: Dates */}
-          <div className="flex border-b shadow-sm z-20 sticky top-0 bg-muted/10 backdrop-blur-md">
-            <div className="w-48 xl:w-64 p-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground flex items-center border-r shrink-0">
-              <Briefcase className="mr-2 h-4 w-4" /> Team / Manager
-            </div>
-            <div className="flex flex-1 overflow-hidden">
+        <>
+        {/* Full week grid — scrollable on mobile */}
+        <Card className="flex border shadow-sm overflow-hidden flex-col bg-background h-[650px]">
+          {/* Single scroll container — header + body scroll together horizontally */}
+          <div className="flex-1 overflow-auto custom-scrollbar">
+            {/* Use CSS grid so header and body columns are pixel-perfect aligned */}
+            <div style={{ display: 'grid', gridTemplateColumns: '224px repeat(7, minmax(120px, 1fr))', minWidth: 900 }}>
+              {/* Header: Team/Manager label */}
+              <div className="p-3 font-semibold text-xs uppercase tracking-wider text-muted-foreground flex items-center border-r border-b shadow-sm sticky top-0 bg-background z-30">
+                <Briefcase className="mr-2 h-4 w-4" /> Team / Manager
+              </div>
+              {/* Header: Day columns */}
               {weekDatesLocal.map((d, i) => {
                 const today = isTodayDate(d);
                 return (
-                  <div key={i} className={`flex-1 min-w-[120px] p-3 border-r flex flex-col ${today ? 'bg-primary/5' : ''}`}>
-                    <span className={`text-[10px] uppercase font-bold ${today ? 'text-primary' : 'text-muted-foreground'}`}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                  <div key={i} className={`p-3 border-r border-b flex flex-col relative bg-background sticky top-0 z-30`}>
+                    {today && <div className="absolute inset-0 bg-primary/5 pointer-events-none z-0" />}
+                    <span className={`text-[10px] uppercase font-bold relative z-10 ${today ? 'text-primary' : 'text-muted-foreground'}`}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5 relative z-10">
                       <span className={`text-xl font-bold ${today ? 'text-primary' : ''}`}>{d.getDate()}</span>
                       {today && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                     </div>
                   </div>
                 );
               })}
-            </div>
-          </div>
 
-          {/* Content Body */}
-          <div className="flex-1 overflow-y-auto w-full relative custom-scrollbar">
-            {filteredManagers.map(pm => (
-              <div key={pm.id} className="flex border-b border-border/60 hover:bg-muted/10 transition-colors group">
-                {/* Manager Column */}
-                <div className="w-48 xl:w-64 p-3 border-r relative shrink-0">
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                      <span className="text-xs font-bold text-primary">{pm.name.charAt(0)}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-sm truncate flex items-center gap-2">
-                        {pm.name}
+              {/* Content Body — each PM row spans full 8 columns */}
+              {filteredManagers.map(pm => (
+                <React.Fragment key={pm.id}>
+                  {/* Manager Column */}
+                  <div className="p-3 border-r border-b border-border/60 relative flex items-center hover:bg-muted/10 transition-colors group" style={{ minHeight: 80 }}>
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                        <span className="text-xs font-bold text-primary">{pm.name.charAt(0)}</span>
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-1 items-center">
-                        <Badge variant="outline" className="px-1 h-3.5 text-[8px] rounded-sm">{pm.id}</Badge>
-                        <span className="truncate">{pm.state}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-sm truncate flex items-center gap-2">
+                          {pm.name}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-1 items-center">
+                          <Badge variant="outline" className="px-1 h-3.5 text-[8px] rounded-sm">{pm.id}</Badge>
+                          <span className="truncate">{pm.state}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Schedule Columns per day */}
-                <div className="flex flex-1">
+                  {/* Schedule Columns per day */}
                   {weekDatesLocal.map((d, i) => {
                     const schs = getSchedules(pm, formatDateStr(d)).sort((a, b) => parseTime(a.startTime) - parseTime(b.startTime));
                     const isToday = isTodayDate(d);
                     return (
-                      <div key={i} className={`flex-1 min-w-[120px] border-r border-border/40 p-1.5 flex flex-col gap-1.5 ${isToday ? 'bg-primary/5' : ''}`}>
+                      <div key={i} className={`border-r border-b border-border/40 p-1.5 relative flex flex-col gap-1 items-start justify-center hover:bg-muted/10 transition-colors group`} style={{ minHeight: 80 }}>
+                        {isToday && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
                         {schs.map(sch => {
                           const colors = getApprovalColors(sch.approvalStatus);
-                          return (
+                          const cardContent = (
+                            <div
+                              className={`p-1.5 rounded border-l-[3px] shadow-sm text-left hover:shadow-md cursor-pointer transition-all w-[85%] ${colors.border} ${colors.bg} dark:bg-gray-800`}
+                              onClick={isMobile ? (e) => { e.stopPropagation(); setDetailSheet({ schedule: sch, pm }); } : undefined}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="text-[9px] font-bold text-muted-foreground/80 mb-0.5">{sch.startTime}</div>
+                                {!isMobile && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button className="h-4 w-4 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-muted/50 rounded transition-all">
+                                        <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-40 text-xs">
+                                      <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground">Quick Actions</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem><Check className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Mark Completed</DropdownMenuItem>
+                                      <DropdownMenuItem><Edit2 className="h-3.5 w-3.5 mr-2 text-blue-500" /> Edit Details</DropdownMenuItem>
+                                      <DropdownMenuItem><Copy className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copy Schedule</DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive"><Trash2 className="h-3.5 w-3.5 mr-2" /> Cancel Event</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                              <div className={`text-[10px] font-bold truncate leading-tight ${colors.text}`}>{sch.topic}</div>
+                              <div className="text-[9px] text-muted-foreground truncate">{sch.schoolName}</div>
+                            </div>
+                          );
+                          return isMobile ? (
+                            <React.Fragment key={sch.id}>{cardContent}</React.Fragment>
+                          ) : (
                             <Popover key={sch.id}>
-                              <PopoverTrigger asChild>
-                                <div className={`p-1.5 rounded border-l-[3px] shadow-sm text-left hover:shadow-md cursor-pointer transition-all ${colors.border} ${colors.bg} dark:bg-gray-800`}>
-                                  <div className="flex items-start justify-between">
-                                    <div className="text-[9px] font-bold text-muted-foreground/80 mb-0.5">{sch.startTime}</div>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <button className="h-4 w-4 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-muted/50 rounded transition-all">
-                                          <MoreVertical className="h-3 w-3 text-muted-foreground" />
-                                        </button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="w-40 text-xs">
-                                        <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground">Quick Actions</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem><Check className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Mark Completed</DropdownMenuItem>
-                                        <DropdownMenuItem><Edit2 className="h-3.5 w-3.5 mr-2 text-blue-500" /> Edit Details</DropdownMenuItem>
-                                        <DropdownMenuItem><Copy className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copy Schedule</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive"><Trash2 className="h-3.5 w-3.5 mr-2" /> Cancel Event</DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                  <div className={`text-[10px] font-bold truncate leading-tight ${colors.text}`}>{sch.topic}</div>
-                                  <div className="text-[9px] text-muted-foreground truncate">{sch.schoolName}</div>
-                                </div>
-                              </PopoverTrigger>
+                              <PopoverTrigger asChild>{cardContent}</PopoverTrigger>
                               <PopoverContent className="w-64 p-3 text-sm" align="start">
                                 <div className="font-bold mb-1">{sch.topic}</div>
                                 <div className="text-xs text-muted-foreground flex justify-between mb-2">
@@ -763,98 +887,142 @@ export default function PMCalendarPage() {
                             </Popover>
                           );
                         })}
-                        {/* Optional add button on hover */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <div className="h-full min-h-[40px] rounded border border-dashed border-transparent hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer mt-auto">
-                              <Plus className="h-4 w-4 text-primary/50" />
-                            </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="center" className="w-48 text-xs">
-                            <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">New For {pm.name}</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => {
+                        {/* Add button — always visible on mobile, hover-only on desktop */}
+                        {isMobile ? (
+                          <button
+                            className="flex items-center justify-center cursor-pointer h-6 mt-1 w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setNewScheduleData({ ...newScheduleData, managerId: pm.id, date: formatDateStr(d), topic: "" });
                               setIsSheetOpen(true);
-                            }}>
-                              <Briefcase className="h-3.5 w-3.5 mr-2 text-primary" /> Regular Visit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              setNewScheduleData({ ...newScheduleData, managerId: pm.id, date: formatDateStr(d), topic: "Product Workshop" });
-                              setIsSheetOpen(true);
-                            }}>
-                              <PlayCircle className="h-3.5 w-3.5 mr-2 text-amber-500" /> Workshop Session
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-muted-foreground">
-                              <User className="h-3.5 w-3.5 mr-2" /> Mark as Leave/OOF
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            }}
+                          >
+                            <div className="h-6 w-6 rounded-full border border-dashed border-primary/50 bg-primary/10 flex items-center justify-center">
+                              <Plus className="h-3 w-3 text-primary" />
+                            </div>
+                          </button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <div className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer h-6 mt-1">
+                                <div className="h-6 w-6 rounded-full border border-dashed border-primary/30 bg-primary/5 flex items-center justify-center hover:border-primary/60 hover:bg-primary/10 transition-colors">
+                                  <Plus className="h-3 w-3 text-primary/50" />
+                                </div>
+                              </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-48 text-xs">
+                              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">New For {pm.name}</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => {
+                                setNewScheduleData({ ...newScheduleData, managerId: pm.id, date: formatDateStr(d), topic: "" });
+                                setIsSheetOpen(true);
+                              }}>
+                                <Briefcase className="h-3.5 w-3.5 mr-2 text-primary" /> Regular Visit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setNewScheduleData({ ...newScheduleData, managerId: pm.id, date: formatDateStr(d), topic: "Product Workshop" });
+                                setIsSheetOpen(true);
+                              }}>
+                                <PlayCircle className="h-3.5 w-3.5 mr-2 text-amber-500" /> Workshop Session
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-muted-foreground">
+                                <User className="h-3.5 w-3.5 mr-2" /> Mark as Leave/OOF
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     );
                   })}
-                </div>
-              </div>
-            ))}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </Card>
+        </>
       )}
 
       {/* ======================= LIST VIEW ======================= */}
-      {viewMode === "list" && (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/40 border-b">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Date / Time</th>
-                  <th className="px-4 py-3 font-semibold">Manager</th>
-                  <th className="px-4 py-3 font-semibold">Agenda Focus</th>
-                  <th className="px-4 py-3 font-semibold">Location</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredManagers.flatMap(pm => pm.schedules.map(sch => ({ ...sch, pm }))).sort((a, b) => {
-                  if (a.date !== b.date) return a.date.localeCompare(b.date);
-                  return parseTime(a.startTime) - parseTime(b.startTime);
-                }).filter(item => {
-                  const d = new Date(item.date);
-                  return d >= weekDatesLocal[0] && d <= weekDatesLocal[6];
-                }).map((sch, i) => (
-                  <tr key={i} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-semibold text-foreground">{sch.date}</div>
-                      <div className="text-xs text-muted-foreground flex items-center mt-0.5"><Clock className="h-3 w-3 mr-1" /> {sch.startTime} - {sch.endTime}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold">{sch.pm.name}</div>
-                      <div className="text-xs text-muted-foreground">{sch.pm.state}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className="mb-1 text-[9px] uppercase tracking-wider">{sch.type}</Badge>
-                      <div className="font-medium text-foreground">{sch.topic}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-foreground flex items-center"><Building2 className="h-3.5 w-3.5 mr-1" /> {sch.schoolName}</div>
-                      <div className="text-xs text-muted-foreground pl-4 mt-0.5">{sch.city}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge className={`text-white text-[10px] uppercase font-bold ${getApprovalColors(sch.approvalStatus).badge}`}>
-                        {sch.approvalStatus}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredManagers.flatMap(pm => pm.schedules).length === 0 && (
-              <div className="text-center p-8 text-muted-foreground">No records matched active filters layer.</div>
-            )}
-          </div>
-        </Card>
-      )}
+      {viewMode === "list" && (() => {
+        const listItems = filteredManagers.flatMap(pm => pm.schedules.map(sch => ({ ...sch, pm }))).sort((a, b) => {
+          if (a.date !== b.date) return a.date.localeCompare(b.date);
+          return parseTime(a.startTime) - parseTime(b.startTime);
+        });
+        if (listItems.length === 0) return (
+          <Card><div className="text-center p-8 text-muted-foreground">No records matched active filters.</div></Card>
+        );
+        return (
+          <>
+            {/* Mobile: card list */}
+            <div className="md:hidden space-y-2">
+              {listItems.map((sch, i) => (
+                <div key={i} className="bg-card border rounded-xl p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <div className="font-semibold text-sm text-foreground">{sch.schoolName}</div>
+                      <div className="text-xs text-muted-foreground">{sch.city}</div>
+                    </div>
+                    <Badge className={`text-white text-[10px] uppercase font-bold shrink-0 ${getApprovalColors(sch.approvalStatus).badge}`}>
+                      {sch.approvalStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                    <span className="flex items-center gap-1"><User className="h-3 w-3" />{sch.pm.name}</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{sch.date}</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{sch.startTime} – {sch.endTime}</span>
+                  </div>
+                  {sch.topic && <p className="text-xs text-foreground/70 mt-1.5 line-clamp-1">{sch.topic}</p>}
+                  <div className="mt-1.5"><Badge variant="outline" className="text-[9px] uppercase tracking-wider">{sch.type}</Badge></div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: table */}
+            <Card className="hidden md:block">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/40 border-b">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Date / Time</th>
+                      <th className="px-4 py-3 font-semibold">Manager</th>
+                      <th className="px-4 py-3 font-semibold">Agenda Focus</th>
+                      <th className="px-4 py-3 font-semibold">Location</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {listItems.map((sch, i) => (
+                      <tr key={i} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="font-semibold text-foreground">{sch.date}</div>
+                          <div className="text-xs text-muted-foreground flex items-center mt-0.5"><Clock className="h-3 w-3 mr-1" /> {sch.startTime} - {sch.endTime}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold">{sch.pm.name}</div>
+                          <div className="text-xs text-muted-foreground">{sch.pm.state}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="mb-1 text-[9px] uppercase tracking-wider">{sch.type}</Badge>
+                          <div className="font-medium text-foreground">{sch.topic}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-foreground flex items-center"><Building2 className="h-3.5 w-3.5 mr-1" /> {sch.schoolName}</div>
+                          <div className="text-xs text-muted-foreground pl-4 mt-0.5">{sch.city}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={`text-white text-[10px] uppercase font-bold ${getApprovalColors(sch.approvalStatus).badge}`}>
+                            {sch.approvalStatus}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </>
+        );
+      })()}
 
     </PageContainer>
   );
